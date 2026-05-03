@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Callable
 
 from dataact.cache import SessionCache
-from dataact.exceptions import MaxTurnsExceeded, ToolNotFoundError
+from dataact.exceptions import MaxTurnsExceeded
 from dataact.format import format_tool_output
 from dataact.logger import log_turn, setup_logger
 from dataact.observe import time_block
@@ -116,28 +116,34 @@ class Harness:
         for tub in tool_uses:
             spec = tool_map.get(tub.tool_name)
             if spec is None or spec.handler is None:
-                results.append(ToolResultBlock(
-                    tool_use_id=tub.tool_use_id,
-                    content=f"Tool not found: {tub.tool_name!r}",
-                    is_error=True,
-                ))
+                results.append(
+                    ToolResultBlock(
+                        tool_use_id=tub.tool_use_id,
+                        content=f"Tool not found: {tub.tool_name!r}",
+                        is_error=True,
+                    )
+                )
                 continue
             try:
                 raw = spec.handler(**tub.tool_input)
                 output = format_tool_output(raw, cache=self._cache)
             except Exception as exc:
                 output = repr(exc)
-                results.append(ToolResultBlock(
+                results.append(
+                    ToolResultBlock(
+                        tool_use_id=tub.tool_use_id,
+                        content=output,
+                        is_error=True,
+                    )
+                )
+                continue
+            results.append(
+                ToolResultBlock(
                     tool_use_id=tub.tool_use_id,
                     content=output,
-                    is_error=True,
-                ))
-                continue
-            results.append(ToolResultBlock(
-                tool_use_id=tub.tool_use_id,
-                content=output,
-                is_error=False,
-            ))
+                    is_error=False,
+                )
+            )
 
         return results
 

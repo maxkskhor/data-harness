@@ -13,11 +13,13 @@ class Planner:
 
     def add(self, items: list[str]) -> str:
         for text in items:
-            self._items.append({
-                "id": str(uuid.uuid4())[:8],
-                "text": text,
-                "status": "pending",
-            })
+            self._items.append(
+                {
+                    "id": str(uuid.uuid4())[:8],
+                    "text": text,
+                    "status": "pending",
+                }
+            )
         self._turns_since_update = 0
         return self.list()
 
@@ -47,13 +49,13 @@ class Planner:
 
         if n >= 12:
             return (
-                f"URGENT: You have {len(pending)} pending todo item(s) that haven't been "
-                f"updated in {n} turns. Address them immediately."
+                f"URGENT: You have {len(pending)} pending todo item(s) "
+                f"that haven't been updated in {n} turns. Address them immediately."
             )
         if n >= 8:
             return (
-                f"WARNING: {len(pending)} pending todo item(s) remain with no updates for "
-                f"{n} turns. Please make progress on your plan."
+                f"WARNING: {len(pending)} pending todo item(s) remain "
+                f"with no updates for {n} turns. Please make progress on your plan."
             )
         if n >= 4:
             return (

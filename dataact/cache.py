@@ -5,7 +5,6 @@ import keyword
 import re
 from typing import Any
 
-
 _VALID_IDENTIFIER = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 
@@ -20,7 +19,9 @@ class SessionCache:
 
     def put(self, name: str, value: Any, overwrite: bool = False) -> str:
         if not _is_valid_identifier(name):
-            raise ValueError(f"Invalid handle name: {name!r}. Must be a valid Python identifier.")
+            raise ValueError(
+                f"Invalid handle name: {name!r}. Must be a valid Python identifier."
+            )
         if overwrite or name not in self._store:
             self._store[name] = value
             return name
@@ -46,6 +47,7 @@ class SessionCache:
     def _make_snapshot(self, value: Any) -> str:
         try:
             import pandas as pd
+
             if isinstance(value, pd.DataFrame):
                 return self._snapshot_dataframe(value)
         except ImportError:
@@ -53,6 +55,7 @@ class SessionCache:
 
         try:
             import numpy as np
+
             if isinstance(value, np.ndarray):
                 return self._snapshot_ndarray(value)
         except ImportError:
@@ -69,45 +72,56 @@ class SessionCache:
         cols = list(df.columns)
         shape = list(df.shape)
         sample = df.head(self.sample_size).to_dict(orient="records")
-        return json.dumps({
-            "type": "dataframe",
-            "shape": shape,
-            "columns": cols,
-            "sample": sample,
-        })
+        return json.dumps(
+            {
+                "type": "dataframe",
+                "shape": shape,
+                "columns": cols,
+                "sample": sample,
+            }
+        )
 
     def _snapshot_ndarray(self, arr) -> str:
         flat = arr.flat
-        sample = [x.item() if hasattr(x, "item") else x for _, x in zip(range(self.sample_size), flat)]
-        return json.dumps({
-            "type": "ndarray",
-            "shape": list(arr.shape),
-            "dtype": str(arr.dtype),
-            "sample": sample,
-        })
+        sample = [
+            x.item() if hasattr(x, "item") else x
+            for _, x in zip(range(self.sample_size), flat)
+        ]
+        return json.dumps(
+            {
+                "type": "ndarray",
+                "shape": list(arr.shape),
+                "dtype": str(arr.dtype),
+                "sample": sample,
+            }
+        )
 
     def _snapshot_list(self, lst: list) -> str:
-        sample = lst[:self.sample_size]
+        sample = lst[: self.sample_size]
         try:
             sample_json = json.dumps(sample)
         except Exception:
             sample_json = repr(sample)
-        return json.dumps({
-            "type": "list",
-            "length": len(lst),
-            "sample": json.loads(sample_json) if sample_json else [],
-        })
+        return json.dumps(
+            {
+                "type": "list",
+                "length": len(lst),
+                "sample": json.loads(sample_json) if sample_json else [],
+            }
+        )
 
     def _snapshot_dict(self, d: dict) -> str:
-        keys = list(d.keys())[:self.sample_size]
+        keys = list(d.keys())[: self.sample_size]
         sample = {k: d[k] for k in keys}
         try:
             sample_str = json.dumps(sample, default=repr)
         except Exception:
             sample_str = repr(sample)
-        return json.dumps({
-            "type": "dict",
-            "total_keys": len(d),
-            "sample_keys": keys,
-            "sample": json.loads(sample_str),
-        })
+        return json.dumps(
+            {
+                "type": "dict",
+                "total_keys": len(d),
+                "sample_keys": keys,
+                "sample": json.loads(sample_str),
+            }
+        )

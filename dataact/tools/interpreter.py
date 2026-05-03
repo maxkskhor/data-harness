@@ -2,17 +2,26 @@ from __future__ import annotations
 
 import ast
 import io
-import sys
 import traceback
 from contextlib import redirect_stdout
 from typing import Any
 
 from dataact.cache import SessionCache
+from dataact.types import ToolSpec
 
-_DEFAULT_ALLOWLIST = frozenset({
-    "pandas", "numpy", "json", "math", "datetime", "collections", "itertools",
-    "pd", "np",  # common aliases
-})
+_DEFAULT_ALLOWLIST = frozenset(
+    {
+        "pandas",
+        "numpy",
+        "json",
+        "math",
+        "datetime",
+        "collections",
+        "itertools",
+        "pd",
+        "np",  # common aliases
+    }
+)
 
 _FORBIDDEN_NAMES = frozenset({"eval", "exec", "__import__", "open", "compile"})
 
@@ -92,17 +101,20 @@ class PythonInterpreter:
         buf = io.StringIO()
         try:
             with redirect_stdout(buf):
-                exec(compile(tree, "<code>", "exec"), {"__builtins__": _safe_builtins()}, local_vars)  # noqa: S102
+                exec(
+                    compile(tree, "<code>", "exec"),
+                    {"__builtins__": _safe_builtins()},
+                    local_vars,
+                )  # noqa: S102
         except Exception:
             err = traceback.format_exc()
             return f"Error:\n{err}"
 
         output = buf.getvalue()
-        return output if output else ""
+        return output if output else "ran successfully with no output"
 
     @staticmethod
-    def make_tool_spec(cache: SessionCache) -> "ToolSpec":
-        from dataact.types import ToolSpec
+    def make_tool_spec(cache: SessionCache) -> ToolSpec:
         interp = PythonInterpreter(cache=cache)
         return ToolSpec(
             name="python_interpreter",

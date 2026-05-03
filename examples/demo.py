@@ -4,6 +4,7 @@ demo.py — Wires all five tools together with a synthetic OHLCV connector.
 Requires ANTHROPIC_API_KEY to be set. Run:
     uv run python examples/demo.py
 """
+
 from __future__ import annotations
 
 import os
@@ -23,15 +24,18 @@ from dataact.types import ToolSpec
 
 def make_synthetic_ohlcv(n: int = 1000) -> pd.DataFrame:
     import datetime
+
     base = datetime.date(2024, 1, 1)
-    return pd.DataFrame({
-        "date": [(base + datetime.timedelta(days=i)).isoformat() for i in range(n)],
-        "open": [100.0 + i * 0.05 for i in range(n)],
-        "high": [102.0 + i * 0.05 for i in range(n)],
-        "low": [98.0 + i * 0.05 for i in range(n)],
-        "close": [101.0 + i * 0.05 for i in range(n)],
-        "volume": [10_000 + i * 10 for i in range(n)],
-    })
+    return pd.DataFrame(
+        {
+            "date": [(base + datetime.timedelta(days=i)).isoformat() for i in range(n)],
+            "open": [100.0 + i * 0.05 for i in range(n)],
+            "high": [102.0 + i * 0.05 for i in range(n)],
+            "low": [98.0 + i * 0.05 for i in range(n)],
+            "close": [101.0 + i * 0.05 for i in range(n)],
+            "volume": [10_000 + i * 10 for i in range(n)],
+        }
+    )
 
 
 def main() -> None:
@@ -49,21 +53,25 @@ def main() -> None:
     registry.register(
         name="market_data",
         description="Synthetic OHLCV market data for demo purposes.",
-        tools=[ToolSpec(
-            name="market_data__fetch_ohlcv",
-            description="Fetch synthetic OHLCV data. Returns a DataFrame with 1000 rows.",
-            input_schema={
-                "type": "object",
-                "properties": {
-                    "symbol": {
-                        "type": "string",
-                        "description": "Ticker symbol (ignored in synthetic mode)",
-                    }
+        tools=[
+            ToolSpec(
+                name="market_data__fetch_ohlcv",
+                description=(
+                    "Fetch synthetic OHLCV data. Returns a DataFrame with 1000 rows."
+                ),
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "symbol": {
+                            "type": "string",
+                            "description": "Ticker symbol (ignored in synthetic mode)",
+                        }
+                    },
                 },
-            },
-            handler=lambda symbol="DEMO": make_synthetic_ohlcv(),
-            visible=False,
-        )],
+                handler=lambda symbol="DEMO": make_synthetic_ohlcv(),
+                visible=False,
+            )
+        ],
     )
 
     load_connectors_spec = registry.get_load_connectors_spec()
@@ -83,7 +91,11 @@ def main() -> None:
     def adapter_factory():
         return AnthropicAdapter(model="claude-haiku-4-5-20251001", max_tokens=2048)
 
-    all_tools = [load_connectors_spec, interp_spec, variables_spec] + planner_specs + wrapped_specs
+    all_tools = (
+        [load_connectors_spec, interp_spec, variables_spec]
+        + planner_specs
+        + wrapped_specs
+    )
 
     subagent_spec = make_subagent_spec(
         adapter_factory=adapter_factory,
@@ -100,7 +112,8 @@ def main() -> None:
         adapter=adapter,
         system=(
             "You are a financial data analyst with access to market data tools. "
-            "Use load_connectors to access data sources, python_interpreter to analyze data, "
+            "Use load_connectors to access data sources, "
+            "python_interpreter to analyze data, "
             "and list_variables to check what's cached. "
             "Always produce a clear final answer."
         ),
@@ -126,6 +139,7 @@ def main() -> None:
     print(result)
 
     from pathlib import Path
+
     run_files = list(Path("./runs").glob("*.jsonl"))
     if run_files:
         latest = max(run_files, key=lambda f: f.stat().st_mtime)

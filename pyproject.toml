@@ -30,7 +30,17 @@ dev-dependencies = [
     "pytest",
     "pytest-mock",
     "python-dotenv",
+    "ruff",
 ]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.ruff.format]
+quote-style = "double"
 
 [tool.pytest.ini_options]
 markers = [

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Literal
 
 
@@ -33,7 +33,9 @@ class Message:
 
     def __post_init__(self) -> None:
         if self.role not in ("user", "assistant"):
-            raise ValueError(f"Invalid role: {self.role!r}. Must be 'user' or 'assistant'.")
+            raise ValueError(
+                f"Invalid role: {self.role!r}. Must be 'user' or 'assistant'."
+            )
 
 
 @dataclass

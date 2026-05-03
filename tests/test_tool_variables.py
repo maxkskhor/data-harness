@@ -1,4 +1,5 @@
 """Tests for the list_variables tool."""
+
 import pytest
 
 from dataact.cache import SessionCache
@@ -26,6 +27,7 @@ class TestListVariables:
     def test_large_dataframe_only_snapshot_not_full_data(self):
         pytest.importorskip("pandas")
         import pandas as pd
+
         cache = SessionCache(sample_size=5)
         df = pd.DataFrame({"v": range(10000)})
         cache.put("big_df", df)

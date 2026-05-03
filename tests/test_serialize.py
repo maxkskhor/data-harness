@@ -5,7 +5,7 @@ from enum import Enum
 import pytest
 
 from dataact.serialize import to_jsonable
-from dataact.types import TextBlock, ToolUseBlock, ToolResultBlock
+from dataact.types import TextBlock, ToolResultBlock, ToolUseBlock
 
 
 class Color(Enum):
@@ -100,5 +100,6 @@ def test_unknown_object():
     class Weird:
         def __repr__(self):
             return "Weird()"
+
     result = to_jsonable(Weird())
     assert "Weird" in result

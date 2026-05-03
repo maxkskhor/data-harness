@@ -1,15 +1,16 @@
 """Tests for the core Harness loop."""
+
 from __future__ import annotations
 
 import copy
 import json
-import os
-import tempfile
 from pathlib import Path
 
 import pytest
 
+from dataact.cache import SessionCache
 from dataact.exceptions import MaxTurnsExceeded
+from dataact.loop import Harness
 from dataact.providers.base import NormalizedResponse, ProviderAdapter, StopReason
 from dataact.types import (
     Message,
@@ -18,8 +19,6 @@ from dataact.types import (
     ToolSpec,
     ToolUseBlock,
 )
-from dataact.loop import Harness
-from dataact.cache import SessionCache
 
 
 class FakeAdapter(ProviderAdapter):
@@ -35,11 +34,13 @@ class FakeAdapter(ProviderAdapter):
         messages: list[Message],
         tools: list[ToolSpec],
     ) -> NormalizedResponse:
-        self._calls.append({
-            "system": system,
-            "messages": copy.deepcopy(messages),
-            "tools": copy.deepcopy(tools),
-        })
+        self._calls.append(
+            {
+                "system": system,
+                "messages": copy.deepcopy(messages),
+                "tools": copy.deepcopy(tools),
+            }
+        )
         return self._responses.pop(0)
 
     def format_cache_control(self, obj: dict) -> dict:
@@ -59,10 +60,16 @@ def make_text_response(text: str) -> NormalizedResponse:
     )
 
 
-def make_tool_response(tool_use_id: str, tool_name: str, tool_input: dict) -> NormalizedResponse:
+def make_tool_response(
+    tool_use_id: str, tool_name: str, tool_input: dict
+) -> NormalizedResponse:
     return NormalizedResponse(
         stop_reason=StopReason.TOOL_USE,
-        content=[ToolUseBlock(tool_use_id=tool_use_id, tool_name=tool_name, tool_input=tool_input)],
+        content=[
+            ToolUseBlock(
+                tool_use_id=tool_use_id, tool_name=tool_name, tool_input=tool_input
+            )
+        ],
         input_tokens=10,
         output_tokens=5,
         cache_read_tokens=0,
@@ -73,7 +80,9 @@ def make_tool_response(tool_use_id: str, tool_name: str, tool_input: dict) -> No
 class TestLoopBasic:
     def test_exits_on_end_turn(self, tmp_path):
         adapter = FakeAdapter([make_text_response("Done!")])
-        harness = Harness(adapter=adapter, system="sys", tools=[], run_dir=str(tmp_path))
+        harness = Harness(
+            adapter=adapter, system="sys", tools=[], run_dir=str(tmp_path)
+        )
         result = harness.run("hello")
         assert result == "Done!"
 
@@ -111,11 +120,15 @@ class TestLoopBasic:
             input_schema={"type": "object", "properties": {"x": {"type": "integer"}}},
             handler=my_handler,
         )
-        adapter = FakeAdapter([
-            make_tool_response("tu_1", "my_tool", {"x": 42}),
-            make_text_response("done"),
-        ])
-        harness = Harness(adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path))
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "my_tool", {"x": 42}),
+                make_text_response("done"),
+            ]
+        )
+        harness = Harness(
+            adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path)
+        )
         harness.run("run tool")
         assert called_with == [{"x": 42}]
 
@@ -126,11 +139,15 @@ class TestLoopBasic:
             input_schema={},
             handler=lambda: "echo response",
         )
-        adapter = FakeAdapter([
-            make_tool_response("tu_1", "echo", {}),
-            make_text_response("done"),
-        ])
-        harness = Harness(adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path))
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "echo", {}),
+                make_text_response("done"),
+            ]
+        )
+        harness = Harness(
+            adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path)
+        )
         harness.run("go")
         # Turn 2 adapter call should have a user message with ToolResultBlock
         turn2_messages = adapter._calls[1]["messages"]
@@ -146,11 +163,15 @@ class TestLoopBasic:
             input_schema={},
             handler=lambda: "stepped",
         )
-        adapter = FakeAdapter([
-            make_tool_response("tu_1", "step", {}),
-            make_text_response("all done"),
-        ])
-        harness = Harness(adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path))
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "step", {}),
+                make_text_response("all done"),
+            ]
+        )
+        harness = Harness(
+            adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path)
+        )
         result = harness.run("begin")
         assert result == "all done"
 
@@ -161,15 +182,20 @@ class TestLoopBasic:
             input_schema={},
             handler=lambda: "stepped",
         )
-        adapter = FakeAdapter([
-            make_tool_response("tu_1", "step", {}),
-            make_text_response("done"),
-        ])
-        harness = Harness(adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path))
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "step", {}),
+                make_text_response("done"),
+            ]
+        )
+        harness = Harness(
+            adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path)
+        )
         harness.run("begin")
         jsonl_files = list(Path(tmp_path).glob("*.jsonl"))
         assert len(jsonl_files) == 1
-        lines = [json.loads(l) for l in jsonl_files[0].read_text().strip().splitlines()]
+        raw = jsonl_files[0].read_text().strip().splitlines()
+        lines = [json.loads(line) for line in raw]
         assert len(lines) == 2
 
     def test_tool_use_ordering(self, tmp_path):
@@ -179,11 +205,15 @@ class TestLoopBasic:
             input_schema={},
             handler=lambda: "ok",
         )
-        adapter = FakeAdapter([
-            make_tool_response("tu_1", "echo", {}),
-            make_text_response("done"),
-        ])
-        harness = Harness(adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path))
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "echo", {}),
+                make_text_response("done"),
+            ]
+        )
+        harness = Harness(
+            adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path)
+        )
         harness.run("go")
         # In the 2nd adapter call, messages should have tool_use followed by tool_result
         msgs = adapter._calls[1]["messages"]
@@ -197,16 +227,23 @@ class TestLoopBasic:
                 found = False
                 for um in user_msgs:
                     for b in um.content:
-                        if isinstance(b, ToolResultBlock) and b.tool_use_id == tub.tool_use_id:
+                        if (
+                            isinstance(b, ToolResultBlock)
+                            and b.tool_use_id == tub.tool_use_id
+                        ):
                             found = True
                 assert found
 
     def test_tool_not_found_is_error(self, tmp_path):
-        adapter = FakeAdapter([
-            make_tool_response("tu_1", "nonexistent_tool", {}),
-            make_text_response("done"),
-        ])
-        harness = Harness(adapter=adapter, system="sys", tools=[], run_dir=str(tmp_path))
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "nonexistent_tool", {}),
+                make_text_response("done"),
+            ]
+        )
+        harness = Harness(
+            adapter=adapter, system="sys", tools=[], run_dir=str(tmp_path)
+        )
         harness.run("go")
         # Should not raise; turn 2 should have an error result
         msgs = adapter._calls[1]["messages"]
@@ -221,13 +258,17 @@ class TestLoopBasic:
             input_schema={},
             handler=lambda: "ok",
         )
-        adapter = FakeAdapter([
-            make_tool_response("tu_1", "echo", {}),
-            make_tool_response("tu_2", "echo", {}),
-            make_text_response("done"),
-        ])
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "echo", {}),
+                make_tool_response("tu_2", "echo", {}),
+                make_text_response("done"),
+            ]
+        )
         system = "This is a stable system prompt."
-        harness = Harness(adapter=adapter, system=system, tools=[tool], run_dir=str(tmp_path))
+        harness = Harness(
+            adapter=adapter, system=system, tools=[tool], run_dir=str(tmp_path)
+        )
         harness.run("go")
         for call in adapter._calls:
             assert call["system"] == system
@@ -239,11 +280,15 @@ class TestLoopBasic:
             input_schema={},
             handler=lambda: "ok",
         )
-        adapter = FakeAdapter([
-            make_tool_response("tu_1", "echo", {}),
-            make_text_response("done"),
-        ])
-        harness = Harness(adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path))
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "echo", {}),
+                make_text_response("done"),
+            ]
+        )
+        harness = Harness(
+            adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path)
+        )
         harness.run("go")
         # The harness internal messages should not be mutated by adapter calls
         # We verify by checking stored messages are structurally sound
@@ -272,10 +317,12 @@ class TestLoopBasic:
             handler=flipper,
             visible=True,
         )
-        adapter = FakeAdapter([
-            make_tool_response("tu_1", "flipper", {}),
-            make_text_response("done"),
-        ])
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "flipper", {}),
+                make_text_response("done"),
+            ]
+        )
         harness = Harness(
             adapter=adapter,
             system="sys",
@@ -293,9 +340,11 @@ class TestLoopBasic:
         cache = SessionCache()
         cache.put("my_var", "important data")
 
-        adapter = FakeAdapter([
-            make_text_response("done"),
-        ])
+        adapter = FakeAdapter(
+            [
+                make_text_response("done"),
+            ]
+        )
         harness = Harness(
             adapter=adapter,
             system="sys",

@@ -1,5 +1,4 @@
 """Tests for the Planner tool."""
-import pytest
 
 from dataact.tools.planner import Planner
 
@@ -55,8 +54,6 @@ class TestPlannerReminders:
         p = Planner()
         p.add(items=["pending task"])
         p._turns_since_update = 8
-        hook = p.reminder_hook
-        result_4 = hook.__func__(p, 4, 25) if hasattr(hook, "__func__") else hook(8, 25)
         # Get nag at 8
         p._turns_since_update = 8
         result_8 = p.reminder_hook(8, 25)

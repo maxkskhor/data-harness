@@ -1,5 +1,4 @@
 """Tests for the sandboxed Python interpreter tool."""
-import pytest
 
 from dataact.cache import SessionCache
 from dataact.tools.interpreter import PythonInterpreter
@@ -16,13 +15,21 @@ class TestAllowedImports:
         cache = SessionCache()
         interp = PythonInterpreter(cache=cache)
         result = interp.run(code="import os\nprint(os.getcwd())")
-        assert "not allowed" in result.lower() or "error" in result.lower() or "blocked" in result.lower()
+        assert (
+            "not allowed" in result.lower()
+            or "error" in result.lower()
+            or "blocked" in result.lower()
+        )
 
     def test_subprocess_import_rejected(self):
         cache = SessionCache()
         interp = PythonInterpreter(cache=cache)
         result = interp.run(code="import subprocess")
-        assert "not allowed" in result.lower() or "error" in result.lower() or "blocked" in result.lower()
+        assert (
+            "not allowed" in result.lower()
+            or "error" in result.lower()
+            or "blocked" in result.lower()
+        )
 
 
 class TestForbiddenBuiltins:
@@ -75,6 +82,7 @@ class TestCacheHandles:
     def test_cache_handle_available_as_local(self):
         cache = SessionCache()
         import pandas as pd
+
         df = pd.DataFrame({"x": [1, 2, 3]})
         cache.put("market_data", df)
         interp = PythonInterpreter(cache=cache)
@@ -100,7 +108,11 @@ class TestCacheHandles:
         interp = PythonInterpreter(cache=cache)
         interp.run(code="my_local = 'hello'")
         result = interp.run(code="print(my_local)")
-        assert "error" in result.lower() or "NameError" in result or "my_local" not in result.split("hello")
+        assert (
+            "error" in result.lower()
+            or "NameError" in result
+            or "my_local" not in result.split("hello")
+        )
 
     def test_cache_object_not_in_locals(self):
         cache = SessionCache()

@@ -56,6 +56,7 @@ def _convert(obj: Any) -> Any:
     # Try pandas DataFrame
     try:
         import pandas as pd
+
         if isinstance(obj, pd.DataFrame):
             return {
                 "type": "dataframe_snapshot",
@@ -69,6 +70,7 @@ def _convert(obj: Any) -> Any:
     # Try numpy ndarray
     try:
         import numpy as np
+
         if isinstance(obj, np.ndarray):
             return {
                 "type": "ndarray_snapshot",
@@ -85,6 +87,7 @@ def _convert(obj: Any) -> Any:
 def _get_text_block_type():
     try:
         from dataact.types import TextBlock
+
         return TextBlock
     except ImportError:
         return type(None)
@@ -93,6 +96,7 @@ def _get_text_block_type():
 def _get_tool_use_block_type():
     try:
         from dataact.types import ToolUseBlock
+
         return ToolUseBlock
     except ImportError:
         return type(None)
@@ -101,6 +105,7 @@ def _get_tool_use_block_type():
 def _get_tool_result_block_type():
     try:
         from dataact.types import ToolResultBlock
+
         return ToolResultBlock
     except ImportError:
         return type(None)

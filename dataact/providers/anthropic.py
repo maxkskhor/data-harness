@@ -16,7 +16,9 @@ _STOP_REASON_MAP = {
 
 
 class AnthropicAdapter(ProviderAdapter):
-    def __init__(self, model: str = "claude-sonnet-4-6", max_tokens: int = 8096) -> None:
+    def __init__(
+        self, model: str = "claude-sonnet-4-6", max_tokens: int = 8096
+    ) -> None:
         self._model = model
         self._max_tokens = max_tokens
         self._client = anthropic.Anthropic()
@@ -54,7 +56,8 @@ class AnthropicAdapter(ProviderAdapter):
             input_tokens=resp.usage.input_tokens,
             output_tokens=resp.usage.output_tokens,
             cache_read_tokens=getattr(resp.usage, "cache_read_input_tokens", 0) or 0,
-            cache_write_tokens=getattr(resp.usage, "cache_creation_input_tokens", 0) or 0,
+            cache_write_tokens=getattr(resp.usage, "cache_creation_input_tokens", 0)
+            or 0,
         )
 
     def _build_system(self, system: str) -> list[dict]:
@@ -99,9 +102,11 @@ class AnthropicAdapter(ProviderAdapter):
             if block.type == "text":
                 blocks.append(TextBlock(text=block.text))
             elif block.type == "tool_use":
-                blocks.append(ToolUseBlock(
-                    tool_use_id=block.id,
-                    tool_name=block.name,
-                    tool_input=dict(block.input),
-                ))
+                blocks.append(
+                    ToolUseBlock(
+                        tool_use_id=block.id,
+                        tool_name=block.name,
+                        tool_input=dict(block.input),
+                    )
+                )
         return blocks

@@ -1,17 +1,13 @@
 """Tests for subagent tool — clean-context spawn with explicit state transfer."""
+
 from __future__ import annotations
 
 import copy
-from unittest.mock import MagicMock
-
-import pytest
 
 from dataact.cache import SessionCache
-from dataact.exceptions import SubagentRecursionError
 from dataact.providers.base import NormalizedResponse, ProviderAdapter, StopReason
-from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
-from dataact.loop import Harness
 from dataact.tools.subagent import make_subagent_spec
+from dataact.types import Message, TextBlock, ToolSpec
 
 
 class FakeAdapter(ProviderAdapter):
@@ -19,7 +15,9 @@ class FakeAdapter(ProviderAdapter):
         self._responses = list(responses)
         self._calls = []
 
-    def chat(self, system: str, messages: list[Message], tools: list[ToolSpec]) -> NormalizedResponse:
+    def chat(
+        self, system: str, messages: list[Message], tools: list[ToolSpec]
+    ) -> NormalizedResponse:
         self._calls.append({"system": system, "messages": copy.deepcopy(messages)})
         return self._responses.pop(0)
 
@@ -31,15 +29,15 @@ def make_text_response(text: str) -> NormalizedResponse:
     return NormalizedResponse(
         stop_reason=StopReason.END_TURN,
         content=[TextBlock(text=text)],
-        input_tokens=5, output_tokens=3, cache_read_tokens=0, cache_write_tokens=0,
+        input_tokens=5,
+        output_tokens=3,
+        cache_read_tokens=0,
+        cache_write_tokens=0,
     )
 
 
 class TestSubagentBasic:
     def test_sub_run_returns_text(self, tmp_path):
-        sub_adapter = FakeAdapter([make_text_response("sub result")])
-        sub_adapter2 = FakeAdapter([make_text_response("sub result")])
-
         parent_cache = SessionCache()
         call_count = [0]
 
@@ -47,7 +45,11 @@ class TestSubagentBasic:
             call_count[0] += 1
             return FakeAdapter([make_text_response("sub result")])
 
-        tools = [ToolSpec(name="echo", description="echo", input_schema={}, handler=lambda: "ok")]
+        tools = [
+            ToolSpec(
+                name="echo", description="echo", input_schema={}, handler=lambda: "ok"
+            )
+        ]
         subagent_spec = make_subagent_spec(
             adapter_factory=adapter_factory,
             parent_tools=tools,
@@ -80,7 +82,7 @@ class TestSubagentBasic:
             run_dir=str(tmp_path),
         )
         # The sub should not have subagent in its tools
-        # (We verify by checking that building the sub-harness doesn't fail but excludes subagent)
+        # Verify sub-harness builds successfully but excludes subagent tool
         result = subagent_spec2.handler(task="subtask")
         assert isinstance(result, str)
 
@@ -119,7 +121,7 @@ class TestSubagentBasic:
             parent_cache=parent_cache,
             run_dir=str(tmp_path),
         )
-        result = subagent_spec.handler(task="check cache", input_handles=None)
+        subagent_spec.handler(task="check cache", input_handles=None)
         # Parent cache should be unchanged
         assert parent_cache.get("secret") == "parent_secret"
 
@@ -151,13 +153,17 @@ class TestSubagentIsolation:
         )
         subagent_spec.handler(task="task", input_handles=None)
         all_text = " ".join(
-            b.text for m in captured_messages for b in m.content if isinstance(b, TextBlock)
+            b.text
+            for m in captured_messages
+            for b in m.content
+            if isinstance(b, TextBlock)
         )
         assert "sensitive_data" not in all_text
 
     def test_input_handles_copies_only_requested(self, tmp_path):
         parent_cache = SessionCache()
         import pandas as pd
+
         df = pd.DataFrame({"a": [1, 2, 3]})
         parent_cache.put("wanted", df)
         parent_cache.put("unwanted", "secret")
@@ -167,7 +173,13 @@ class TestSubagentIsolation:
         def adapter_factory():
             class InspectingAdapter(ProviderAdapter):
                 def chat(self, system, messages, tools):
-                    sub_received_handles.extend(list(getattr(self, "_cache", {}).keys() if hasattr(self, "_cache") else []))
+                    sub_received_handles.extend(
+                        list(
+                            getattr(self, "_cache", {}).keys()
+                            if hasattr(self, "_cache")
+                            else []
+                        )
+                    )
                     return make_text_response("done")
 
                 def format_cache_control(self, obj):
@@ -200,7 +212,11 @@ class TestSubagentIsolation:
             run_dir=str(tmp_path),
         )
         result = subagent_spec.handler(task="task", input_handles=["nonexistent"])
-        assert "error" in result.lower() or "not found" in result.lower() or "missing" in result.lower()
+        assert (
+            "error" in result.lower()
+            or "not found" in result.lower()
+            or "missing" in result.lower()
+        )
 
     def test_text_only_does_not_publish_handles(self, tmp_path):
         parent_cache = SessionCache()
@@ -215,7 +231,7 @@ class TestSubagentIsolation:
             parent_cache=parent_cache,
             run_dir=str(tmp_path),
         )
-        result = subagent_spec.handler(task="task", output_policy="text_only")
+        subagent_spec.handler(task="task", output_policy="text_only")
         # Parent cache should still be empty
         assert len(parent_cache.list_handles()) == 0
 
@@ -240,7 +256,7 @@ class TestSubagentPublishCreated:
         assert isinstance(result, str)
 
     def test_tool_spec_isolation(self, tmp_path):
-        """Subagent flipping visible on copied ToolSpec doesn't mutate parent's ToolSpec."""
+        """Flipping visible on a copied ToolSpec doesn't mutate the parent ToolSpec."""
         parent_tool = ToolSpec(
             name="my_tool",
             description="desc",
@@ -266,6 +282,7 @@ class TestSubagentPublishCreated:
 
 class _CacheWithPrefill(SessionCache):
     """A SessionCache pre-filled with a value to simulate subagent-created handles."""
+
     def __init__(self):
         super().__init__()
         self.put("sub_result", "computed data")

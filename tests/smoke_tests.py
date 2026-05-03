@@ -18,6 +18,7 @@ Design notes:
 - Each test is fully self-contained with its own cache + run_dir.
 - Tests are ordered from simplest to most complex.
 """
+
 from __future__ import annotations
 
 import json
@@ -38,10 +39,10 @@ from dataact.tools.subagent import make_subagent_spec
 from dataact.tools.variables import make_list_variables_spec
 from dataact.types import ToolSpec
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Fixtures
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _load_env() -> None:
     """Load .env from the project root if not already in environment."""
@@ -51,6 +52,7 @@ def _load_env() -> None:
     if env_path.exists():
         try:
             from dotenv import load_dotenv
+
             load_dotenv(env_path)
         except ImportError:
             for line in env_path.read_text().splitlines():
@@ -73,14 +75,18 @@ def _haiku(max_tokens: int = 2048) -> AnthropicAdapter:
 
 
 def _synthetic_ohlcv(n: int = 1000) -> pd.DataFrame:
-    return pd.DataFrame({
-        "date": [f"2024-{(i // 30 % 12) + 1:02d}-{(i % 28) + 1:02d}" for i in range(n)],
-        "open":   [100.0 + i * 0.05 for i in range(n)],
-        "high":   [102.0 + i * 0.05 for i in range(n)],
-        "low":    [98.0  + i * 0.05 for i in range(n)],
-        "close":  [101.0 + i * 0.05 for i in range(n)],
-        "volume": [10_000 + i * 10  for i in range(n)],
-    })
+    return pd.DataFrame(
+        {
+            "date": [
+                f"2024-{(i // 30 % 12) + 1:02d}-{(i % 28) + 1:02d}" for i in range(n)
+            ],
+            "open": [100.0 + i * 0.05 for i in range(n)],
+            "high": [102.0 + i * 0.05 for i in range(n)],
+            "low": [98.0 + i * 0.05 for i in range(n)],
+            "close": [101.0 + i * 0.05 for i in range(n)],
+            "volume": [10_000 + i * 10 for i in range(n)],
+        }
+    )
 
 
 def _build_full_harness(tmp_path, n_rows: int = 1000, max_turns: int = 10):
@@ -91,22 +97,24 @@ def _build_full_harness(tmp_path, n_rows: int = 1000, max_turns: int = 10):
     registry.register(
         name="market_data",
         description="Synthetic OHLCV data for smoke-testing.",
-        tools=[ToolSpec(
-            name="market_data__fetch_ohlcv",
-            description=f"Fetch synthetic OHLCV data ({n_rows} rows).",
-            input_schema={
-                "type": "object",
-                "properties": {"symbol": {"type": "string"}},
-            },
-            handler=lambda symbol="DEMO": _synthetic_ohlcv(n_rows),
-            visible=False,
-        )],
+        tools=[
+            ToolSpec(
+                name="market_data__fetch_ohlcv",
+                description=f"Fetch synthetic OHLCV data ({n_rows} rows).",
+                input_schema={
+                    "type": "object",
+                    "properties": {"symbol": {"type": "string"}},
+                },
+                handler=lambda symbol="DEMO": _synthetic_ohlcv(n_rows),
+                visible=False,
+            )
+        ],
     )
 
-    load_spec     = registry.get_load_connectors_spec()
+    load_spec = registry.get_load_connectors_spec()
     wrapped_specs = registry.make_wrapped_specs(cache)
-    interp_spec   = PythonInterpreter.make_tool_spec(cache)
-    vars_spec     = make_list_variables_spec(cache)
+    interp_spec = PythonInterpreter.make_tool_spec(cache)
+    vars_spec = make_list_variables_spec(cache)
 
     planner = Planner()
     planner_specs = planner.make_tool_specs()
@@ -144,6 +152,7 @@ def _build_full_harness(tmp_path, n_rows: int = 1000, max_turns: int = 10):
 # 1. Basic text completion — no tools
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_basic_completion(tmp_path):
     """Model answers a factual question without using any tools."""
@@ -167,6 +176,7 @@ def test_smoke_basic_completion(tmp_path):
 # 2. Single tool call — python_interpreter arithmetic
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_interpreter_arithmetic(tmp_path):
     """Model uses python_interpreter to compute a value and reports it."""
@@ -179,7 +189,9 @@ def test_smoke_interpreter_arithmetic(tmp_path):
         max_turns=5,
         run_dir=str(tmp_path),
     )
-    result = harness.run("Use the python interpreter to compute sum(range(101)) and tell me the answer.")
+    result = harness.run(
+        "Use the python interpreter to compute sum(range(101)) and tell me the answer."
+    )
     assert "5050" in result
     lines = _read_jsonl(tmp_path)
     assert len(lines) >= 2  # at least: tool call turn + final answer turn
@@ -189,12 +201,14 @@ def test_smoke_interpreter_arithmetic(tmp_path):
 # 3. Cache → list_variables introspection
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_cache_and_list_variables(tmp_path):
     """Pre-populate cache; model uses list_variables to discover it and reports."""
     _skip_if_no_key()
     cache = SessionCache()
     import numpy as np
+
     cache.put("scores", np.array([85, 92, 78, 95, 88]))
 
     harness = Harness(
@@ -207,13 +221,20 @@ def test_smoke_cache_and_list_variables(tmp_path):
         max_turns=5,
         run_dir=str(tmp_path),
     )
-    result = harness.run("What variables are in the session cache? Describe them briefly.")
-    assert "scores" in result.lower() or "variable" in result.lower() or "cache" in result.lower()
+    result = harness.run(
+        "What variables are in the session cache? Describe them briefly."
+    )
+    assert (
+        "scores" in result.lower()
+        or "variable" in result.lower()
+        or "cache" in result.lower()
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 4. Connector load + fetch → snapshot in message, raw data in cache
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.live
 def test_smoke_connector_load_and_fetch(tmp_path):
@@ -248,10 +269,12 @@ def test_smoke_connector_load_and_fetch(tmp_path):
 # 5. Interpreter reads from cache handle
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_interpreter_reads_cache_handle(tmp_path):
     """
-    Pre-load a DataFrame as 'prices'; model uses interpreter to compute mean(prices.close).
+    Pre-load a DataFrame as 'prices'; model uses interpreter to compute
+    mean(prices.close).
     """
     _skip_if_no_key()
     cache = SessionCache()
@@ -270,7 +293,8 @@ def test_smoke_interpreter_reads_cache_handle(tmp_path):
     )
     result = harness.run(
         "The variable 'prices' is a DataFrame with a 'close' column. "
-        "Use python_interpreter to compute the mean of prices.close and tell me the value."
+        "Use python_interpreter to compute the mean of prices.close"
+        " and tell me the value."
     )
     assert "110" in result  # mean of [100, 110, 120, 90, 130] = 110.0
 
@@ -279,10 +303,12 @@ def test_smoke_interpreter_reads_cache_handle(tmp_path):
 # 6. Interpreter save() → handle visible via list_variables
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_interpreter_save_then_list(tmp_path):
     """
-    Model uses interpreter to compute something, save() it, then list_variables shows it.
+    Model uses interpreter to compute something, save() it, then list_variables
+    shows it.
     """
     _skip_if_no_key()
     cache = SessionCache()
@@ -310,6 +336,7 @@ def test_smoke_interpreter_save_then_list(tmp_path):
 # 7. Planner add → list → update → final answer
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_planner_flow(tmp_path):
     """
@@ -320,8 +347,7 @@ def test_smoke_planner_flow(tmp_path):
     harness = Harness(
         adapter=_haiku(),
         system=(
-            "You are a task-tracking assistant. "
-            "Use the planner tools to manage tasks."
+            "You are a task-tracking assistant. Use the planner tools to manage tasks."
         ),
         tools=planner.make_tool_specs(),
         max_turns=8,
@@ -330,7 +356,8 @@ def test_smoke_planner_flow(tmp_path):
     harness.register_reminder(planner.reminder_hook)
     result = harness.run(
         "Add two tasks: 'Fetch data' and 'Analyze results'. "
-        "Then list them, mark 'Fetch data' as done, list again, and summarize the status."
+        "Then list them, mark 'Fetch data' as done, list again, and summarize the"
+        " status."
     )
     # At least one task should have been added
     assert len(planner._items) >= 1
@@ -344,6 +371,7 @@ def test_smoke_planner_flow(tmp_path):
 # 8. Subagent text_only — isolated worker returns result
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_subagent_text_only(tmp_path):
     """
@@ -353,8 +381,6 @@ def test_smoke_subagent_text_only(tmp_path):
     _skip_if_no_key()
     parent_cache = SessionCache()
     parent_cache.put("context", "Sales data Q1 2024")
-
-    sub_cache_calls = []
 
     def adapter_factory():
         return _haiku()
@@ -388,6 +414,7 @@ def test_smoke_subagent_text_only(tmp_path):
 # 9. Subagent publish_created — new handles copied to parent cache
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_subagent_publish_created(tmp_path):
     """
@@ -397,8 +424,6 @@ def test_smoke_subagent_publish_created(tmp_path):
     _skip_if_no_key()
     parent_cache = SessionCache()
 
-    interp_cache_holder = {}
-
     def adapter_factory():
         # Give subagent its own interpreter-enabled harness
         return _haiku()
@@ -406,11 +431,9 @@ def test_smoke_subagent_publish_created(tmp_path):
     # Build subagent tools that include an interpreter
     sub_cache_ref = [None]
 
-    original_make = make_subagent_spec
-
     # Use the real make_subagent_spec but intercept sub-cache creation
     sub_interp_cache = SessionCache()
-    sub_interp_spec = PythonInterpreter.make_tool_spec(sub_cache_ref[0] or sub_interp_cache)
+    PythonInterpreter.make_tool_spec(sub_cache_ref[0] or sub_interp_cache)
 
     tools = [PythonInterpreter.make_tool_spec(parent_cache)]
     subagent_spec = make_subagent_spec(
@@ -430,18 +453,23 @@ def test_smoke_subagent_publish_created(tmp_path):
     )
     result = harness.run(
         "Use subagent with task='Use python_interpreter to compute list(range(10)), "
-        "save it as squared_range using save(\"squared_range\", list(range(10))), "
+        'save it as squared_range using save("squared_range", list(range(10))), '
         "then say done', output_policy='publish_created'. "
         "Tell me what was published."
     )
     assert isinstance(result, str) and len(result) > 5
     # Result should mention published outputs or subagent output
-    assert "subagent" in result.lower() or "published" in result.lower() or len(result) > 20
+    assert (
+        "subagent" in result.lower()
+        or "published" in result.lower()
+        or len(result) > 20
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 10. Max turns exceeded — raises MaxTurnsExceeded
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.live
 def test_smoke_max_turns_exceeded(tmp_path):
@@ -459,7 +487,10 @@ def test_smoke_max_turns_exceeded(tmp_path):
         run_dir=str(tmp_path),
     )
     with pytest.raises(MaxTurnsExceeded) as exc_info:
-        harness.run("Use python_interpreter repeatedly: compute 1+1, then 2+2, then 3+3, then 4+4, then 5+5.")
+        harness.run(
+            "Use python_interpreter repeatedly: compute 1+1, then 2+2, "
+            "then 3+3, then 4+4, then 5+5."
+        )
     assert exc_info.value.turns == 2
     # JSONL should have 2 entries (one per completed turn)
     lines = _read_jsonl(tmp_path)
@@ -470,10 +501,12 @@ def test_smoke_max_turns_exceeded(tmp_path):
 # 11. Tool exception recovery — harness continues after tool error
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_tool_error_recovery(tmp_path):
     """
-    A tool that always raises; harness returns is_error=True ToolResultBlock and continues.
+    A tool that always raises; harness returns is_error=True ToolResultBlock and
+    continues.
     Model should acknowledge the error and complete the run.
     """
     _skip_if_no_key()
@@ -505,6 +538,7 @@ def test_smoke_tool_error_recovery(tmp_path):
 # 12. Full pipeline — load → fetch 10k rows → interpreter stats → summarize
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.live
 def test_smoke_full_pipeline_large_data(tmp_path):
     """
@@ -517,14 +551,19 @@ def test_smoke_full_pipeline_large_data(tmp_path):
 
     result = harness.run(
         "Load the market_data connector. Fetch OHLCV data. "
-        "Use python_interpreter to compute: mean close price, max volume, and number of rows. "
+        "Use python_interpreter to compute: mean close price, max volume, "
+        "and number of rows. "
         "Print each result. Then summarize your findings."
     )
 
     assert isinstance(result, str) and len(result) > 20
 
     # Invariant: raw 10k-row DataFrame in cache
-    dfs = [cache.get(h) for h in cache.list_handles() if isinstance(cache.get(h), pd.DataFrame)]
+    dfs = [
+        cache.get(h)
+        for h in cache.list_handles()
+        if isinstance(cache.get(h), pd.DataFrame)
+    ]
     assert any(len(df) == 10_000 for df in dfs), "Expected 10k-row DataFrame in cache"
 
     # Invariant: no message contains full raw data
@@ -535,7 +574,7 @@ def test_smoke_full_pipeline_large_data(tmp_path):
 
     # Invariant: system prompt byte-stable across all turns
     lines = _read_jsonl(tmp_path)
-    hashes = [l["system_hash"] for l in lines]
+    hashes = [line["system_hash"] for line in lines]
     assert len(set(hashes)) == 1, "System hash changed between turns"
 
     # Invariant: turn 1 has full system, rest have only hash
@@ -547,6 +586,7 @@ def test_smoke_full_pipeline_large_data(tmp_path):
 # ──────────────────────────────────────────────────────────────────────────────
 # 13. JSONL log structure — all fields present and parseable
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.live
 def test_smoke_jsonl_log_structure(tmp_path):
@@ -567,11 +607,27 @@ def test_smoke_jsonl_log_structure(tmp_path):
 
     lines = _read_jsonl(tmp_path)
     assert len(lines) >= 1
-    required_keys = {"turn", "timestamp", "system_hash", "messages", "response_content",
-                     "stop_reason", "tool_results", "metrics"}
-    metric_keys = {"input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "latency_ms"}
+    required_keys = {
+        "turn",
+        "timestamp",
+        "system_hash",
+        "messages",
+        "response_content",
+        "stop_reason",
+        "tool_results",
+        "metrics",
+    }
+    metric_keys = {
+        "input_tokens",
+        "output_tokens",
+        "cache_read_tokens",
+        "cache_write_tokens",
+        "latency_ms",
+    }
     for line in lines:
-        assert required_keys.issubset(line.keys()), f"Missing keys in turn {line.get('turn')}: {required_keys - line.keys()}"
+        assert required_keys.issubset(line.keys()), (
+            f"Missing keys in turn {line.get('turn')}: {required_keys - line.keys()}"
+        )
         assert metric_keys.issubset(line["metrics"].keys())
         assert isinstance(line["turn"], int)
         assert isinstance(line["metrics"]["latency_ms"], (int, float))
@@ -581,6 +637,7 @@ def test_smoke_jsonl_log_structure(tmp_path):
 # ──────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _read_jsonl(run_dir) -> list[dict]:
     files = list(Path(run_dir).glob("*.jsonl"))

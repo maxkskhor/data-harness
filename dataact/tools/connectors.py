@@ -10,7 +10,9 @@ from dataact.types import ToolSpec
 class ConnectorRegistry:
     def __init__(self) -> None:
         self._directory: dict[str, str] = {}  # name -> one-line description
-        self._connector_tools: dict[str, list[ToolSpec]] = {}  # name -> list of ToolSpec
+        self._connector_tools: dict[
+            str, list[ToolSpec]
+        ] = {}  # name -> list of ToolSpec
 
     def register(
         self,
@@ -30,7 +32,8 @@ class ConnectorRegistry:
 
         def load_connector(name: str) -> str:
             if name not in connector_tools:
-                return f"Error: connector {name!r} not found. Available: {list(directory.keys())}"
+                available = list(directory.keys())
+                return f"Error: connector {name!r} not found. Available: {available}"
             for spec in connector_tools[name]:
                 spec.visible = True
             desc = directory.get(name, "")
@@ -53,7 +56,9 @@ class ConnectorRegistry:
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": f"Connector name. One of: {list(directory.keys())}",
+                        "description": (
+                            f"Connector name. One of: {list(directory.keys())}"
+                        ),
                     }
                 },
                 "required": ["name"],
@@ -78,7 +83,9 @@ class ConnectorRegistry:
             for spec in tool_list:
                 if spec.name == tool_name and spec.handler is not None:
                     raw = spec.handler(**tool_input)
-                    return format_tool_output(raw, cache=cache, preferred_name=tool_name.split("__")[-1])
+                    return format_tool_output(
+                        raw, cache=cache, preferred_name=tool_name.split("__")[-1]
+                    )
         return f"Error: tool {tool_name!r} not found"
 
     def make_wrapped_specs(self, cache: SessionCache) -> list[ToolSpec]:
@@ -102,7 +109,10 @@ class ConnectorRegistry:
                 def make_handler(h: Callable, pname: str):
                     def wrapped(**kwargs: Any) -> str:
                         raw = h(**kwargs)
-                        return format_tool_output(raw, cache=cache, preferred_name=pname)
+                        return format_tool_output(
+                            raw, cache=cache, preferred_name=pname
+                        )
+
                     return wrapped
 
                 new_spec = ToolSpec(
@@ -114,6 +124,6 @@ class ConnectorRegistry:
                 )
                 new_list.append(new_spec)
                 result.append(new_spec)
-            # Replace in registry so load_connectors flips the wrapped specs' visible flag
+            # Replace in registry so load_connectors flips the wrapped specs' visible
             self._connector_tools[connector_name] = new_list
         return result

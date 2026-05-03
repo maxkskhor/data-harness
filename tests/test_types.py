@@ -1,8 +1,8 @@
 import pytest
 
-from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
-from dataact.serialize import to_jsonable
 from dataact.providers.base import ProviderAdapter
+from dataact.serialize import to_jsonable
+from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
 
 
 def test_text_block_roundtrip():
@@ -20,7 +20,12 @@ def test_tool_use_block_roundtrip():
 def test_tool_result_block_roundtrip():
     b = ToolResultBlock(tool_use_id="tu_1", content="ok", is_error=False)
     j = to_jsonable(b)
-    assert j == {"type": "tool_result", "tool_use_id": "tu_1", "content": "ok", "is_error": False}
+    assert j == {
+        "type": "tool_result",
+        "tool_use_id": "tu_1",
+        "content": "ok",
+        "is_error": False,
+    }
 
 
 def test_tool_result_block_error():
@@ -59,6 +64,7 @@ def test_tool_spec_to_provider_dict_excludes_handler_and_visible():
 
 def test_provider_adapter_chat_signature():
     import inspect
+
     sig = inspect.signature(ProviderAdapter.chat)
     params = list(sig.parameters.keys())
     assert "system" in params

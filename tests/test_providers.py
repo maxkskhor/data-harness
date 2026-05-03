@@ -1,11 +1,8 @@
 import copy
-import json
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from dataact.providers.base import StopReason, NormalizedResponse
-from dataact.types import TextBlock, ToolUseBlock, ToolResultBlock, Message, ToolSpec
+from dataact.providers.base import StopReason
+from dataact.types import Message, TextBlock, ToolSpec, ToolUseBlock
 
 
 def make_anthropic_response(stop_reason="end_turn", content_blocks=None, usage=None):
@@ -55,6 +52,7 @@ class TestAnthropicAdapter:
     def _make_adapter(self):
         with patch("anthropic.Anthropic"):
             from dataact.providers.anthropic import AnthropicAdapter
+
             adapter = AnthropicAdapter(model="claude-3-5-sonnet-20241022")
         return adapter
 
@@ -78,7 +76,12 @@ class TestAnthropicAdapter:
         sdk_resp = make_anthropic_response(
             stop_reason="end_turn",
             content_blocks=[make_sdk_text_block("Hello!")],
-            usage={"input_tokens": 10, "output_tokens": 5, "cache_read_tokens": 0, "cache_write_tokens": 0},
+            usage={
+                "input_tokens": 10,
+                "output_tokens": 5,
+                "cache_read_tokens": 0,
+                "cache_write_tokens": 0,
+            },
         )
         adapter._client.messages.create.return_value = sdk_resp
 
@@ -127,7 +130,12 @@ class TestAnthropicAdapter:
     def test_cache_read_write_tokens(self):
         adapter = self._make_adapter()
         sdk_resp = make_anthropic_response(
-            usage={"input_tokens": 100, "output_tokens": 50, "cache_read_tokens": 200, "cache_write_tokens": 300},
+            usage={
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "cache_read_tokens": 200,
+                "cache_write_tokens": 300,
+            },
         )
         adapter._client.messages.create.return_value = sdk_resp
         resp = adapter.chat(system="s", messages=[], tools=[])
@@ -145,7 +153,9 @@ class TestAnthropicAdapter:
             Message(role="assistant", content=[TextBlock(text="hi")]),
         ]
         tools = [
-            ToolSpec(name="t", description="d", input_schema={"type": "object"}, handler=None)
+            ToolSpec(
+                name="t", description="d", input_schema={"type": "object"}, handler=None
+            )
         ]
 
         system_before = system
@@ -177,8 +187,10 @@ class TestAnthropicAdapter:
         adapter.chat(system="sys", messages=messages, tools=tools)
 
         call_kwargs = adapter._client.messages.create.call_args
-        # The adapter's call should have cache_control in the system and last user message
-        system_arg = call_kwargs.kwargs.get("system", call_kwargs.args[0] if call_kwargs.args else None)
+        # The adapter call should have cache_control in system and last user message
+        system_arg = call_kwargs.kwargs.get(
+            "system", call_kwargs.args[0] if call_kwargs.args else None
+        )
         # system might be a list with cache_control or a string
         if isinstance(system_arg, list):
             assert any("cache_control" in str(s) for s in system_arg)

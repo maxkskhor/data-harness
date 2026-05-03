@@ -40,7 +40,10 @@ def format_tool_output(
             serialized = json.dumps(value, default=repr)
         except Exception:
             serialized = repr(value)
-        if len(serialized) <= _INLINE_JSON_MAX and _collection_size(value) <= _INLINE_COLLECTION_MAX:
+        if (
+            len(serialized) <= _INLINE_JSON_MAX
+            and _collection_size(value) <= _INLINE_COLLECTION_MAX
+        ):
             return serialized
         return _cache_value(value, cache, preferred_name or _default_name(value))
 
@@ -90,6 +93,7 @@ def _collection_size(value: Any) -> int:
 def _is_dataframe(value: Any) -> bool:
     try:
         import pandas as pd
+
         return isinstance(value, pd.DataFrame)
     except ImportError:
         return False
@@ -98,6 +102,7 @@ def _is_dataframe(value: Any) -> bool:
 def _is_ndarray(value: Any) -> bool:
     try:
         import numpy as np
+
         return isinstance(value, np.ndarray)
     except ImportError:
         return False

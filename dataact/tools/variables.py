@@ -16,7 +16,10 @@ def make_list_variables_spec(cache: SessionCache) -> ToolSpec:
 
     return ToolSpec(
         name="list_variables",
-        description="List all variables currently stored in the session cache with their snapshots.",
+        description=(
+            "List all variables currently stored in the session cache"
+            " with their snapshots."
+        ),
         input_schema={"type": "object", "properties": {}},
         handler=list_variables,
     )

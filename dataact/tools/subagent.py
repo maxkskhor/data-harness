@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Callable
+from typing import Callable
 
 from dataact.cache import SessionCache
-from dataact.exceptions import SubagentRecursionError
 from dataact.providers.base import ProviderAdapter
 from dataact.types import ToolSpec
 
@@ -17,7 +16,9 @@ Your task: {task}
 
 Available input handles (already loaded into your cache): {input_handles}
 
-Use `python_interpreter` to inspect cached handles. Call `save(name, value)` for any computed artifact worth returning. You must produce final text summarizing your findings. If you save artifacts, mention what they contain and why they matter."""
+Use `python_interpreter` to inspect cached handles. Call `save(name, value)` for any
+computed artifact worth returning. You must produce final text summarizing your
+findings. If you save artifacts, mention what they contain and why they matter."""
 
 
 def make_subagent_spec(
@@ -101,7 +102,10 @@ def make_subagent_spec(
             published_lines.append(f"- {sub_name} -> {parent_name}\n  Snapshot: {snap}")
 
         published_str = "\n".join(published_lines)
-        return f"Subagent final output:\n{final_text}\n\nPublished outputs:\n{published_str}"
+        return (
+            f"Subagent final output:\n{final_text}\n\n"
+            f"Published outputs:\n{published_str}"
+        )
 
     return ToolSpec(
         name=_SUBAGENT_TOOL_NAME,
@@ -120,14 +124,17 @@ def make_subagent_spec(
                 "input_handles": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Parent cache handle names to copy into the subagent's cache.",
+                    "description": (
+                        "Parent cache handle names to copy into the subagent's cache."
+                    ),
                 },
                 "output_policy": {
                     "type": "string",
                     "enum": ["text_only", "publish_created"],
                     "description": (
                         "'text_only': return only the subagent's final text. "
-                        "'publish_created': also copy newly-created handles back to parent cache."
+                        "'publish_created': also copy newly-created handles back to"
+                        " parent cache."
                     ),
                 },
             },

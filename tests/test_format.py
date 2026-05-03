@@ -2,10 +2,10 @@ import pytest
 
 from dataact.format import format_tool_output
 
-
 # ──────────────────────────────────────────────
 # Phase 0: inline-path tests (no cache needed)
 # ──────────────────────────────────────────────
+
 
 def test_short_string_inline():
     result = format_tool_output("hello world", cache=None)
@@ -51,6 +51,7 @@ def test_short_list_inline():
 # ──────────────────────────────────────────────
 # Phase 2: cache-path tests (added after SessionCache exists)
 # ──────────────────────────────────────────────
+
 
 def test_large_dict_cached():
     harness_cache = pytest.importorskip("harness.cache")

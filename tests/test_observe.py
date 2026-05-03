@@ -29,5 +29,5 @@ def test_time_block_measures_elapsed():
 
 def test_time_block_before_exit_is_none():
     with time_block() as tb:
-        mid = tb.elapsed_ms  # might be None or 0 before exit
+        pass
     assert tb.elapsed_ms >= 0

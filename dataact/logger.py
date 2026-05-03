@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -22,7 +21,9 @@ def setup_logger(run_dir: str = "./runs") -> str:
     # Ensure the file exists
     Path(run_file).touch()
     logger.remove()
-    logger.add(lambda msg: None, level="INFO")  # suppress default stderr; callers can add sinks
+    logger.add(
+        lambda msg: None, level="INFO"
+    )  # suppress default stderr; callers can add sinks
     return run_file
 
 

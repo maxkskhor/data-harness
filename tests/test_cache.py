@@ -27,6 +27,7 @@ class TestPutGet:
     def test_auto_suffix_on_collision(self):
         cache = SessionCache()
         import pandas as pd
+
         df1 = pd.DataFrame({"a": [1, 2]})
         df2 = pd.DataFrame({"b": [3, 4]})
         n1 = cache.put("sales", df1)
@@ -60,11 +61,16 @@ class TestSnapshot:
     def test_dataframe_snapshot(self):
         pytest.importorskip("pandas")
         import pandas as pd
+
         cache = SessionCache()
         df = pd.DataFrame({"a": range(100), "b": range(100)})
         cache.put("big", df)
         snap = cache.snapshot("big")
-        assert "dataframe" in snap.lower() or "shape" in snap.lower() or "columns" in snap.lower()
+        assert (
+            "dataframe" in snap.lower()
+            or "shape" in snap.lower()
+            or "columns" in snap.lower()
+        )
 
     def test_list_snapshot(self):
         cache = SessionCache()
@@ -88,6 +94,7 @@ class TestSnapshot:
     def test_ndarray_snapshot(self):
         pytest.importorskip("numpy")
         import numpy as np
+
         cache = SessionCache()
         arr = np.arange(1000).reshape(100, 10)
         cache.put("arr", arr)
@@ -115,6 +122,7 @@ class TestSampleSize:
     def test_configurable_sample_size(self):
         pytest.importorskip("pandas")
         import pandas as pd
+
         cache = SessionCache(sample_size=3)
         df = pd.DataFrame({"a": range(100)})
         cache.put("df", df)
@@ -129,6 +137,7 @@ class TestSampleSize:
     def test_large_dataframe_sample_uses_configured_size(self):
         pytest.importorskip("pandas")
         import pandas as pd
+
         cache = SessionCache(sample_size=2)
         df = pd.DataFrame({"v": range(10000)})
         cache.put("big_df", df)
