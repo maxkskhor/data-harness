@@ -10,7 +10,7 @@ Update this file as work starts or completes.
 | 1 | Python 3.10+ support | done | verified on 3.10 and 3.11 |
 | 2 | Additional provider adapters (OpenAI) | done | OpenAIAdapter with mocked tests; live smoke gated by OPENAI_API_KEY |
 | 3 | SDK ergonomics / simple `Agent` builder | done | PLAN_SDK phases 1-5 complete |
-| 4 | CI / GitHub Actions | not started | no CI today |
+| 4 | CI / GitHub Actions | done | push/PR matrix for Python 3.10, 3.11, 3.12 |
 | 5 | Publish to PyPI | not started | blocked on items 1, 3 + 4 |
 
 ## PLAN_SDK.md
