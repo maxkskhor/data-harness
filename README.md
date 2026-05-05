@@ -54,15 +54,38 @@ uv sync
 
 ## Quick start
 
+`Agent` needs a provider adapter. The adapter is the boundary between the
+provider SDK and the harness: it turns Anthropic/OpenAI responses into
+`dataact`'s normalised `Message`, `ToolUseBlock`, and token-count types. It is
+explicit on purpose so the harness is not tied to one model provider, and tests
+can swap in `FakeAdapter` without touching the loop.
+
+For Anthropic:
+
 ```python
 from dataact import Agent
+from dataact.providers.anthropic import AnthropicAdapter
 
+adapter = AnthropicAdapter(model="claude-sonnet-4-6")
+agent = Agent(adapter=adapter, system="You are a data analyst.")
 
-def build_agent(adapter, system="You are a data analyst."):
-    return Agent(adapter=adapter, system=system)
+result = agent.run("Compute the mean of [1, 2, 3, 4, 5] and print it.")
+print(result)
 ```
 
-Run the minimal example with a live Anthropic adapter:
+For OpenAI, install the optional extra and change only the adapter:
+
+```bash
+pip install "dataact[openai]"
+```
+
+```python
+from dataact.providers.openai import OpenAIAdapter
+
+adapter = OpenAIAdapter(model="gpt-4o-mini")
+```
+
+Run the minimal Anthropic example:
 
 ```bash
 uv run python examples/quickstart.py
@@ -76,7 +99,9 @@ Connector helpers keep the quick path small while preserving progressive disclos
 
 ```python
 from dataact import Agent
+from dataact.providers.anthropic import AnthropicAdapter
 
+adapter = AnthropicAdapter(model="claude-sonnet-4-6")
 agent = Agent(adapter=adapter, system="You are a data analyst.")
 
 market_data = agent.connector(
@@ -102,6 +127,7 @@ print(result)
 
 `Agent` is a thin composition layer over the lower-level primitives:
 
+- A provider adapter translates model-provider SDK objects into the harness's normalised response types.
 - `Harness` owns the ReAct loop, messages, dispatch, reminders, and JSONL logging.
 - `SessionCache` stores large values as handles plus compact snapshots.
 - `python_interpreter` is the controlled execution surface; there is no bash tool.
@@ -121,7 +147,7 @@ Run tests:
 
 ```bash
 uv run pytest tests/ -v
-uv run pytest tests/ -m live -v  # requires ANTHROPIC_API_KEY
+uv run pytest tests/ -m live -v  # requires provider API keys
 ```
 
 ---
@@ -132,7 +158,7 @@ uv run pytest tests/ -m live -v  # requires ANTHROPIC_API_KEY
 dataact/
   loop.py          # Harness: the core ReAct loop
   cache.py         # SessionCache: handle/snapshot storage
-  providers/       # Normalised adapter interface (Anthropic implemented)
+  providers/       # Normalised adapter interface (Anthropic and OpenAI)
   tools/
     interpreter.py # Sandboxed Python executor
     connectors.py  # Progressive connector registry
