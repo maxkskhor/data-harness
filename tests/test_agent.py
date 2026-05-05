@@ -136,6 +136,140 @@ class TestAgentPhase1OneShotInvariant:
         assert "second user prompt" in all_text
 
 
+class TestAgentConnectors:
+    def test_connector_returns_builder_and_tool_returns_function(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        def fetch_ohlcv(symbol: str) -> list[str]:
+            return [symbol]
+
+        builder = agent.connector("market_data", description="Market data tools.")
+        returned = builder.tool(
+            fetch_ohlcv, description="Fetch OHLCV data for a ticker."
+        )
+
+        assert returned is fetch_ohlcv
+
+    def test_connector_tools_start_hidden_and_load_makes_visible(self, tmp_path):
+        adapter = FakeAdapter(
+            [
+                FakeAdapter.tool_use(
+                    "tu_1", "load_connectors", {"name": "market_data"}
+                ),
+                FakeAdapter.text("done"),
+            ]
+        )
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        def fetch_ohlcv(symbol: str) -> list[str]:
+            return [symbol]
+
+        agent.connector("market_data", description="Market data tools.").tool(
+            fetch_ohlcv,
+            description="Fetch OHLCV data for a ticker.",
+        )
+
+        agent.run("load market data")
+
+        first_names = {t.name for t in adapter.calls[0]["tools"]}
+        second_names = {t.name for t in adapter.calls[1]["tools"]}
+        assert "load_connectors" in first_names
+        assert "market_data__fetch_ohlcv" not in first_names
+        assert "market_data__fetch_ohlcv" in second_names
+
+    def test_connector_specs_are_fresh_per_run(self, tmp_path):
+        adapter = FakeAdapter(
+            [
+                FakeAdapter.tool_use(
+                    "tu_1", "load_connectors", {"name": "market_data"}
+                ),
+                FakeAdapter.text("first"),
+                FakeAdapter.text("second"),
+            ]
+        )
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        def fetch_ohlcv(symbol: str) -> list[str]:
+            return [symbol]
+
+        agent.connector("market_data", description="Market data tools.").tool(
+            fetch_ohlcv,
+            description="Fetch OHLCV data for a ticker.",
+        )
+
+        agent.run("first")
+        agent.run("second")
+
+        second_run_names = {t.name for t in adapter.calls[2]["tools"]}
+        assert "load_connectors" in second_run_names
+        assert "market_data__fetch_ohlcv" not in second_run_names
+
+    def test_connector_return_values_flow_through_cache_formatter(self, tmp_path):
+        adapter = FakeAdapter(
+            [
+                FakeAdapter.tool_use(
+                    "tu_1", "load_connectors", {"name": "market_data"}
+                ),
+                FakeAdapter.tool_use("tu_2", "market_data__fetch_many", {}),
+                FakeAdapter.text("done"),
+            ]
+        )
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        def fetch_many() -> list[int]:
+            return list(range(100))
+
+        agent.connector("market_data", description="Market data tools.").tool(
+            fetch_many,
+            description="Fetch many rows.",
+        )
+
+        agent.run("fetch data")
+
+        assert "fetch_many" in agent.cache.list_handles()
+
+    def test_connector_tool_name_uses_connector_prefix(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        def fetch_ohlcv(symbol: str) -> list[str]:
+            return [symbol]
+
+        agent.connector("market_data", description="Market data tools.").tool(
+            fetch_ohlcv,
+            description="Fetch OHLCV data for a ticker.",
+        )
+
+        agent.run("hi")
+
+        names = {t.name for t in agent.last_harness._tools}
+        assert "market_data__fetch_ohlcv" in names
+
+    def test_explicit_input_schema_override_bypasses_inference(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        def fetch(payload: dict) -> str:
+            return str(payload)
+
+        schema = {
+            "type": "object",
+            "properties": {"payload": {"type": "object"}},
+            "required": ["payload"],
+        }
+        agent.connector("market_data", description="Market data tools.").tool(
+            fetch,
+            description="Fetch with a custom payload.",
+            input_schema=schema,
+        )
+
+        agent.run("hi")
+
+        specs = {t.name: t for t in agent.last_harness._tools}
+        assert specs["market_data__fetch"].input_schema is schema
+
+
 def test_fake_adapter_drives_quickstart_snippet(tmp_path):
     """README quick-start should be runnable with a fake adapter (Phase 1 docs goal)."""
     adapter = FakeAdapter([FakeAdapter.text("The mean is 3.0")])

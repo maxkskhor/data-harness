@@ -11,14 +11,57 @@ new message history. It is not a chat session.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from dataact.cache import SessionCache
 from dataact.loop import Harness
 from dataact.providers.base import ProviderAdapter
+from dataact.schema import infer_input_schema
+from dataact.tools.connectors import ConnectorRegistry
 from dataact.tools.interpreter import PythonInterpreter
 from dataact.tools.variables import make_list_variables_spec
 from dataact.types import ToolSpec
+
+
+@dataclass(frozen=True)
+class _ConnectorToolDefinition:
+    connector_name: str
+    fn: Callable[..., Any]
+    description: str
+    input_schema: dict
+
+
+@dataclass(frozen=True)
+class _ConnectorDefinition:
+    name: str
+    description: str
+
+
+class ConnectorBuilder:
+    def __init__(self, agent: Agent, name: str) -> None:
+        self._agent = agent
+        self._name = name
+
+    def tool(
+        self,
+        fn: Callable[..., Any],
+        *,
+        description: str,
+        input_schema: dict | None = None,
+    ) -> Callable[..., Any]:
+        schema = input_schema if input_schema is not None else infer_input_schema(fn)
+        self._agent._connector_tools.append(
+            _ConnectorToolDefinition(
+                connector_name=self._name,
+                fn=fn,
+                description=description,
+                input_schema=schema,
+            )
+        )
+        return fn
 
 
 class Agent:
@@ -38,6 +81,8 @@ class Agent:
         self._run_dir = run_dir
         self._last_harness: Harness | None = None
         self._last_run_file: str | None = None
+        self._connectors: dict[str, _ConnectorDefinition] = {}
+        self._connector_tools: list[_ConnectorToolDefinition] = []
 
     @property
     def cache(self) -> SessionCache:
@@ -50,6 +95,13 @@ class Agent:
     @property
     def last_run_file(self) -> str | None:
         return self._last_run_file
+
+    def connector(self, name: str, *, description: str) -> ConnectorBuilder:
+        self._connectors[name] = _ConnectorDefinition(
+            name=name,
+            description=description,
+        )
+        return ConnectorBuilder(self, name)
 
     def run(self, user_message: str) -> str:
         tools = self._build_tools()
@@ -81,10 +133,31 @@ class Agent:
         )
 
     def _build_tools(self) -> list[ToolSpec]:
-        return [
+        tools = [
             PythonInterpreter.make_tool_spec(self._cache),
             make_list_variables_spec(self._cache),
         ]
+        if self._connectors:
+            registry = ConnectorRegistry()
+            for connector_name, connector in self._connectors.items():
+                registry.register(
+                    name=connector_name,
+                    description=connector.description,
+                    tools=[
+                        ToolSpec(
+                            name=f"{connector_name}__{definition.fn.__name__}",
+                            description=definition.description,
+                            input_schema=definition.input_schema,
+                            handler=definition.fn,
+                            visible=False,
+                        )
+                        for definition in self._connector_tools
+                        if definition.connector_name == connector_name
+                    ],
+                )
+            tools.append(registry.get_load_connectors_spec())
+            tools.extend(registry.make_wrapped_specs(self._cache))
+        return tools
 
 
 _EXPLAIN_TEMPLATE = """\
