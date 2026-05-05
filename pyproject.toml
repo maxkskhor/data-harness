@@ -17,9 +17,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "openai",
     "pytest",
     "pytest-mock",
     "python-dotenv",
+]
+openai = [
+    "openai",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -27,6 +31,7 @@ packages = ["dataact"]
 
 [tool.uv]
 dev-dependencies = [
+    "openai",
     "pytest",
     "pytest-mock",
     "python-dotenv",
