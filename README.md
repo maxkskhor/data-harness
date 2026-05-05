@@ -6,7 +6,12 @@ A minimal, transparent, data-native agent harness for Python — built without b
 
 Most agent frameworks hand the model a shell and call it a day. `dataact` takes a different approach: the model operates entirely through a sandboxed Python interpreter, with data stored in a session cache and exposed as named handles. No bash. No framework magic. Just a loop you can read in an afternoon.
 
-Built as a reference implementation for engineers who want to understand how a production-style harness actually works — and as a foundation for data-intensive agent workflows.
+Built as an installable reference implementation for engineers who want to understand how a production-style harness actually works. It is not a polished SDK surface; the convenience API exists to remove setup noise while keeping the harness boundaries visible.
+
+The design is covered in two posts:
+
+- [Designing a ReAct Harness for Data Workflows Without Bash](https://maxkskhor.substack.com/p/designing-a-react-harness-for-data)
+- [The Engineering Invariants Behind a Data-Native ReAct Harness](https://maxkskhor.substack.com/p/the-engineering-invariants-behind)
 
 ---
 
@@ -50,40 +55,73 @@ uv sync
 ## Quick start
 
 ```python
-from dataact.loop import Harness
-from dataact.providers.anthropic import AnthropicAdapter
-from dataact.cache import SessionCache
-from dataact.tools.interpreter import PythonInterpreter
-from dataact.tools.variables import make_list_variables_spec
+from dataact import Agent
 
-cache = SessionCache()
-adapter = AnthropicAdapter(model="claude-sonnet-4-6")
 
-harness = Harness(
-    adapter=adapter,
-    system="You are a data analyst.",
-    tools=[
-        PythonInterpreter.make_tool_spec(cache),
-        make_list_variables_spec(cache),
-    ],
-    cache=cache,
+def build_agent(adapter, system="You are a data analyst."):
+    return Agent(adapter=adapter, system=system)
+```
+
+Run the minimal example with a live Anthropic adapter:
+
+```bash
+uv run python examples/quickstart.py
+```
+
+`examples/quickstart.py` requires `ANTHROPIC_API_KEY` when run as a script. Tests import `build_agent()` and drive it with `FakeAdapter`, so the example stays covered without token spend.
+
+## Connector example
+
+Connector helpers keep the quick path small while preserving progressive disclosure. Connector tools start hidden; the model must call `load_connectors` before it can use them.
+
+```python
+from dataact import Agent
+
+agent = Agent(adapter=adapter, system="You are a data analyst.")
+
+market_data = agent.connector(
+    "market_data",
+    description="Market data tools.",
 )
 
-result = harness.run("Compute the mean of [1, 2, 3, 4, 5] and print it.")
+
+def fetch_ohlcv(symbol: str) -> list[dict]:
+    return [{"symbol": symbol, "close": 101.2}]
+
+
+market_data.tool(
+    fetch_ohlcv,
+    description="Fetch OHLCV data for a ticker.",
+)
+
+result = agent.run("Load market_data and inspect AAPL.")
 print(result)
 ```
 
-Run the full demo — loads a synthetic OHLCV dataset, runs analysis, uses subagents and the planner (requires `ANTHROPIC_API_KEY`):
+## What `Agent` composes
+
+`Agent` is a thin composition layer over the lower-level primitives:
+
+- `Harness` owns the ReAct loop, messages, dispatch, reminders, and JSONL logging.
+- `SessionCache` stores large values as handles plus compact snapshots.
+- `python_interpreter` is the controlled execution surface; there is no bash tool.
+- `list_variables` exposes cache handles without dumping raw payloads.
+- `ConnectorRegistry` keeps connector tools hidden until loaded.
+- `Planner` reminders and subagents are opt-in helpers, not a second runtime.
+
+For the explicit wiring, read [examples/advanced_wiring.py](examples/advanced_wiring.py). It deliberately shows the moving parts that `Agent` composes.
+
+Run the advanced example - it loads a synthetic OHLCV dataset, runs analysis, uses subagents and the planner (requires `ANTHROPIC_API_KEY`):
 
 ```bash
-uv run python examples/demo.py
+uv run python examples/advanced_wiring.py
 ```
 
 Run tests:
 
 ```bash
 uv run pytest tests/ -v
-uv run pytest tests/smoke_tests.py -v -m live  # requires ANTHROPIC_API_KEY
+uv run pytest tests/ -m live -v  # requires ANTHROPIC_API_KEY
 ```
 
 ---
@@ -104,6 +142,9 @@ dataact/
   types.py         # Shared types: Message, ToolSpec, ContentBlock
   logger.py        # JSONL turn logging
   observe.py       # Latency measurement
+examples/
+  quickstart.py        # Minimal Agent path
+  advanced_wiring.py   # Explicit Harness wiring
 ```
 
 ---
@@ -111,12 +152,6 @@ dataact/
 ## Sandbox disclaimer
 
 The Python interpreter uses AST checks and restricted globals to reduce accidental misuse. It is not a container sandbox and should not be treated as safe for untrusted input.
-
----
-
-## SDK docs
-
-Full API reference, guides, and connector examples: coming soon.
 
 ---
 

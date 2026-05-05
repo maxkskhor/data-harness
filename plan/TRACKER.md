@@ -9,7 +9,7 @@ Update this file as work starts or completes.
 |---|------|--------|-------|
 | 1 | Python 3.10+ support | not started | requires-python currently >=3.12 |
 | 2 | Additional provider adapters (OpenAI) | not started | AnthropicAdapter only |
-| 3 | SDK ergonomics / simple `Agent` builder | re-scoped draft | see PLAN_SDK.md |
+| 3 | SDK ergonomics / simple `Agent` builder | done | PLAN_SDK phases 1-5 complete |
 | 4 | CI / GitHub Actions | not started | no CI today |
 | 5 | Publish to PyPI | not started | blocked on items 1, 3 + 4 |
 
@@ -17,7 +17,7 @@ Update this file as work starts or completes.
 
 | Item | Status | Notes |
 |------|--------|-------|
-| SDK ergonomics teaching-scope draft | in progress | Phases 1-4 done: minimal `Agent`, `FakeAdapter`, connector builder, schema inference, planner and subagent enablement; Phase 5 next |
+| SDK ergonomics teaching-scope draft | done | `Agent`, `FakeAdapter`, connector builder, schema inference, planner/subagent enablement, docs and examples complete |
 
 ## PLAN_v3.md
 

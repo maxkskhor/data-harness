@@ -1,8 +1,8 @@
 """
-demo.py — Wires all five tools together with a synthetic OHLCV connector.
+advanced_wiring.py - Wires all five tools together with a synthetic OHLCV connector.
 
 Requires ANTHROPIC_API_KEY to be set. Run:
-    uv run python examples/demo.py
+    uv run python examples/advanced_wiring.py
 """
 
 from __future__ import annotations
