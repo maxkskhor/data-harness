@@ -22,6 +22,7 @@ from dataact.providers.base import ProviderAdapter
 from dataact.schema import infer_input_schema
 from dataact.tools.connectors import ConnectorRegistry
 from dataact.tools.interpreter import PythonInterpreter
+from dataact.tools.planner import Planner
 from dataact.tools.variables import make_list_variables_spec
 from dataact.types import ToolSpec
 
@@ -83,6 +84,7 @@ class Agent:
         self._last_run_file: str | None = None
         self._connectors: dict[str, _ConnectorDefinition] = {}
         self._connector_tools: list[_ConnectorToolDefinition] = []
+        self._planner_enabled = False
 
     @property
     def cache(self) -> SessionCache:
@@ -103,8 +105,13 @@ class Agent:
         )
         return ConnectorBuilder(self, name)
 
+    def enable_planner(self) -> Agent:
+        self._planner_enabled = True
+        return self
+
     def run(self, user_message: str) -> str:
-        tools = self._build_tools()
+        planner = Planner() if self._planner_enabled else None
+        tools = self._build_tools(planner=planner)
         harness_kwargs: dict = {
             "adapter": self._adapter,
             "system": self._system,
@@ -116,6 +123,8 @@ class Agent:
             harness_kwargs["run_dir"] = str(self._run_dir)
 
         harness = Harness(**harness_kwargs)
+        if planner is not None:
+            harness.register_reminder(planner.reminder_hook)
         self._last_harness = harness
         result = harness.run(user_message)
         # Newest jsonl in the run dir belongs to this run
@@ -132,11 +141,13 @@ class Agent:
             run_dir=self._run_dir if self._run_dir is not None else "./runs",
         )
 
-    def _build_tools(self) -> list[ToolSpec]:
+    def _build_tools(self, *, planner: Planner | None = None) -> list[ToolSpec]:
         tools = [
             PythonInterpreter.make_tool_spec(self._cache),
             make_list_variables_spec(self._cache),
         ]
+        if planner is not None:
+            tools.extend(planner.make_tool_specs())
         if self._connectors:
             registry = ConnectorRegistry()
             for connector_name, connector in self._connectors.items():

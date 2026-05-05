@@ -10,6 +10,8 @@ from dataact.agent import Agent
 from dataact.cache import SessionCache
 from dataact.loop import Harness
 from dataact.testing import FakeAdapter
+from dataact.tools.planner import Planner
+from dataact.types import ToolResultBlock
 
 
 def test_agent_is_exported_from_top_level_package():
@@ -268,6 +270,79 @@ class TestAgentConnectors:
 
         specs = {t.name: t for t in agent.last_harness._tools}
         assert specs["market_data__fetch"].input_schema is schema
+
+
+class TestAgentPlanner:
+    def test_enable_planner_adds_planner_tools(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        agent.enable_planner()
+        agent.run("plan")
+
+        names = {t.name for t in adapter.calls[0]["tools"]}
+        assert {"planner__add", "planner__update", "planner__list"} <= names
+
+    def test_enable_planner_registers_reminder_hook(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        agent.enable_planner()
+        agent.run("plan")
+
+        reminders = agent.last_harness._reminders
+        assert len(reminders) == 1
+        assert isinstance(reminders[0].__self__, Planner)
+
+    def test_planner_absent_when_not_enabled(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        agent.run("no plan")
+
+        names = {t.name for t in adapter.calls[0]["tools"]}
+        assert not any(name.startswith("planner__") for name in names)
+        assert agent.last_harness._reminders == []
+
+    def test_enable_planner_twice_does_not_duplicate_specs_or_hooks(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        agent.enable_planner()
+        agent.enable_planner()
+        agent.run("plan")
+
+        names = [t.name for t in adapter.calls[0]["tools"]]
+        assert names.count("planner__add") == 1
+        assert names.count("planner__update") == 1
+        assert names.count("planner__list") == 1
+        assert len(agent.last_harness._reminders) == 1
+
+    def test_planner_state_does_not_leak_across_runs(self, tmp_path):
+        adapter = FakeAdapter(
+            [
+                FakeAdapter.tool_use("tu_1", "planner__add", {"items": ["task A"]}),
+                FakeAdapter.text("first done"),
+                FakeAdapter.tool_use("tu_2", "planner__list", {}),
+                FakeAdapter.text("second done"),
+            ]
+        )
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+        agent.enable_planner()
+
+        agent.run("first")
+        agent.run("second")
+
+        second_run_final_call = adapter.calls[3]
+        tool_results = [
+            block
+            for message in second_run_final_call["messages"]
+            for block in message.content
+            if isinstance(block, ToolResultBlock)
+        ]
+        assert tool_results
+        assert "Todo list is empty." in tool_results[-1].content
+        assert "task A" not in tool_results[-1].content
 
 
 def test_fake_adapter_drives_quickstart_snippet(tmp_path):
