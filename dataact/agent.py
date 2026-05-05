@@ -23,6 +23,7 @@ from dataact.schema import infer_input_schema
 from dataact.tools.connectors import ConnectorRegistry
 from dataact.tools.interpreter import PythonInterpreter
 from dataact.tools.planner import Planner
+from dataact.tools.subagent import make_subagent_spec
 from dataact.tools.variables import make_list_variables_spec
 from dataact.types import ToolSpec
 
@@ -85,6 +86,7 @@ class Agent:
         self._connectors: dict[str, _ConnectorDefinition] = {}
         self._connector_tools: list[_ConnectorToolDefinition] = []
         self._planner_enabled = False
+        self._subagent_factory: Callable[[], ProviderAdapter] | None = None
 
     @property
     def cache(self) -> SessionCache:
@@ -109,9 +111,28 @@ class Agent:
         self._planner_enabled = True
         return self
 
+    def enable_subagents(
+        self, *, adapter_factory: Callable[[], ProviderAdapter]
+    ) -> Agent:
+        self._subagent_factory = adapter_factory
+        return self
+
     def run(self, user_message: str) -> str:
         planner = Planner() if self._planner_enabled else None
         tools = self._build_tools(planner=planner)
+        if self._subagent_factory is not None:
+            subagent_parent_tools = self._build_tools(planner=None)
+            effective_run_dir = (
+                str(self._run_dir) if self._run_dir is not None else "./runs"
+            )
+            tools.append(
+                make_subagent_spec(
+                    adapter_factory=self._subagent_factory,
+                    parent_tools=subagent_parent_tools,
+                    parent_cache=self._cache,
+                    run_dir=effective_run_dir,
+                )
+            )
         harness_kwargs: dict = {
             "adapter": self._adapter,
             "system": self._system,

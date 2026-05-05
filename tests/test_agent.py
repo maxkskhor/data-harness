@@ -11,7 +11,7 @@ from dataact.cache import SessionCache
 from dataact.loop import Harness
 from dataact.testing import FakeAdapter
 from dataact.tools.planner import Planner
-from dataact.types import ToolResultBlock
+from dataact.types import ToolResultBlock, ToolSpec
 
 
 def test_agent_is_exported_from_top_level_package():
@@ -343,6 +343,165 @@ class TestAgentPlanner:
         assert tool_results
         assert "Todo list is empty." in tool_results[-1].content
         assert "task A" not in tool_results[-1].content
+
+
+class TestAgentSubagents:
+    def test_enable_subagents_adds_subagent_tool(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        agent.enable_subagents(adapter_factory=lambda: FakeAdapter([]))
+        agent.run("delegate")
+
+        names = {t.name for t in adapter.calls[0]["tools"]}
+        assert "subagent" in names
+
+    def test_subagent_absent_when_not_enabled(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        agent.run("no delegation")
+
+        names = {t.name for t in adapter.calls[0]["tools"]}
+        assert "subagent" not in names
+
+    def test_subagent_adapter_factory_called_per_spawn(self, tmp_path):
+        adapter = FakeAdapter(
+            [
+                FakeAdapter.tool_use("tu_1", "subagent", {"task": "one"}),
+                FakeAdapter.tool_use("tu_2", "subagent", {"task": "two"}),
+                FakeAdapter.text("done"),
+            ]
+        )
+        created = []
+
+        def factory():
+            sub = FakeAdapter([FakeAdapter.text("sub done")])
+            created.append(sub)
+            return sub
+
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+        agent.enable_subagents(adapter_factory=factory)
+
+        agent.run("delegate twice")
+
+        assert len(created) == 2
+        assert created[0] is not created[1]
+
+    def test_subagent_parent_tools_exclude_subagent_spec(self, monkeypatch, tmp_path):
+        captured_names = []
+
+        def recording_make_subagent_spec(
+            adapter_factory,
+            parent_tools,
+            parent_cache,
+            run_dir,
+            get_sub_cache=None,
+        ):
+            captured_names.extend(t.name for t in parent_tools)
+            return ToolSpec(
+                name="subagent",
+                description="subagent",
+                input_schema={"type": "object", "properties": {}},
+                handler=lambda **kwargs: "done",
+            )
+
+        monkeypatch.setattr(
+            "dataact.agent.make_subagent_spec", recording_make_subagent_spec
+        )
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        agent.enable_subagents(adapter_factory=lambda: FakeAdapter([]))
+        agent.run("delegate")
+
+        assert "subagent" not in captured_names
+
+    def test_subagent_does_not_inherit_planner_hooks(self, monkeypatch, tmp_path):
+        from dataact.loop import Harness as RealHarness
+
+        captured = []
+
+        def recording_harness(*args, **kwargs):
+            harness = RealHarness(*args, **kwargs)
+            captured.append(harness)
+            return harness
+
+        monkeypatch.setattr("dataact.loop.Harness", recording_harness)
+        adapter = FakeAdapter(
+            [
+                FakeAdapter.tool_use("tu_1", "subagent", {"task": "work"}),
+                FakeAdapter.text("done"),
+            ]
+        )
+
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+        agent.enable_planner()
+        agent.enable_subagents(
+            adapter_factory=lambda: FakeAdapter([FakeAdapter.text("sub done")])
+        )
+
+        agent.run("delegate")
+
+        assert captured
+        assert captured[0]._reminders == []
+
+    def test_subagent_connector_tools_are_fresh_and_hidden(self, monkeypatch, tmp_path):
+        from dataact.loop import Harness as RealHarness
+
+        captured = []
+
+        def recording_harness(*args, **kwargs):
+            harness = RealHarness(*args, **kwargs)
+            captured.append(harness)
+            return harness
+
+        monkeypatch.setattr("dataact.loop.Harness", recording_harness)
+        adapter = FakeAdapter(
+            [
+                FakeAdapter.tool_use(
+                    "tu_1", "load_connectors", {"name": "market_data"}
+                ),
+                FakeAdapter.tool_use("tu_2", "subagent", {"task": "work"}),
+                FakeAdapter.text("done"),
+                FakeAdapter.text("second done"),
+            ]
+        )
+
+        def fetch_ohlcv(symbol: str) -> list[str]:
+            return [symbol]
+
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+        agent.connector("market_data", description="Market data tools.").tool(
+            fetch_ohlcv,
+            description="Fetch OHLCV data for a ticker.",
+        )
+        agent.enable_subagents(
+            adapter_factory=lambda: FakeAdapter([FakeAdapter.text("sub done")])
+        )
+
+        agent.run("load then delegate")
+
+        assert captured
+        sub_harness = captured[0]
+        sub_specs = {t.name: t for t in sub_harness._tools}
+        parent_specs = {t.name: t for t in agent.last_harness._tools}
+        assert sub_specs["load_connectors"].visible is True
+        assert sub_specs["market_data__fetch_ohlcv"].visible is False
+        assert parent_specs["market_data__fetch_ohlcv"].visible is True
+        assert id(sub_specs["market_data__fetch_ohlcv"]) != id(
+            parent_specs["market_data__fetch_ohlcv"]
+        )
+
+        first_sub_connector_id = id(sub_specs["market_data__fetch_ohlcv"])
+        agent.run("fresh second run")
+        second_parent_specs = {t.name: t for t in agent.last_harness._tools}
+        assert id(second_parent_specs["market_data__fetch_ohlcv"]) != id(
+            parent_specs["market_data__fetch_ohlcv"]
+        )
+        assert id(second_parent_specs["market_data__fetch_ohlcv"]) != (
+            first_sub_connector_id
+        )
 
 
 def test_fake_adapter_drives_quickstart_snippet(tmp_path):

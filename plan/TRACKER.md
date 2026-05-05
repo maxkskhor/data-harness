@@ -17,7 +17,7 @@ Update this file as work starts or completes.
 
 | Item | Status | Notes |
 |------|--------|-------|
-| SDK ergonomics teaching-scope draft | in progress | Phases 1-3 done: minimal `Agent`, `FakeAdapter`, connector builder, schema inference, planner enablement; Phase 4 next |
+| SDK ergonomics teaching-scope draft | in progress | Phases 1-4 done: minimal `Agent`, `FakeAdapter`, connector builder, schema inference, planner and subagent enablement; Phase 5 next |
 
 ## PLAN_v3.md
 
