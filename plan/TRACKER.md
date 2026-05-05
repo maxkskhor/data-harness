@@ -7,7 +7,7 @@ Update this file as work starts or completes.
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | Python 3.10+ support | not started | requires-python currently >=3.12 |
+| 1 | Python 3.10+ support | done | verified on 3.10 and 3.11 |
 | 2 | Additional provider adapters (OpenAI) | not started | AnthropicAdapter only |
 | 3 | SDK ergonomics / simple `Agent` builder | done | PLAN_SDK phases 1-5 complete |
 | 4 | CI / GitHub Actions | not started | no CI today |

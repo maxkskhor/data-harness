@@ -48,7 +48,7 @@ Every turn is logged to a `.jsonl` file from the start. Not bolted on later. Eac
 ## Install
 
 ```bash
-# requires Python 3.12+ and uv
+# requires Python 3.10+ and uv
 uv sync
 ```
 
