@@ -397,6 +397,7 @@ class TestAgentSubagents:
             parent_cache,
             run_dir,
             get_sub_cache=None,
+            make_sub_tools=None,
         ):
             captured_names.extend(t.name for t in parent_tools)
             return ToolSpec(

@@ -35,6 +35,7 @@ def log_turn(
     tool_results: list[ToolResultBlock],
     latency_ms: float,
     run_file: str,
+    cache_storage: dict[str, dict[str, str]] | None = None,
 ) -> None:
     """Append one JSON line to the run JSONL file."""
     system_hash = hashlib.sha256(system.encode()).hexdigest()
@@ -58,6 +59,8 @@ def log_turn(
 
     if turn == 1:
         record["system"] = system
+    if cache_storage is not None:
+        record["cache_storage"] = cache_storage
 
     with open(run_file, "a") as f:
         f.write(json.dumps(record) + "\n")

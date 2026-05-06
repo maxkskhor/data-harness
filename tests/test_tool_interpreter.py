@@ -8,8 +8,10 @@ class TestAllowedImports:
     def test_allowed_import_passes(self):
         cache = SessionCache()
         interp = PythonInterpreter(cache=cache)
-        result = interp.run(code="import pandas as pd\nprint(type(pd))")
-        assert "error" not in result.lower() or "module" in result.lower()
+        result = interp.run(
+            code="import pandas as pd\nprint(pd.DataFrame({'x': [1]}).shape[0])"
+        )
+        assert result.strip() == "1"
 
     def test_disallowed_import_rejected(self):
         cache = SessionCache()

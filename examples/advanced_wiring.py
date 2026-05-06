@@ -1,5 +1,5 @@
 """
-advanced_wiring.py - Wires all five tools together with a synthetic OHLCV connector.
+advanced_wiring.py - Wires the harness around a real checked-in FRED sample.
 
 Requires ANTHROPIC_API_KEY to be set. Run:
     uv run python examples/advanced_wiring.py
@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 
 import pandas as pd
 
@@ -21,24 +22,63 @@ from dataact.tools.subagent import make_subagent_spec
 from dataact.tools.variables import make_list_variables_spec
 from dataact.types import ToolSpec
 
+DATA_PATH = Path(__file__).parent / "data" / "fred_unrate_2024.csv"
 
-def make_synthetic_ohlcv(n: int = 1000) -> pd.DataFrame:
-    import datetime
 
-    base = datetime.date(2024, 1, 1)
-    return pd.DataFrame(
-        {
-            "date": [(base + datetime.timedelta(days=i)).isoformat() for i in range(n)],
-            "open": [100.0 + i * 0.05 for i in range(n)],
-            "high": [102.0 + i * 0.05 for i in range(n)],
-            "low": [98.0 + i * 0.05 for i in range(n)],
-            "close": [101.0 + i * 0.05 for i in range(n)],
-            "volume": [10_000 + i * 10 for i in range(n)],
-        }
+def load_local_env() -> None:
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    load_dotenv()
+
+
+def load_unemployment_rate(series: str = "UNRATE") -> pd.DataFrame:
+    df = pd.read_csv(DATA_PATH, parse_dates=["date"])
+    filtered = df[df["series"] == series].copy()
+    if filtered.empty:
+        available = sorted(df.series.unique())
+        raise ValueError(f"Unknown series {series!r}; available: {available}")
+    return filtered
+
+
+def build_base_tools(session_cache: SessionCache) -> list[ToolSpec]:
+    registry = ConnectorRegistry()
+    registry.register(
+        name="macro_data",
+        description="Checked-in FRED macroeconomic data samples.",
+        tools=[
+            ToolSpec(
+                name="macro_data__load_unemployment_rate",
+                description=(
+                    "Load the FRED UNRATE sample. Returns monthly 2024 unemployment"
+                    " rate observations as a DataFrame."
+                ),
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "series": {
+                            "type": "string",
+                            "description": "FRED series code; only UNRATE is included",
+                        }
+                    },
+                },
+                handler=load_unemployment_rate,
+                visible=False,
+            )
+        ],
     )
+
+    return [
+        registry.get_load_connectors_spec(),
+        PythonInterpreter.make_tool_spec(session_cache),
+        make_list_variables_spec(session_cache),
+        *registry.make_wrapped_specs(session_cache),
+    ]
 
 
 def main() -> None:
+    load_local_env()
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         print("ANTHROPIC_API_KEY not set. Skipping live demo.")
@@ -48,60 +88,23 @@ def main() -> None:
 
     session_cache = SessionCache(sample_size=5)
 
-    # Build connector registry
-    registry = ConnectorRegistry()
-    registry.register(
-        name="market_data",
-        description="Synthetic OHLCV market data for demo purposes.",
-        tools=[
-            ToolSpec(
-                name="market_data__fetch_ohlcv",
-                description=(
-                    "Fetch synthetic OHLCV data. Returns a DataFrame with 1000 rows."
-                ),
-                input_schema={
-                    "type": "object",
-                    "properties": {
-                        "symbol": {
-                            "type": "string",
-                            "description": "Ticker symbol (ignored in synthetic mode)",
-                        }
-                    },
-                },
-                handler=lambda symbol="DEMO": make_synthetic_ohlcv(),
-                visible=False,
-            )
-        ],
-    )
-
-    load_connectors_spec = registry.get_load_connectors_spec()
-    wrapped_specs = registry.make_wrapped_specs(session_cache)
-
     # Planner
     planner = Planner()
     planner_specs = planner.make_tool_specs()
-
-    # Interpreter
-    interp_spec = PythonInterpreter.make_tool_spec(session_cache)
-
-    # Variables
-    variables_spec = make_list_variables_spec(session_cache)
 
     # Subagent
     def adapter_factory():
         return AnthropicAdapter(model="claude-haiku-4-5-20251001", max_tokens=2048)
 
-    all_tools = (
-        [load_connectors_spec, interp_spec, variables_spec]
-        + planner_specs
-        + wrapped_specs
-    )
+    base_tools = build_base_tools(session_cache)
+    all_tools = base_tools + planner_specs
 
     subagent_spec = make_subagent_spec(
         adapter_factory=adapter_factory,
-        parent_tools=all_tools,
+        parent_tools=base_tools,
         parent_cache=session_cache,
         run_dir="./runs",
+        make_sub_tools=build_base_tools,
     )
     all_tools.append(subagent_spec)
 
@@ -111,7 +114,7 @@ def main() -> None:
     harness = Harness(
         adapter=adapter,
         system=(
-            "You are a financial data analyst with access to market data tools. "
+            "You are a data analyst with access to macro data tools. "
             "Use load_connectors to access data sources, "
             "python_interpreter to analyze data, "
             "and list_variables to check what's cached. "
@@ -130,15 +133,14 @@ def main() -> None:
     print("=" * 60)
 
     result = harness.run(
-        "Load the market_data connector and fetch OHLCV data. "
-        "Then compute the average closing price and the highest volume day. "
-        "Summarize your findings."
+        "Load the macro_data connector and load the UNRATE sample. "
+        "Use Python to compute the average unemployment rate. "
+        "Then spawn a subagent with the cached handle to identify the highest "
+        "unemployment month. Summarize both findings."
     )
 
     print("\nFinal response:")
     print(result)
-
-    from pathlib import Path
 
     run_files = list(Path("./runs").glob("*.jsonl"))
     if run_files:

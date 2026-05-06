@@ -74,6 +74,7 @@ class Harness:
                 tool_results=tool_results,
                 latency_ms=latency,
                 run_file=run_file,
+                cache_storage=self._cache.storage_metadata(),
             )
 
             if response.stop_reason == StopReason.END_TURN:

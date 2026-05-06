@@ -6,8 +6,10 @@ import copy
 
 from dataact.cache import SessionCache
 from dataact.providers.base import NormalizedResponse, ProviderAdapter, StopReason
+from dataact.tools.connectors import ConnectorRegistry
+from dataact.tools.interpreter import PythonInterpreter
 from dataact.tools.subagent import make_subagent_spec
-from dataact.types import Message, TextBlock, ToolSpec
+from dataact.types import Message, TextBlock, ToolSpec, ToolUseBlock
 
 
 class FakeAdapter(ProviderAdapter):
@@ -29,6 +31,25 @@ def make_text_response(text: str) -> NormalizedResponse:
     return NormalizedResponse(
         stop_reason=StopReason.END_TURN,
         content=[TextBlock(text=text)],
+        input_tokens=5,
+        output_tokens=3,
+        cache_read_tokens=0,
+        cache_write_tokens=0,
+    )
+
+
+def make_tool_response(
+    tool_id: str, tool_name: str, tool_input: dict
+) -> NormalizedResponse:
+    return NormalizedResponse(
+        stop_reason=StopReason.TOOL_USE,
+        content=[
+            ToolUseBlock(
+                tool_use_id=tool_id,
+                tool_name=tool_name,
+                tool_input=tool_input,
+            )
+        ],
         input_tokens=5,
         output_tokens=3,
         cache_read_tokens=0,
@@ -235,6 +256,119 @@ class TestSubagentIsolation:
         # Parent cache should still be empty
         assert len(parent_cache.list_handles()) == 0
 
+    def test_input_handles_are_value_copied_for_subagent_mutation(self, tmp_path):
+        parent_cache = SessionCache()
+        parent_cache.put("numbers", [1, 2, 3])
+
+        def adapter_factory():
+            return FakeAdapter(
+                [
+                    make_tool_response(
+                        "tu_1",
+                        "python_interpreter",
+                        {
+                            "code": (
+                                "numbers.append(4)\n"
+                                "save('mutated_numbers', numbers)\n"
+                                "print(numbers)"
+                            )
+                        },
+                    ),
+                    make_text_response("done"),
+                ]
+            )
+
+        subagent_spec = make_subagent_spec(
+            adapter_factory=adapter_factory,
+            parent_tools=[PythonInterpreter.make_tool_spec(parent_cache)],
+            parent_cache=parent_cache,
+            run_dir=str(tmp_path),
+        )
+
+        subagent_spec.handler(
+            task="mutate the input",
+            input_handles=["numbers"],
+            output_policy="publish_created",
+        )
+
+        assert parent_cache.get("numbers") == [1, 2, 3]
+        assert parent_cache.get("mutated_numbers") == [1, 2, 3, 4]
+
+    def test_cache_bound_connector_fallback_returns_isolation_error(self, tmp_path):
+        parent_cache = SessionCache()
+        registry = ConnectorRegistry()
+        registry.register(
+            name="data",
+            description="Data tools.",
+            tools=[
+                ToolSpec(
+                    name="data__fetch",
+                    description="Fetch rows.",
+                    input_schema={"type": "object", "properties": {}},
+                    handler=lambda: list(range(100)),
+                    visible=True,
+                )
+            ],
+        )
+        parent_tools = registry.make_wrapped_specs(parent_cache)
+
+        def adapter_factory():
+            return FakeAdapter([make_text_response("should not run")])
+
+        subagent_spec = make_subagent_spec(
+            adapter_factory=adapter_factory,
+            parent_tools=parent_tools,
+            parent_cache=parent_cache,
+            run_dir=str(tmp_path),
+        )
+
+        result = subagent_spec.handler(task="use connector")
+
+        assert "subagent tools are not isolated" in result
+        assert "make_sub_tools" in result
+        assert parent_cache.list_handles() == {}
+
+    def test_publish_created_gets_only_new_handles(self, tmp_path):
+        parent_cache = SessionCache()
+        parent_cache.put("input_data", "input")
+        sub_cache = _CountingCache(storage_dir=tmp_path / "sub", hot_limit=1)
+
+        def adapter_factory():
+            return FakeAdapter(
+                [
+                    make_tool_response("tu_1", "create", {}),
+                    make_text_response("done"),
+                ]
+            )
+
+        def make_sub_tools(cache):
+            return [
+                ToolSpec(
+                    name="create",
+                    description="Create a handle.",
+                    input_schema={"type": "object", "properties": {}},
+                    handler=lambda: cache.put("created", "value"),
+                )
+            ]
+
+        subagent_spec = make_subagent_spec(
+            adapter_factory=adapter_factory,
+            parent_tools=[],
+            parent_cache=parent_cache,
+            run_dir=str(tmp_path),
+            get_sub_cache=lambda: sub_cache,
+            make_sub_tools=make_sub_tools,
+        )
+
+        subagent_spec.handler(
+            task="create output",
+            input_handles=["input_data"],
+            output_policy="publish_created",
+        )
+
+        assert sub_cache.get_calls == ["created"]
+        assert parent_cache.get("created") == "value"
+
 
 class TestSubagentPublishCreated:
     def test_publish_created_copies_new_handles(self, tmp_path):
@@ -279,6 +413,35 @@ class TestSubagentPublishCreated:
         # Parent tool should be unchanged
         assert parent_tool.visible is True
 
+    def test_publish_created_collision_uses_resolved_parent_name(self, tmp_path):
+        parent_cache = SessionCache()
+        parent_cache.put("result", "parent value")
+
+        def adapter_factory():
+            return FakeAdapter(
+                [
+                    make_tool_response(
+                        "tu_1",
+                        "python_interpreter",
+                        {"code": "save('result', 'child value')\nprint('saved')"},
+                    ),
+                    make_text_response("done"),
+                ]
+            )
+
+        subagent_spec = make_subagent_spec(
+            adapter_factory=adapter_factory,
+            parent_tools=[PythonInterpreter.make_tool_spec(parent_cache)],
+            parent_cache=parent_cache,
+            run_dir=str(tmp_path),
+        )
+
+        result = subagent_spec.handler(task="publish", output_policy="publish_created")
+
+        assert parent_cache.get("result") == "parent value"
+        assert parent_cache.get("result_2") == "child value"
+        assert "- result -> result_2" in result
+
 
 class _CacheWithPrefill(SessionCache):
     """A SessionCache pre-filled with a value to simulate subagent-created handles."""
@@ -286,3 +449,13 @@ class _CacheWithPrefill(SessionCache):
     def __init__(self):
         super().__init__()
         self.put("sub_result", "computed data")
+
+
+class _CountingCache(SessionCache):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.get_calls = []
+
+    def get(self, name: str):
+        self.get_calls.append(name)
+        return super().get(name)

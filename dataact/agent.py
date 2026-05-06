@@ -131,6 +131,10 @@ class Agent:
                     parent_tools=subagent_parent_tools,
                     parent_cache=self._cache,
                     run_dir=effective_run_dir,
+                    make_sub_tools=lambda sub_cache: self._build_tools(
+                        planner=None,
+                        cache=sub_cache,
+                    ),
                 )
             )
         harness_kwargs: dict = {
@@ -162,10 +166,16 @@ class Agent:
             run_dir=self._run_dir if self._run_dir is not None else "./runs",
         )
 
-    def _build_tools(self, *, planner: Planner | None = None) -> list[ToolSpec]:
+    def _build_tools(
+        self,
+        *,
+        planner: Planner | None = None,
+        cache: SessionCache | None = None,
+    ) -> list[ToolSpec]:
+        target_cache = cache if cache is not None else self._cache
         tools = [
-            PythonInterpreter.make_tool_spec(self._cache),
-            make_list_variables_spec(self._cache),
+            PythonInterpreter.make_tool_spec(target_cache),
+            make_list_variables_spec(target_cache),
         ]
         if planner is not None:
             tools.extend(planner.make_tool_specs())
@@ -188,7 +198,7 @@ class Agent:
                     ],
                 )
             tools.append(registry.get_load_connectors_spec())
-            tools.extend(registry.make_wrapped_specs(self._cache))
+            tools.extend(registry.make_wrapped_specs(target_cache))
         return tools
 
 

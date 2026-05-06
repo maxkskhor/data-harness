@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import copy
 import dataclasses
 from typing import Callable
 
 from dataact.cache import SessionCache
 from dataact.providers.base import ProviderAdapter
+from dataact.tools.interpreter import PythonInterpreter
+from dataact.tools.variables import make_list_variables_spec
 from dataact.types import ToolSpec
 
 _SUBAGENT_TOOL_NAME = "subagent"
@@ -27,7 +30,16 @@ def make_subagent_spec(
     parent_cache: SessionCache,
     run_dir: str = "./runs",
     get_sub_cache: Callable[[], SessionCache] | None = None,
+    make_sub_tools: Callable[[SessionCache], list[ToolSpec]] | None = None,
 ) -> ToolSpec:
+    """Create a subagent tool with an explicit cache boundary.
+
+    If parent_tools include cache-bound wrappers such as ConnectorRegistry
+    wrapped specs, pass make_sub_tools so those handlers can be rebuilt against
+    the subagent cache. The fallback path only copies cache-independent tools
+    and the built-in cache tools it knows how to rebind.
+    """
+
     def subagent(
         task: str,
         input_handles: list[str] | None = None,
@@ -37,7 +49,7 @@ def make_subagent_spec(
 
         # Validate input_handles against parent cache
         if input_handles:
-            missing = [h for h in input_handles if h not in parent_cache._store]
+            missing = [h for h in input_handles if not parent_cache.has_handle(h)]
             if missing:
                 return f"Error: input handles not found in parent cache: {missing}"
 
@@ -50,17 +62,33 @@ def make_subagent_spec(
         # Copy requested handles into sub-cache
         if input_handles:
             for handle in input_handles:
-                sub_cache.put(handle, parent_cache.get(handle))
+                try:
+                    sub_cache.put(handle, _copy_cache_value(parent_cache.get(handle)))
+                except Exception as exc:
+                    return (
+                        "Error: failed to copy input handle "
+                        f"{handle!r}: {type(exc).__name__}: {exc}"
+                    )
 
         # Track pre-run handles to detect newly created ones
-        pre_run_handles = set(sub_cache._store.keys())
+        pre_run_handles = set(sub_cache.handle_names())
 
         # Build sub-tools — exclude subagent to prevent recursion
-        sub_tools = [
-            dataclasses.replace(t)
-            for t in parent_tools
-            if t.name != _SUBAGENT_TOOL_NAME
-        ]
+        try:
+            if make_sub_tools is not None:
+                sub_tools = [
+                    dataclasses.replace(t)
+                    for t in make_sub_tools(sub_cache)
+                    if t.name != _SUBAGENT_TOOL_NAME
+                ]
+            else:
+                sub_tools = [
+                    _copy_tool_for_subcache(t, sub_cache)
+                    for t in parent_tools
+                    if t.name != _SUBAGENT_TOOL_NAME
+                ]
+        except ValueError as exc:
+            return f"Error: subagent tools are not isolated: {exc}"
 
         # Build system prompt
         handles_str = str(input_handles) if input_handles else "none"
@@ -86,11 +114,11 @@ def make_subagent_spec(
             return f"Subagent final output:\n{final_text}"
 
         # publish_created: find newly created handles
-        new_handles = {
-            name: val
-            for name, val in sub_cache._store.items()
-            if name not in pre_run_handles
-        }
+        new_handles = {}
+        for name in sub_cache.handle_names():
+            if name in pre_run_handles:
+                continue
+            new_handles[name] = sub_cache.get(name)
 
         if not new_handles:
             return f"Subagent final output:\n{final_text}\n\nPublished outputs: none"
@@ -142,3 +170,53 @@ def make_subagent_spec(
         },
         handler=subagent,
     )
+
+
+def _copy_tool_for_subcache(tool: ToolSpec, sub_cache: SessionCache) -> ToolSpec:
+    if tool.name == "python_interpreter":
+        return PythonInterpreter.make_tool_spec(sub_cache)
+    if tool.name == "list_variables":
+        return make_list_variables_spec(sub_cache)
+    if _handler_closes_over_cache(tool.handler):
+        raise ValueError(
+            f"{tool.name!r} has a handler closed over a SessionCache. "
+            "Pass make_sub_tools to rebuild cache-bound tool specs for the "
+            "subagent cache."
+        )
+    return dataclasses.replace(tool)
+
+
+def _handler_closes_over_cache(handler) -> bool:
+    closure = getattr(handler, "__closure__", None)
+    if not closure:
+        return False
+    for cell in closure:
+        try:
+            if isinstance(cell.cell_contents, SessionCache):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def _copy_cache_value(value):
+    try:
+        import pandas as pd
+
+        if isinstance(value, pd.DataFrame):
+            # Deep copy is deliberate: shallow DataFrame copies can still share
+            # underlying blocks, which would break the parent/subagent boundary
+            # for representative in-place mutations.
+            return value.copy(deep=True)
+    except ImportError:
+        pass
+
+    try:
+        import numpy as np
+
+        if isinstance(value, np.ndarray):
+            return value.copy()
+    except ImportError:
+        pass
+
+    return copy.deepcopy(value)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import builtins
 import io
 import traceback
 from contextlib import redirect_stdout
@@ -88,7 +89,7 @@ class PythonInterpreter:
         local_vars: dict[str, Any] = {}
 
         # Inject cache handles
-        for name, value in self._cache._store.items():
+        for name, value in self._cache.items():
             local_vars[name] = value
 
         # Inject save() helper
@@ -103,7 +104,7 @@ class PythonInterpreter:
             with redirect_stdout(buf):
                 exec(
                     compile(tree, "<code>", "exec"),
-                    {"__builtins__": _safe_builtins()},
+                    {"__builtins__": _safe_builtins(self._allowlist)},
                     local_vars,
                 )  # noqa: S102
         except Exception:
@@ -134,7 +135,7 @@ class PythonInterpreter:
         )
 
 
-def _safe_builtins() -> dict:
+def _safe_builtins(allowlist: frozenset[str]) -> dict:
     safe = {
         "print": print,
         "len": len,
@@ -171,10 +172,18 @@ def _safe_builtins() -> dict:
         "None": None,
         "True": True,
         "False": False,
-        "__import__": _blocked_import,
+        "__import__": _make_safe_import(allowlist),
     }
     return safe
 
 
-def _blocked_import(*args, **kwargs):
-    raise ImportError("__import__ is not allowed")
+def _make_safe_import(allowlist: frozenset[str]):
+    def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if level != 0:
+            raise ImportError("relative imports are not allowed")
+        top = name.split(".")[0]
+        if top not in allowlist:
+            raise ImportError(f"Import not allowed: {name!r}")
+        return builtins.__import__(name, globals, locals, fromlist, level)
+
+    return safe_import

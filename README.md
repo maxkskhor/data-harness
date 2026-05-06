@@ -137,7 +137,7 @@ print(result)
 
 For the explicit wiring, read [examples/advanced_wiring.py](examples/advanced_wiring.py). It deliberately shows the moving parts that `Agent` composes.
 
-Run the advanced example - it loads a synthetic OHLCV dataset, runs analysis, uses subagents and the planner (requires `ANTHROPIC_API_KEY`):
+Run the advanced example - it loads a checked-in FRED unemployment-rate sample, runs analysis, uses subagents and the planner (requires `ANTHROPIC_API_KEY`):
 
 ```bash
 uv run python examples/advanced_wiring.py
@@ -171,6 +171,7 @@ dataact/
 examples/
   quickstart.py        # Minimal Agent path
   advanced_wiring.py   # Explicit Harness wiring
+  data/                # Small public sample data for the advanced demo
 ```
 
 ---

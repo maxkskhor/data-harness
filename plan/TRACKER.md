@@ -1,6 +1,6 @@
 # plan/ - Work tracker
 
-Tracks the status of items from `PLAN_v2.md`, `PLAN_SDK.md`, `PLAN_v3.md`, and `IDEAS.md`.
+Tracks the status of items from `PLAN_v2.md`, `PLAN_SDK.md`, `PLAN_v3.md`, `PLAN_v4.md`, and `IDEAS.md`.
 Update this file as work starts or completes.
 
 ## PLAN_v2.md
@@ -23,12 +23,17 @@ Update this file as work starts or completes.
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | Real sandbox (container-level) | not started | moved from v2 |
-| 2 | Async loop | not started | moved from v2 |
-| 3 | Streaming responses | not started | moved from v2 |
-| 4 | Disk-backed session cache | not started | moved from v2; hot/cold storage policy needed |
-| 5 | Subagent cache-boundary edge cases | not started | reference-copy leak + publish collision contract |
-| 6 | Real demo dataset | not started | moved from v2; README post links already done |
+| 1 | Disk-backed session cache | done | hot/cold storage policy, transparent hydrate, metadata-only logs |
+| 2 | Subagent cache-boundary edge cases | done | input value-copy policy + publish collision contract |
+| 3 | Real demo dataset | done | advanced demo uses checked-in FRED UNRATE sample |
+
+## PLAN_v4.md
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| 1 | Real sandbox (container-level) | deferred | moved from PLAN_v3 |
+| 2 | Async loop | deferred | moved from PLAN_v3 |
+| 3 | Streaming responses | deferred | moved from PLAN_v3 |
 
 ## IDEAS.md
 
