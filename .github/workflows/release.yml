@@ -7,10 +7,16 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
-      - run: uv build
+      - run: uv python install 3.12
+      - run: uv sync --python 3.12 --frozen
+      - run: uv run --python 3.12 ruff check dataact tests
+      - run: uv run --python 3.12 ruff format --check dataact tests
+      - run: uv run --python 3.12 pytest tests/ -m "not live"
+      - run: uv build --no-sources
       - run: uv publish
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}

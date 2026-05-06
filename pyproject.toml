@@ -6,7 +6,11 @@ build-backend = "hatchling.build"
 name = "dataact"
 version = "0.1.0"
 description = "Data agent with Python-native tools (no bash)"
+readme = "README.md"
 license = { text = "MIT" }
+authors = [
+    { name = "Max Khor" },
+]
 requires-python = ">=3.10"
 dependencies = [
     "anthropic",
@@ -25,6 +29,11 @@ dev = [
 openai = [
     "openai",
 ]
+
+[project.urls]
+Homepage = "https://github.com/maxkskhor/dataact"
+Repository = "https://github.com/maxkskhor/dataact"
+Issues = "https://github.com/maxkskhor/dataact/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["dataact"]
