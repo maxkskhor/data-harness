@@ -8,10 +8,11 @@ Most agent frameworks hand the model a shell and call it a day. `dataact` takes 
 
 Built as an installable reference implementation for engineers who want to understand how a production-style harness actually works. It is not a polished SDK surface; the convenience API exists to remove setup noise while keeping the harness boundaries visible.
 
-The design is covered in two posts:
+The design is covered in a three-part series:
 
 - [Designing a ReAct Harness for Data Workflows Without Bash](https://maxkskhor.substack.com/p/designing-a-react-harness-for-data)
-- [The Engineering Invariants Behind a Data-Native ReAct Harness](https://maxkskhor.substack.com/p/the-engineering-invariants-behind)
+- [How a Bash-Free Data Agent Remembers Its Work](https://maxkskhor.substack.com/p/how-a-bash-free-data-agent-remembers)
+- [The Bugs Hidden Inside a Data Agent Harness](https://maxkskhor.substack.com/p/the-engineering-invariants-behind)
 
 ---
 
