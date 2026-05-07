@@ -195,6 +195,47 @@ class TestOpenAIAdapter:
             "content": "tool output",
         }
 
+    def test_tool_result_precedes_reminder_text_in_same_internal_message(self):
+        adapter = self._make_adapter()
+        adapter._client.chat.completions.create.return_value = make_openai_response()
+        messages = [
+            Message(role="user", content=[TextBlock(text="start")]),
+            Message(
+                role="assistant",
+                content=[
+                    ToolUseBlock(
+                        tool_use_id="call_1",
+                        tool_name="python_interpreter",
+                        tool_input={"code": "print(1)"},
+                    )
+                ],
+            ),
+            Message(
+                role="user",
+                content=[
+                    ToolResultBlock(
+                        tool_use_id="call_1",
+                        content="1",
+                        is_error=False,
+                    ),
+                    TextBlock(text="This is a reminder appended by the harness."),
+                ],
+            ),
+        ]
+
+        adapter.chat(system="sys", messages=messages, tools=[])
+
+        sent = adapter._client.chat.completions.create.call_args.kwargs["messages"]
+        assert sent[3] == {
+            "role": "tool",
+            "tool_call_id": "call_1",
+            "content": "1",
+        }
+        assert sent[4] == {
+            "role": "user",
+            "content": "This is a reminder appended by the harness.",
+        }
+
     def test_tool_specs_map_to_openai_functions(self):
         adapter = self._make_adapter()
         adapter._client.chat.completions.create.return_value = make_openai_response()

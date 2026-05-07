@@ -148,7 +148,7 @@ Run tests:
 
 ```bash
 uv run pytest tests/ -v
-uv run pytest tests/ -m live -v  # requires provider API keys
+uv run pytest tests/smoke_tests.py -m live -v  # requires OPENAI_API_KEY
 ```
 
 ---

@@ -64,6 +64,15 @@ class OpenAIAdapter(ProviderAdapter):
                 b for b in message.content if isinstance(b, ToolResultBlock)
             ]
 
+            for block in tool_results:
+                result.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": block.tool_use_id,
+                        "content": block.content,
+                    }
+                )
+
             if text_blocks or tool_uses:
                 api_message: dict = {
                     "role": message.role,
@@ -84,15 +93,6 @@ class OpenAIAdapter(ProviderAdapter):
                         for block in tool_uses
                     ]
                 result.append(api_message)
-
-            for block in tool_results:
-                result.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": block.tool_use_id,
-                        "content": block.content,
-                    }
-                )
         return result
 
     def _build_tools(self, tools: list[ToolSpec]) -> list[dict]:

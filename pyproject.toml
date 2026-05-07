@@ -58,5 +58,5 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 markers = [
-    "live: smoke tests that call the real Anthropic API (deselect with -m 'not live')",
+    "live: smoke tests that call real provider APIs (deselect with -m 'not live')",
 ]
