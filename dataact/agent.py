@@ -6,7 +6,8 @@ primitives remain the canonical teaching surface — `agent.explain()` returns a
 sketch of the equivalent explicit wiring.
 
 `Agent.run()` is one-shot: each call builds a fresh `Harness` and starts with a
-new message history. It is not a chat session.
+new message history. Use `Agent.session()` for chatbot-style follow-up over one
+conversation.
 """
 
 from __future__ import annotations
@@ -117,46 +118,14 @@ class Agent:
         self._subagent_factory = adapter_factory
         return self
 
-    def run(self, user_message: str) -> str:
-        planner = Planner() if self._planner_enabled else None
-        tools = self._build_tools(planner=planner)
-        if self._subagent_factory is not None:
-            subagent_parent_tools = self._build_tools(planner=None)
-            effective_run_dir = (
-                str(self._run_dir) if self._run_dir is not None else "./runs"
-            )
-            tools.append(
-                make_subagent_spec(
-                    adapter_factory=self._subagent_factory,
-                    parent_tools=subagent_parent_tools,
-                    parent_cache=self._cache,
-                    run_dir=effective_run_dir,
-                    make_sub_tools=lambda sub_cache: self._build_tools(
-                        planner=None,
-                        cache=sub_cache,
-                    ),
-                )
-            )
-        harness_kwargs: dict = {
-            "adapter": self._adapter,
-            "system": self._system,
-            "tools": tools,
-            "max_turns": self._max_turns,
-            "cache": self._cache,
-        }
-        if self._run_dir is not None:
-            harness_kwargs["run_dir"] = str(self._run_dir)
+    def session(self) -> AgentSession:
+        return AgentSession(self)
 
-        harness = Harness(**harness_kwargs)
-        if planner is not None:
-            harness.register_reminder(planner.reminder_hook)
+    def run(self, user_message: str) -> str:
+        harness = self._make_harness()
         self._last_harness = harness
         result = harness.run(user_message)
-        # Newest jsonl in the run dir belongs to this run
-        run_dir = Path(harness._run_dir)
-        files = sorted(run_dir.glob("*.jsonl"), key=lambda f: f.stat().st_mtime)
-        if files:
-            self._last_run_file = str(files[-1])
+        self._last_run_file = harness.run_file
         return result
 
     def explain(self) -> str:
@@ -201,6 +170,100 @@ class Agent:
             tools.extend(registry.make_wrapped_specs(target_cache))
         return tools
 
+    def _make_harness(
+        self,
+        *,
+        cache: SessionCache | None = None,
+        planner: Planner | None = None,
+    ) -> Harness:
+        effective_cache = cache if cache is not None else self._cache
+        effective_planner = (
+            planner
+            if planner is not None
+            else Planner()
+            if self._planner_enabled
+            else None
+        )
+        tools = self._build_tools(planner=effective_planner, cache=effective_cache)
+        if self._subagent_factory is not None:
+            subagent_parent_tools = self._build_tools(
+                planner=None,
+                cache=effective_cache,
+            )
+            effective_run_dir = (
+                str(self._run_dir) if self._run_dir is not None else "./runs"
+            )
+            tools.append(
+                make_subagent_spec(
+                    adapter_factory=self._subagent_factory,
+                    parent_tools=subagent_parent_tools,
+                    parent_cache=effective_cache,
+                    run_dir=effective_run_dir,
+                    make_sub_tools=lambda sub_cache: self._build_tools(
+                        planner=None,
+                        cache=sub_cache,
+                    ),
+                )
+            )
+        harness_kwargs: dict = {
+            "adapter": self._adapter,
+            "system": self._system,
+            "tools": tools,
+            "max_turns": self._max_turns,
+            "cache": effective_cache,
+        }
+        if self._run_dir is not None:
+            harness_kwargs["run_dir"] = str(self._run_dir)
+
+        harness = Harness(**harness_kwargs)
+        if effective_planner is not None:
+            harness.register_reminder(effective_planner.reminder_hook)
+        return harness
+
+
+class AgentSession:
+    """Stateful chat session built from an `Agent` definition.
+
+    `Agent.run()` intentionally stays one-shot for examples and tests. Use
+    `Agent.session()` when an application needs follow-up questions over the
+    same message history and cache handles.
+    """
+
+    def __init__(self, agent: Agent) -> None:
+        self._agent = agent
+        self._cache = SessionCache(
+            sample_size=agent.cache.sample_size,
+            storage_dir=None,
+            hot_limit=agent.cache.hot_limit,
+        )
+        for name, value in agent.cache.items():
+            self._cache.put(name, value)
+        self._harness = agent._make_harness(cache=self._cache)
+
+    @property
+    def cache(self) -> SessionCache:
+        return self._cache
+
+    @property
+    def harness(self) -> Harness:
+        return self._harness
+
+    @property
+    def run_file(self) -> str | None:
+        return self._harness.run_file
+
+    def put(self, name: str, value: Any, *, overwrite: bool = False) -> str:
+        return self._cache.put(name, value, overwrite=overwrite)
+
+    def list_handles(self) -> dict[str, str]:
+        return self._cache.list_handles()
+
+    def ask(self, user_message: str) -> str:
+        result = self._harness.ask(user_message)
+        self._agent._last_harness = self._harness
+        self._agent._last_run_file = self._harness.run_file
+        return result
+
 
 _EXPLAIN_TEMPLATE = """\
 Agent is a thin composition layer. The equivalent explicit wiring is:
@@ -227,7 +290,7 @@ Agent is a thin composition layer. The equivalent explicit wiring is:
 
 Each call to Agent.run() builds a fresh Harness with fresh tool specs.
 Model-visible tools include python_interpreter and list_variables.
-The message history resets per run; this is not a chat session.
+The message history resets per run; use agent.session().ask(...) for follow-up.
 """
 
 

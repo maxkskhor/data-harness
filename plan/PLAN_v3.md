@@ -1,6 +1,6 @@
-# dataact — Focused Teaching Work (v3 roadmap)
+# dataact — Completed Runtime Work (v3 roadmap)
 
-These items are the next teaching-focused improvements. They keep the reference implementation centred on the data-agent harness boundaries: state, subagent transfer, and a concrete demo.
+These items were originally framed as teaching-focused improvements. They are now part of the framework's runtime foundation: state, subagent transfer, and a concrete demo. The distilled teaching version belongs in the future `learn-dataact` repository after the SDK stabilises.
 
 ---
 

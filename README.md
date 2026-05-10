@@ -1,12 +1,12 @@
 # dataact
 
-*(data + ReAct — a ReAct agent harness built for data workflows)*
+*(data + ReAct — a controlled data-agent SDK for Python workflows)*
 
-A minimal, transparent, data-native agent harness for Python — built without bash.
+A data-native agent SDK for Python — built around controlled execution, handle-based state, provider adapters, sessions, subagents, and reconstructable runs.
 
-Most agent frameworks hand the model a shell and call it a day. `dataact` takes a different approach: the model operates entirely through a sandboxed Python interpreter, with data stored in a session cache and exposed as named handles. No bash. No framework magic. Just a loop you can read in an afternoon.
+Most agent frameworks hand the model a shell and call it a day. `dataact` takes a different approach: the model operates through a constrained Python interpreter, with data stored in a session cache and exposed as named handles. No bash. Explicit state. Logs that can reconstruct what happened.
 
-Built as an installable reference implementation for engineers who want to understand how a production-style harness actually works. It is not a polished SDK surface; the convenience API exists to remove setup noise while keeping the harness boundaries visible.
+`dataact` began as an installable reference implementation for harness design. It is now developing into the full SDK/framework track. A separate `learn-dataact` repository will be created after the SDK stabilises to extract the basic principles without async, production sandboxing, or SDK-heavy features.
 
 The design is covered in a three-part series:
 
@@ -94,6 +94,30 @@ uv run python examples/quickstart.py
 
 `examples/quickstart.py` requires `ANTHROPIC_API_KEY` when run as a script. Tests import `build_agent()` and drive it with `FakeAdapter`, so the example stays covered without token spend.
 
+## Chat sessions
+
+`Agent.run()` is still the simple one-shot path: it starts a fresh message
+history each time. For chatbot or workbench applications, create a session and
+ask follow-up questions on it:
+
+```python
+from dataact import Agent
+from dataact.providers.openai import OpenAIAdapter
+
+adapter = OpenAIAdapter(model="gpt-4o-mini")
+agent = Agent(adapter=adapter, system="You are a data analyst.")
+
+session = agent.session()
+session.put("uploaded_data", df)
+
+print(session.ask("What columns are in the uploaded data?"))
+print(session.ask("Which numeric column has the highest average?"))
+```
+
+The session keeps one `Harness`, one message history, and one `SessionCache`.
+This is the path to use when a UI needs uploaded artefacts and conversation
+follow-up to stay in scope.
+
 ## Connector example
 
 Connector helpers keep the quick path small while preserving progressive disclosure. Connector tools start hidden; the model must call `load_connectors` before it can use them.
@@ -131,12 +155,13 @@ print(result)
 - A provider adapter translates model-provider SDK objects into the harness's normalised response types.
 - `Harness` owns the ReAct loop, messages, dispatch, reminders, and JSONL logging.
 - `SessionCache` stores large values as handles plus compact snapshots.
+- `AgentSession` keeps a chat-style harness and cache alive across follow-up questions.
 - `python_interpreter` is the controlled execution surface; there is no bash tool.
 - `list_variables` exposes cache handles without dumping raw payloads.
 - `ConnectorRegistry` keeps connector tools hidden until loaded.
 - `Planner` reminders and subagents are opt-in helpers, not a second runtime.
 
-For the explicit wiring, read [examples/advanced_wiring.py](examples/advanced_wiring.py). It deliberately shows the moving parts that `Agent` composes.
+For explicit wiring, read [examples/advanced_wiring.py](examples/advanced_wiring.py). The future `learn-dataact` repository will provide the smaller, linear teaching guide once this SDK surface has stabilised.
 
 Run the advanced example - it loads a checked-in FRED unemployment-rate sample, runs analysis, uses subagents and the planner (requires `ANTHROPIC_API_KEY`):
 

@@ -16,9 +16,12 @@ from dataact.types import ToolResultBlock, ToolSpec
 
 def test_agent_is_exported_from_top_level_package():
     from dataact import Agent as TopLevelAgent
+    from dataact import AgentSession as TopLevelAgentSession
     from dataact.agent import Agent as ModuleAgent
+    from dataact.agent import AgentSession as ModuleAgentSession
 
     assert TopLevelAgent is ModuleAgent
+    assert TopLevelAgentSession is ModuleAgentSession
 
 
 class TestAgentPhase1:
@@ -136,6 +139,89 @@ class TestAgentPhase1OneShotInvariant:
         )
         assert "first user prompt" not in all_text
         assert "second user prompt" in all_text
+
+
+class TestAgentSession:
+    def test_session_preserves_message_history_across_asks(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("first"), FakeAdapter.text("second")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+        session = agent.session()
+
+        assert session.ask("first question") == "first"
+        assert session.ask("follow-up question") == "second"
+
+        from dataact.types import TextBlock
+
+        second_call_msgs = adapter.calls[1]["messages"]
+        all_text = " ".join(
+            b.text
+            for m in second_call_msgs
+            for b in m.content
+            if isinstance(b, TextBlock)
+        )
+        assert "first question" in all_text
+        assert "follow-up question" in all_text
+        assert "first" in all_text
+
+    def test_session_uses_same_cache_for_uploaded_handles(self, tmp_path):
+        adapter = FakeAdapter(
+            [
+                FakeAdapter.tool_use("tu_1", "list_variables", {}),
+                FakeAdapter.text("done"),
+            ]
+        )
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+        session = agent.session()
+        session.put("uploaded_data", [1, 2, 3])
+
+        session.ask("what data is available?")
+
+        tool_results = [
+            block
+            for message in adapter.calls[1]["messages"]
+            for block in message.content
+            if isinstance(block, ToolResultBlock)
+        ]
+        assert tool_results
+        assert "uploaded_data" in tool_results[-1].content
+        assert "uploaded_data" in session.list_handles()
+
+    def test_session_does_not_change_agent_run_one_shot_behaviour(self, tmp_path):
+        adapter = FakeAdapter(
+            [
+                FakeAdapter.text("session"),
+                FakeAdapter.text("run"),
+            ]
+        )
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+
+        agent.session().ask("session question")
+        agent.run("standalone question")
+
+        from dataact.types import TextBlock
+
+        standalone_call_msgs = adapter.calls[1]["messages"]
+        all_text = " ".join(
+            b.text
+            for m in standalone_call_msgs
+            for b in m.content
+            if isinstance(b, TextBlock)
+        )
+        assert "session question" not in all_text
+        assert "standalone question" in all_text
+
+    def test_session_updates_agent_debug_affordances(self, tmp_path):
+        adapter = FakeAdapter([FakeAdapter.text("done")])
+        agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
+        session = agent.session()
+
+        assert session.run_file is None
+        session.ask("hi")
+
+        assert agent.last_harness is session.harness
+        assert agent.last_run_file == session.run_file
+        assert session.run_file is not None
+        assert Path(session.run_file).exists()
 
 
 class TestAgentConnectors:

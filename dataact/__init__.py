@@ -1,4 +1,4 @@
-from dataact.agent import Agent
+from dataact.agent import Agent, AgentSession
 from dataact.exceptions import (
     MaxTurnsExceeded,
     SubagentRecursionError,
@@ -16,6 +16,7 @@ from dataact.types import (
 
 __all__ = [
     "Agent",
+    "AgentSession",
     "ContentBlock",
     "MaxTurnsExceeded",
     "Message",

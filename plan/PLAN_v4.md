@@ -1,6 +1,6 @@
 # dataact — Deferred Runtime Work (v4 roadmap)
 
-These items are useful, but they are intentionally deferred until the teaching repository has stronger state, subagent, and demo coverage. They would make the harness more production-like or integration-friendly, but they are not required for the reference implementation to explain its core boundaries.
+These items are useful, but they were intentionally deferred until the core runtime had stronger state, subagent, and demo coverage. They make the framework more production-like or integration-friendly. They should stay in `dataact`, not in the future `learn-dataact` teaching repo.
 
 ---
 

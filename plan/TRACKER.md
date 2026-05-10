@@ -1,6 +1,6 @@
 # plan/ - Work tracker
 
-Tracks the status of items from `PLAN_v2.md`, `PLAN_SDK.md`, `PLAN_v3.md`, `PLAN_v4.md`, and `IDEAS.md`.
+Tracks the status of items from `PLAN_v2.md`, `PLAN_SDK.md`, `PLAN_v3.md`, `PLAN_v4.md`, `PLAN_v5.md`, `PLAN_TEACHING.md`, and `IDEAS.md`.
 Update this file as work starts or completes.
 
 ## PLAN_v2.md
@@ -17,7 +17,7 @@ Update this file as work starts or completes.
 
 | Item | Status | Notes |
 |------|--------|-------|
-| SDK ergonomics teaching-scope draft | done | `Agent`, `FakeAdapter`, connector builder, schema inference, planner/subagent enablement, docs and examples complete |
+| SDK ergonomics historical plan | done | earlier teaching-first framing is superseded; `dataact` is now the full SDK/framework track |
 
 ## PLAN_v3.md
 
@@ -34,6 +34,22 @@ Update this file as work starts or completes.
 | 1 | Real sandbox (container-level) | deferred | moved from PLAN_v3 |
 | 2 | Async loop | deferred | moved from PLAN_v3 |
 | 3 | Streaming responses | deferred | moved from PLAN_v3 |
+
+## PLAN_v5.md
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| 1 | Typed run results | planned | preserve string APIs; add `RunResult` metadata path |
+| 2 | Shared turn record for logging and results | planned | aggregate usage and tool metadata without parsing JSONL |
+| 3 | Tool annotations | planned | metadata only; no permission framework |
+| 4 | Session inspection | planned | session/run ids plus `last_result`, no resume/list API |
+| 5 | Documentation and examples | planned | add inspection docs after API shape is implemented |
+
+## PLAN_TEACHING.md
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Create `learn-dataact` teaching repo | planned | defer until the full `dataact` SDK/framework stabilises |
 
 ## IDEAS.md
 

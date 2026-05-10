@@ -34,13 +34,32 @@ class Harness:
         self._cache = cache if cache is not None else SessionCache()
         self._messages: list[Message] = []
         self._reminders: list[Callable[[int, int], str | None]] = []
+        self._run_file: str | None = None
 
     def register_reminder(self, hook: Callable[[int, int], str | None]) -> None:
         self._reminders.append(hook)
 
     def run(self, user_message: str) -> str:
-        run_file = setup_logger(self._run_dir)
+        self._run_file = setup_logger(self._run_dir)
         self._messages = [Message(role="user", content=[TextBlock(text=user_message)])]
+        return self._run_loop()
+
+    def ask(self, user_message: str) -> str:
+        if self._run_file is None:
+            self._run_file = setup_logger(self._run_dir)
+        self._messages.append(
+            Message(role="user", content=[TextBlock(text=user_message)])
+        )
+        return self._run_loop()
+
+    @property
+    def run_file(self) -> str | None:
+        return self._run_file
+
+    def _run_loop(self) -> str:
+        if self._run_file is None:
+            raise RuntimeError("run_file must be initialised before running the loop")
+
         last_response: NormalizedResponse | None = None
 
         for turn in range(1, self._max_turns + 1):
@@ -73,7 +92,7 @@ class Harness:
                 response=response,
                 tool_results=tool_results,
                 latency_ms=latency,
-                run_file=run_file,
+                run_file=self._run_file,
                 cache_storage=self._cache.storage_metadata(),
             )
 
