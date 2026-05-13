@@ -2,9 +2,9 @@
 
 import json
 
-from dataact.cache import SessionCache
-from dataact.tools.connectors import ConnectorRegistry
-from dataact.types import ToolSpec
+from data_harness.cache import SessionCache
+from data_harness.tools.connectors import ConnectorRegistry
+from data_harness.types import ToolSpec
 
 
 def make_market_data_connector():

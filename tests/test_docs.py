@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from dataact.cache import SessionCache
-from dataact.loop import Harness
-from dataact.testing import FakeAdapter
-from dataact.types import ToolResultBlock
+from data_harness.cache import SessionCache
+from data_harness.loop import Harness
+from data_harness.testing import FakeAdapter
+from data_harness.types import ToolResultBlock
 from examples.advanced_wiring import build_base_tools, load_unemployment_rate
 from examples.quickstart import build_agent
 

@@ -9,8 +9,14 @@ import pytest
 
 pytest.importorskip("openai")
 
-from dataact.providers.base import StopReason
-from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
+from data_harness.providers.base import StopReason
+from data_harness.types import (
+    Message,
+    TextBlock,
+    ToolResultBlock,
+    ToolSpec,
+    ToolUseBlock,
+)
 
 
 def make_openai_response(finish_reason="stop", message=None, usage=None):
@@ -45,7 +51,7 @@ def make_openai_tool_call(id_, name, arguments):
 class TestOpenAIAdapter:
     def _make_adapter(self):
         with patch("openai.OpenAI"):
-            from dataact.providers.openai import OpenAIAdapter
+            from data_harness.providers.openai import OpenAIAdapter
 
             adapter = OpenAIAdapter(model="gpt-test")
         return adapter
@@ -304,7 +310,7 @@ def test_openai_live_smoke():
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OPENAI_API_KEY not set")
 
-    from dataact.providers.openai import OpenAIAdapter
+    from data_harness.providers.openai import OpenAIAdapter
 
     adapter = OpenAIAdapter(model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"))
     response = adapter.chat(

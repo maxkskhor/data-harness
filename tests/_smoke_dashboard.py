@@ -23,7 +23,7 @@ _TEMPLATE = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>dataact smoke dashboard</title>
+<title>data-harness smoke dashboard</title>
 <style>
 :root{
   --ivory:#FAF9F5;--oat:#E3DACC;--slate:#141413;--clay:#D97757;
@@ -133,7 +133,7 @@ body{background:var(--ivory);color:var(--slate);font-family:var(--font);font-siz
 <div class="page">
   <div class="page-header">
     <div>
-      <div class="page-title">dataact smoke dashboard</div>
+      <div class="page-title">data-harness smoke dashboard</div>
       <div class="page-sub" id="page-sub"></div>
     </div>
     <div class="export-row">
@@ -393,7 +393,7 @@ function copyAs(btn, fmt) {
 function buildMd() {
   const d = SMOKE_DATA; const t = d.totals;
   const date = new Date(d.run_date).toLocaleString('en-GB',{dateStyle:'medium',timeStyle:'short'});
-  let md = `# dataact smoke dashboard\n\n**${date}** · ${d.model} · ${t.tests} tests · ${fmtDur(t.duration_ms)}\n\n`;
+  let md = `# data-harness smoke dashboard\n\n**${date}** · ${d.model} · ${t.tests} tests · ${fmtDur(t.duration_ms)}\n\n`;
   md += `## Summary\n| Metric | Value |\n|---|---|\n`;
   md += `| Tests | ${t.passed}/${t.tests} passed |\n| Tokens | ${(t.input_tokens+t.output_tokens).toLocaleString()} |\n`;
   md += `| Cost | ${fmtCost(t.cost_usd)} |\n\n`;

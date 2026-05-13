@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dataact"
+name = "data-harness"
 version = "0.1.3"
 description = "Data agent with Python-native tools (no bash)"
 readme = "README.md"
@@ -37,7 +37,7 @@ Repository = "https://github.com/maxkskhor/data-harness"
 Issues = "https://github.com/maxkskhor/data-harness/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["dataact"]
+packages = ["data_harness"]
 
 [tool.uv]
 dev-dependencies = [

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import copy
 
-from dataact.loop import Harness
-from dataact.providers.base import NormalizedResponse, ProviderAdapter, StopReason
-from dataact.types import (
+from data_harness.loop import Harness
+from data_harness.providers.base import NormalizedResponse, ProviderAdapter, StopReason
+from data_harness.types import (
     Message,
     TextBlock,
     ToolSpec,

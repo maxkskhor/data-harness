@@ -1,7 +1,7 @@
 """Tests for the sandboxed Python interpreter tool."""
 
-from dataact.cache import SessionCache
-from dataact.tools.interpreter import PythonInterpreter
+from data_harness.cache import SessionCache
+from data_harness.tools.interpreter import PythonInterpreter
 
 
 class TestAllowedImports:

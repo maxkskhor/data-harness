@@ -5,13 +5,19 @@ from collections.abc import Awaitable, Callable
 
 import anthropic
 
-from dataact.providers.base import (
+from data_harness.providers.base import (
     AsyncProviderAdapter,
     NormalizedResponse,
     ProviderAdapter,
     StopReason,
 )
-from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
+from data_harness.types import (
+    Message,
+    TextBlock,
+    ToolResultBlock,
+    ToolSpec,
+    ToolUseBlock,
+)
 
 _STOP_REASON_MAP = {
     "end_turn": StopReason.END_TURN,

@@ -9,11 +9,11 @@ from pathlib import Path
 
 import pytest
 
-from dataact.cache import SessionCache
-from dataact.loop import Harness
-from dataact.providers.base import NormalizedResponse, ProviderAdapter, StopReason
-from dataact.testing import FakeAdapter
-from dataact.types import TextBlock, ToolAnnotations, ToolSpec, ToolUseBlock
+from data_harness.cache import SessionCache
+from data_harness.loop import Harness
+from data_harness.providers.base import NormalizedResponse, ProviderAdapter, StopReason
+from data_harness.testing import FakeAdapter
+from data_harness.types import TextBlock, ToolAnnotations, ToolSpec, ToolUseBlock
 
 
 def make_text_response(
@@ -212,7 +212,7 @@ class TestCacheSnapshotsPostMutation:
         """cache_snapshots in RunResult should capture the state AFTER any
         tool calls, not the pre-run state.
         """
-        from dataact.cache import SessionCache
+        from data_harness.cache import SessionCache
 
         cache = SessionCache()
         initial_data = [1, 2, 3]
@@ -334,8 +334,8 @@ class TestAnnotationsNoneNotInProviderDict:
 
 class TestConnectorBuilderAnnotations:
     def test_connector_tool_accepts_annotations(self, tmp_path):
-        from dataact.agent import Agent
-        from dataact.testing import FakeAdapter
+        from data_harness.agent import Agent
+        from data_harness.testing import FakeAdapter
 
         adapter = FakeAdapter([FakeAdapter.text("done")])
         agent = Agent(adapter=adapter, system="s", run_dir=str(tmp_path))
@@ -352,8 +352,8 @@ class TestConnectorBuilderAnnotations:
         assert result.status == "success"
 
     def test_connector_tool_annotations_propagate_to_spec(self, tmp_path):
-        from dataact.agent import Agent
-        from dataact.testing import FakeAdapter
+        from data_harness.agent import Agent
+        from data_harness.testing import FakeAdapter
 
         adapter = FakeAdapter([FakeAdapter.text("done")])
         agent = Agent(adapter=adapter, system="s", run_dir=str(tmp_path))

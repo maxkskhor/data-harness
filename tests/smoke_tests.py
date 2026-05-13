@@ -26,15 +26,15 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from dataact import Agent
-from dataact.cache import SessionCache
-from dataact.loop import Harness
-from dataact.providers.base import StopReason
-from dataact.providers.openai import OpenAIAdapter
-from dataact.result import CacheStorageInfo, RunResult
-from dataact.tools.planner import Planner
-from dataact.tools.subagent import make_subagent_spec
-from dataact.types import ToolAnnotations, ToolSpec
+from data_harness import Agent
+from data_harness.cache import SessionCache
+from data_harness.loop import Harness
+from data_harness.providers.base import StopReason
+from data_harness.providers.openai import OpenAIAdapter
+from data_harness.result import CacheStorageInfo, RunResult
+from data_harness.tools.planner import Planner
+from data_harness.tools.subagent import make_subagent_spec
+from data_harness.types import ToolAnnotations, ToolSpec
 from examples.advanced_wiring import build_base_tools, load_unemployment_rate
 
 pytestmark = pytest.mark.live

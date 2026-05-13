@@ -8,9 +8,9 @@ from typing import Any
 
 from loguru import logger
 
-from dataact.providers.base import NormalizedResponse
-from dataact.serialize import to_jsonable
-from dataact.types import Message, ToolAnnotations, ToolResultBlock, ToolSpec
+from data_harness.providers.base import NormalizedResponse
+from data_harness.serialize import to_jsonable
+from data_harness.types import Message, ToolAnnotations, ToolResultBlock, ToolSpec
 
 
 def log_error_turn(

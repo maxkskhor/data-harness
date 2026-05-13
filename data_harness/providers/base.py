@@ -3,7 +3,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from enum import Enum
 
-from dataact.types import ContentBlock, Message, TextBlock, ToolSpec
+from data_harness.types import ContentBlock, Message, TextBlock, ToolSpec
 
 
 class StopReason(Enum):

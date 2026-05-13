@@ -5,13 +5,19 @@ import json
 
 import openai
 
-from dataact.providers.base import (
+from data_harness.providers.base import (
     AsyncProviderAdapter,
     NormalizedResponse,
     ProviderAdapter,
     StopReason,
 )
-from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
+from data_harness.types import (
+    Message,
+    TextBlock,
+    ToolResultBlock,
+    ToolSpec,
+    ToolUseBlock,
+)
 
 _STOP_REASON_MAP = {
     "stop": StopReason.END_TURN,

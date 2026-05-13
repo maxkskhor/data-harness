@@ -15,17 +15,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from dataact.cache import SessionCache
-from dataact.loop import AsyncHarness, Harness
-from dataact.providers.base import AsyncProviderAdapter, ProviderAdapter
-from dataact.result import RunResult
-from dataact.schema import infer_input_schema
-from dataact.tools.connectors import ConnectorRegistry
-from dataact.tools.interpreter import PythonInterpreter
-from dataact.tools.planner import Planner
-from dataact.tools.subagent import _copy_cache_value, make_subagent_spec
-from dataact.tools.variables import make_list_variables_spec
-from dataact.types import ToolAnnotations, ToolSpec
+from data_harness.cache import SessionCache
+from data_harness.loop import AsyncHarness, Harness
+from data_harness.providers.base import AsyncProviderAdapter, ProviderAdapter
+from data_harness.result import RunResult
+from data_harness.schema import infer_input_schema
+from data_harness.tools.connectors import ConnectorRegistry
+from data_harness.tools.interpreter import PythonInterpreter
+from data_harness.tools.planner import Planner
+from data_harness.tools.subagent import _copy_cache_value, make_subagent_spec
+from data_harness.tools.variables import make_list_variables_spec
+from data_harness.types import ToolAnnotations, ToolSpec
 
 
 @dataclass(frozen=True)
@@ -305,7 +305,7 @@ class AgentSession:
     def ask(self, user_message: str) -> str:
         result = self.ask_result(user_message)
         if result.status == "max_turns_exceeded":
-            from dataact.exceptions import MaxTurnsExceeded
+            from data_harness.exceptions import MaxTurnsExceeded
 
             raise MaxTurnsExceeded(result.turns)
         if result.status == "error":
@@ -377,7 +377,7 @@ class AsyncAgent:
 
     async def run(self, user_message: str) -> str:
         result = await self.run_result(user_message)
-        from dataact.exceptions import MaxTurnsExceeded
+        from data_harness.exceptions import MaxTurnsExceeded
 
         if result.status == "max_turns_exceeded":
             raise MaxTurnsExceeded(result.turns)
@@ -500,7 +500,7 @@ class AsyncAgentSession:
     async def ask(self, user_message: str) -> str:
         result = await self.ask_result(user_message)
         if result.status == "max_turns_exceeded":
-            from dataact.exceptions import MaxTurnsExceeded
+            from data_harness.exceptions import MaxTurnsExceeded
 
             raise MaxTurnsExceeded(result.turns)
         if result.status == "error":
@@ -518,10 +518,10 @@ class AsyncAgentSession:
 _EXPLAIN_TEMPLATE = """\
 Agent is a thin composition layer. The equivalent explicit wiring is:
 
-    from dataact.cache import SessionCache
-    from dataact.loop import Harness
-    from dataact.tools.interpreter import PythonInterpreter
-    from dataact.tools.variables import make_list_variables_spec
+    from data_harness.cache import SessionCache
+    from data_harness.loop import Harness
+    from data_harness.tools.interpreter import PythonInterpreter
+    from data_harness.tools.variables import make_list_variables_spec
 
     cache = SessionCache()
     tools = [

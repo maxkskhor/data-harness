@@ -12,16 +12,16 @@ from pathlib import Path
 
 class TestNewExportsFromPackage:
     def test_run_result_importable_from_top_level(self):
-        from dataact import RunResult  # noqa: F401
+        from data_harness import RunResult  # noqa: F401
 
     def test_usage_importable_from_top_level(self):
-        from dataact import Usage  # noqa: F401
+        from data_harness import Usage  # noqa: F401
 
     def test_tool_annotations_importable_from_top_level(self):
-        from dataact import ToolAnnotations  # noqa: F401
+        from data_harness import ToolAnnotations  # noqa: F401
 
     def test_cache_storage_info_importable_from_top_level(self):
-        from dataact import CacheStorageInfo  # noqa: F401
+        from data_harness import CacheStorageInfo  # noqa: F401
 
 
 class TestInspectRunExample:
@@ -47,7 +47,7 @@ class TestInspectRunExample:
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)  # type: ignore[union-attr]
-        from dataact import RunResult
+        from data_harness import RunResult
 
         assert hasattr(module, "result")
         assert isinstance(module.result, RunResult)

@@ -3,8 +3,8 @@
 Runs without any provider API keys.
 """
 
-from dataact import Agent, RunResult
-from dataact.testing import FakeAdapter
+from data_harness import Agent, RunResult
+from data_harness.testing import FakeAdapter
 
 adapter = FakeAdapter([FakeAdapter.text("The mean of [1, 2, 3] is 2.0")])
 

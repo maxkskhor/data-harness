@@ -4,11 +4,11 @@ import copy
 import dataclasses
 from typing import Callable
 
-from dataact.cache import SessionCache
-from dataact.providers.base import ProviderAdapter
-from dataact.tools.interpreter import PythonInterpreter
-from dataact.tools.variables import make_list_variables_spec
-from dataact.types import ToolSpec
+from data_harness.cache import SessionCache
+from data_harness.providers.base import ProviderAdapter
+from data_harness.tools.interpreter import PythonInterpreter
+from data_harness.tools.variables import make_list_variables_spec
+from data_harness.types import ToolSpec
 
 _SUBAGENT_TOOL_NAME = "subagent"
 
@@ -45,7 +45,7 @@ def make_subagent_spec(
         input_handles: list[str] | None = None,
         output_policy: str = "text_only",
     ) -> str:
-        from dataact.loop import Harness
+        from data_harness.loop import Harness
 
         # Validate input_handles against parent cache
         if input_handles:
