@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dataact"
-version = "0.1.1"
+version = "0.1.2"
 description = "Data agent with Python-native tools (no bash)"
 readme = "README.md"
 license = { text = "MIT" }
