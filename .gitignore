@@ -20,3 +20,6 @@ plan/
 AGENTS.md
 CLAUDE.md
 blogs/
+.playwright-mcp/
+artifact-*.html
+smoke_results/
