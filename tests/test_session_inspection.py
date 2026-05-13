@@ -5,19 +5,16 @@ TDD: written before implementation.
 
 from __future__ import annotations
 
-import uuid
-
-import pytest
-
-from dataact.agent import Agent, AgentSession
+from dataact.agent import Agent
 from dataact.providers.base import NormalizedResponse, StopReason
 from dataact.result import RunResult
 from dataact.testing import FakeAdapter
 from dataact.types import TextBlock
 
 
-def make_text_response(text: str, *, input_tokens: int = 5,
-                       output_tokens: int = 2) -> NormalizedResponse:
+def make_text_response(
+    text: str, *, input_tokens: int = 5, output_tokens: int = 2
+) -> NormalizedResponse:
     return NormalizedResponse(
         stop_reason=StopReason.END_TURN,
         content=[TextBlock(text=text)],
@@ -37,7 +34,8 @@ class TestAgentSessionId:
     def test_session_has_id(self, tmp_path):
         agent = Agent(
             adapter=FakeAdapter([make_text_response("hi")]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         session = agent.session()
         assert hasattr(session, "id")
@@ -46,17 +44,21 @@ class TestAgentSessionId:
     def test_session_id_is_string(self, tmp_path):
         agent = Agent(
             adapter=FakeAdapter([make_text_response("hi")]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         assert isinstance(agent.session().id, str)
 
     def test_session_id_stable_across_asks(self, tmp_path):
         agent = Agent(
-            adapter=FakeAdapter([
-                make_text_response("first"),
-                make_text_response("second"),
-            ]),
-            system="s", run_dir=str(tmp_path),
+            adapter=FakeAdapter(
+                [
+                    make_text_response("first"),
+                    make_text_response("second"),
+                ]
+            ),
+            system="s",
+            run_dir=str(tmp_path),
         )
         session = agent.session()
         session.ask("q1")
@@ -74,7 +76,8 @@ class TestAgentSessionId:
     def test_session_id_in_run_result(self, tmp_path):
         agent = Agent(
             adapter=FakeAdapter([make_text_response("hi")]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         session = agent.session()
         result = session.ask_result("q")
@@ -83,7 +86,8 @@ class TestAgentSessionId:
     def test_agent_run_result_has_run_id(self, tmp_path):
         agent = Agent(
             adapter=FakeAdapter([make_text_response("hi")]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         result = agent.run_result("q")
         assert result.run_id is not None
@@ -91,11 +95,14 @@ class TestAgentSessionId:
 
     def test_two_one_shot_runs_have_different_run_ids(self, tmp_path):
         agent = Agent(
-            adapter=FakeAdapter([
-                make_text_response("first"),
-                make_text_response("second"),
-            ]),
-            system="s", run_dir=str(tmp_path),
+            adapter=FakeAdapter(
+                [
+                    make_text_response("first"),
+                    make_text_response("second"),
+                ]
+            ),
+            system="s",
+            run_dir=str(tmp_path),
         )
         r1 = agent.run_result("q1")
         r2 = agent.run_result("q2")
@@ -104,7 +111,8 @@ class TestAgentSessionId:
     def test_one_shot_run_result_has_no_session_id(self, tmp_path):
         agent = Agent(
             adapter=FakeAdapter([make_text_response("hi")]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         result = agent.run_result("q")
         assert result.session_id is None
@@ -113,7 +121,8 @@ class TestAgentSessionId:
         """Per plan: Agent should NOT grow last_result in this phase."""
         agent = Agent(
             adapter=FakeAdapter([make_text_response("hi")]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         agent.run_result("q")
         assert not hasattr(agent, "last_result")
@@ -128,7 +137,8 @@ class TestAgentSessionLastResult:
     def test_last_result_none_before_any_ask(self, tmp_path):
         agent = Agent(
             adapter=FakeAdapter([]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         session = agent.session()
         assert session.last_result is None
@@ -136,7 +146,8 @@ class TestAgentSessionLastResult:
     def test_last_result_updated_after_ask_result(self, tmp_path):
         agent = Agent(
             adapter=FakeAdapter([make_text_response("hello")]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         session = agent.session()
         result = session.ask_result("q")
@@ -145,7 +156,8 @@ class TestAgentSessionLastResult:
     def test_last_result_updated_after_ask(self, tmp_path):
         agent = Agent(
             adapter=FakeAdapter([make_text_response("hello")]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         session = agent.session()
         session.ask("q")
@@ -154,11 +166,14 @@ class TestAgentSessionLastResult:
 
     def test_last_result_updates_on_each_call(self, tmp_path):
         agent = Agent(
-            adapter=FakeAdapter([
-                make_text_response("first"),
-                make_text_response("second"),
-            ]),
-            system="s", run_dir=str(tmp_path),
+            adapter=FakeAdapter(
+                [
+                    make_text_response("first"),
+                    make_text_response("second"),
+                ]
+            ),
+            system="s",
+            run_dir=str(tmp_path),
         )
         session = agent.session()
         session.ask("q1")
@@ -176,17 +191,21 @@ class TestAgentSessionTurns:
     def test_turns_zero_before_first_ask(self, tmp_path):
         agent = Agent(
             adapter=FakeAdapter([]),
-            system="s", run_dir=str(tmp_path),
+            system="s",
+            run_dir=str(tmp_path),
         )
         assert agent.session().turns == 0
 
     def test_turns_increments_after_each_ask(self, tmp_path):
         agent = Agent(
-            adapter=FakeAdapter([
-                make_text_response("first"),
-                make_text_response("second"),
-            ]),
-            system="s", run_dir=str(tmp_path),
+            adapter=FakeAdapter(
+                [
+                    make_text_response("first"),
+                    make_text_response("second"),
+                ]
+            ),
+            system="s",
+            run_dir=str(tmp_path),
         )
         session = agent.session()
         session.ask("q1")
@@ -201,16 +220,23 @@ class TestAgentSessionTurns:
         contribute 2 to session.turns.
         """
         from dataact.types import ToolSpec, ToolUseBlock
+
         tool_resp = NormalizedResponse(
             stop_reason=StopReason.TOOL_USE,
-            content=[ToolUseBlock(tool_use_id="t1", tool_name="echo",
-                                  tool_input={"text": "x"})],
-            input_tokens=5, output_tokens=2,
-            cache_read_tokens=0, cache_write_tokens=0,
+            content=[
+                ToolUseBlock(
+                    tool_use_id="t1", tool_name="echo", tool_input={"text": "x"}
+                )
+            ],
+            input_tokens=5,
+            output_tokens=2,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
         )
         final_resp = make_text_response("done")
         echo_spec = ToolSpec(
-            name="echo", description="echo",
+            name="echo",
+            description="echo",
             input_schema={"type": "object", "properties": {"text": {"type": "string"}}},
             handler=lambda text: text,
         )

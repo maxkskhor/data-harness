@@ -10,11 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from dataact.cache import SessionCache
 from dataact.loop import Harness
 from dataact.providers.base import NormalizedResponse, ProviderAdapter, StopReason
 from dataact.testing import FakeAdapter
-from dataact.types import TextBlock, ToolAnnotations, ToolSpec, ToolUseBlock
+from dataact.types import TextBlock, ToolAnnotations, ToolSpec
 
 
 def make_text_response(text: str) -> NormalizedResponse:
@@ -51,7 +50,7 @@ class TestAgentSessionAskRaisesOnError:
             session.ask("go")
 
     def test_ask_result_still_returns_error_status_not_raises(self, tmp_path):
-        """AgentSession.ask_result() must return RunResult(status='error'), not raise."""
+        """ask_result() must return RunResult(status='error'), not raise."""
         from dataact.agent import Agent
 
         class BoomAdapter(ProviderAdapter):
@@ -158,7 +157,7 @@ class TestMaxTokensTerminates:
 
 class TestAgentSessionDeepCacheIsolation:
     def test_session_cache_is_isolated_from_agent_cache(self, tmp_path):
-        """Mutating a list in the session cache must not affect the agent-level cache."""
+        """Mutating session cache must not affect the agent-level cache."""
         from dataact.agent import Agent
 
         agent = Agent(
@@ -206,7 +205,7 @@ class TestAgentSessionDeepCacheIsolation:
 
 class TestAllNoneAnnotationsNotInJSONL:
     def test_all_none_tool_annotations_not_written_to_jsonl(self, tmp_path):
-        """A ToolSpec with ToolAnnotations() (all None) must not appear in tool_annotations."""
+        """All-None ToolAnnotations() must not appear in tool_annotations."""
         empty_ann_spec = ToolSpec(
             name="noop",
             description="does nothing",
@@ -229,7 +228,9 @@ class TestAllNoneAnnotationsNotInJSONL:
         ann = record.get("tool_annotations", {})
         assert "noop" not in ann
 
-    def test_all_none_annotations_excluded_but_real_annotations_included(self, tmp_path):
+    def test_all_none_annotations_excluded_but_real_annotations_included(
+        self, tmp_path
+    ):
         """Only non-empty annotation dicts should appear in the JSONL record."""
         empty_ann_spec = ToolSpec(
             name="noop",

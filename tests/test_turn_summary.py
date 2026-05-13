@@ -8,18 +8,21 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from dataact.cache import SessionCache
 from dataact.loop import Harness
 from dataact.providers.base import NormalizedResponse, StopReason
-from dataact.result import RunResult, Usage
 from dataact.testing import FakeAdapter
 from dataact.types import TextBlock, ToolSpec, ToolUseBlock
 
 
-def make_text_response(text: str, *, input_tokens: int = 10, output_tokens: int = 5,
-                       cache_read: int = 0, cache_write: int = 0) -> NormalizedResponse:
+def make_text_response(
+    text: str,
+    *,
+    input_tokens: int = 10,
+    output_tokens: int = 5,
+    cache_read: int = 0,
+    cache_write: int = 0,
+) -> NormalizedResponse:
     return NormalizedResponse(
         stop_reason=StopReason.END_TURN,
         content=[TextBlock(text=text)],
@@ -45,36 +48,51 @@ class TestJsonlInvariants:
         """JSONL must still have exactly one line per turn."""
         tool_resp = NormalizedResponse(
             stop_reason=StopReason.TOOL_USE,
-            content=[ToolUseBlock(tool_use_id="t1", tool_name="echo",
-                                  tool_input={"text": "hi"})],
-            input_tokens=5, output_tokens=2,
-            cache_read_tokens=0, cache_write_tokens=0,
+            content=[
+                ToolUseBlock(
+                    tool_use_id="t1", tool_name="echo", tool_input={"text": "hi"}
+                )
+            ],
+            input_tokens=5,
+            output_tokens=2,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
         )
         final_resp = make_text_response("done")
         echo_spec = ToolSpec(
-            name="echo", description="echo",
+            name="echo",
+            description="echo",
             input_schema={"type": "object", "properties": {"text": {"type": "string"}}},
             handler=lambda text: text,
         )
         adapter = FakeAdapter([tool_resp, final_resp])
-        harness = Harness(adapter=adapter, system="s", tools=[echo_spec],
-                          max_turns=5, run_dir=str(tmp_path))
+        harness = Harness(
+            adapter=adapter,
+            system="s",
+            tools=[echo_spec],
+            max_turns=5,
+            run_dir=str(tmp_path),
+        )
         result = harness.run_result("go")
         records = read_jsonl(result.run_file)
         assert len(records) == 2  # one tool-use turn, one end-turn
 
     def test_jsonl_has_turn_number(self, tmp_path):
         adapter = FakeAdapter([make_text_response("ok")])
-        harness = Harness(adapter=adapter, system="s", tools=[],
-                          max_turns=5, run_dir=str(tmp_path))
+        harness = Harness(
+            adapter=adapter, system="s", tools=[], max_turns=5, run_dir=str(tmp_path)
+        )
         result = harness.run_result("x")
         records = read_jsonl(result.run_file)
         assert records[0]["turn"] == 1
 
     def test_jsonl_metrics_present(self, tmp_path):
-        adapter = FakeAdapter([make_text_response("ok", input_tokens=12, output_tokens=4)])
-        harness = Harness(adapter=adapter, system="s", tools=[],
-                          max_turns=5, run_dir=str(tmp_path))
+        adapter = FakeAdapter(
+            [make_text_response("ok", input_tokens=12, output_tokens=4)]
+        )
+        harness = Harness(
+            adapter=adapter, system="s", tools=[], max_turns=5, run_dir=str(tmp_path)
+        )
         result = harness.run_result("x")
         records = read_jsonl(result.run_file)
         metrics = records[0]["metrics"]
@@ -86,8 +104,14 @@ class TestJsonlInvariants:
         cache = SessionCache()
         cache.put("secret", list(range(1000)))
         adapter = FakeAdapter([make_text_response("ok")])
-        harness = Harness(adapter=adapter, system="s", tools=[],
-                          max_turns=5, run_dir=str(tmp_path), cache=cache)
+        harness = Harness(
+            adapter=adapter,
+            system="s",
+            tools=[],
+            max_turns=5,
+            run_dir=str(tmp_path),
+            cache=cache,
+        )
         result = harness.run_result("go")
         raw = Path(result.run_file).read_text()
         # The raw list should not appear in the log
@@ -97,20 +121,31 @@ class TestJsonlInvariants:
         """System hash must be identical across turns."""
         tool_resp = NormalizedResponse(
             stop_reason=StopReason.TOOL_USE,
-            content=[ToolUseBlock(tool_use_id="t1", tool_name="echo",
-                                  tool_input={"text": "x"})],
-            input_tokens=5, output_tokens=2,
-            cache_read_tokens=0, cache_write_tokens=0,
+            content=[
+                ToolUseBlock(
+                    tool_use_id="t1", tool_name="echo", tool_input={"text": "x"}
+                )
+            ],
+            input_tokens=5,
+            output_tokens=2,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
         )
         final_resp = make_text_response("done")
         echo_spec = ToolSpec(
-            name="echo", description="echo",
+            name="echo",
+            description="echo",
             input_schema={"type": "object", "properties": {"text": {"type": "string"}}},
             handler=lambda text: text,
         )
         adapter = FakeAdapter([tool_resp, final_resp])
-        harness = Harness(adapter=adapter, system="same system", tools=[echo_spec],
-                          max_turns=5, run_dir=str(tmp_path))
+        harness = Harness(
+            adapter=adapter,
+            system="same system",
+            tools=[echo_spec],
+            max_turns=5,
+            run_dir=str(tmp_path),
+        )
         result = harness.run_result("go")
         records = read_jsonl(result.run_file)
         hashes = [r["system_hash"] for r in records]
@@ -127,25 +162,38 @@ class TestUsageAggregation:
         """result.usage must equal the sum of per-turn metrics in JSONL."""
         tool_resp = NormalizedResponse(
             stop_reason=StopReason.TOOL_USE,
-            content=[ToolUseBlock(tool_use_id="t1", tool_name="echo",
-                                  tool_input={"text": "x"})],
-            input_tokens=10, output_tokens=3,
-            cache_read_tokens=2, cache_write_tokens=1,
+            content=[
+                ToolUseBlock(
+                    tool_use_id="t1", tool_name="echo", tool_input={"text": "x"}
+                )
+            ],
+            input_tokens=10,
+            output_tokens=3,
+            cache_read_tokens=2,
+            cache_write_tokens=1,
         )
         final_resp = NormalizedResponse(
             stop_reason=StopReason.END_TURN,
             content=[TextBlock(text="done")],
-            input_tokens=8, output_tokens=5,
-            cache_read_tokens=0, cache_write_tokens=4,
+            input_tokens=8,
+            output_tokens=5,
+            cache_read_tokens=0,
+            cache_write_tokens=4,
         )
         echo_spec = ToolSpec(
-            name="echo", description="echo",
+            name="echo",
+            description="echo",
             input_schema={"type": "object", "properties": {"text": {"type": "string"}}},
             handler=lambda text: text,
         )
         adapter = FakeAdapter([tool_resp, final_resp])
-        harness = Harness(adapter=adapter, system="s", tools=[echo_spec],
-                          max_turns=5, run_dir=str(tmp_path))
+        harness = Harness(
+            adapter=adapter,
+            system="s",
+            tools=[echo_spec],
+            max_turns=5,
+            run_dir=str(tmp_path),
+        )
         result = harness.run_result("go")
         records = read_jsonl(result.run_file)
 
@@ -169,21 +217,27 @@ class TestVisibleToolsLogged:
     def test_visible_tool_names_in_jsonl(self, tmp_path):
         """JSONL should record the names of visible tools for reconstruction."""
         echo_spec = ToolSpec(
-            name="echo", description="echo",
+            name="echo",
+            description="echo",
             input_schema={"type": "object", "properties": {"text": {"type": "string"}}},
             handler=lambda text: text,
             visible=True,
         )
         hidden_spec = ToolSpec(
-            name="hidden_tool", description="hidden",
+            name="hidden_tool",
+            description="hidden",
             input_schema={"type": "object"},
             handler=lambda: None,
             visible=False,
         )
         adapter = FakeAdapter([make_text_response("ok")])
-        harness = Harness(adapter=adapter, system="s",
-                          tools=[echo_spec, hidden_spec],
-                          max_turns=5, run_dir=str(tmp_path))
+        harness = Harness(
+            adapter=adapter,
+            system="s",
+            tools=[echo_spec, hidden_spec],
+            max_turns=5,
+            run_dir=str(tmp_path),
+        )
         result = harness.run_result("go")
         records = read_jsonl(result.run_file)
         record = records[0]
@@ -200,25 +254,33 @@ class TestVisibleToolsLogged:
 class TestToolErrorCount:
     def test_tool_errors_counted_in_jsonl(self, tmp_path):
         """JSONL should record tool_error_count without changing message flow."""
+
         def boom(**_kwargs):
             raise ValueError("exploded")
 
         error_spec = ToolSpec(
-            name="boom", description="boom",
+            name="boom",
+            description="boom",
             input_schema={"type": "object"},
             handler=boom,
         )
         tool_resp = NormalizedResponse(
             stop_reason=StopReason.TOOL_USE,
-            content=[ToolUseBlock(tool_use_id="t1", tool_name="boom",
-                                  tool_input={})],
-            input_tokens=5, output_tokens=2,
-            cache_read_tokens=0, cache_write_tokens=0,
+            content=[ToolUseBlock(tool_use_id="t1", tool_name="boom", tool_input={})],
+            input_tokens=5,
+            output_tokens=2,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
         )
         final_resp = make_text_response("recovered")
         adapter = FakeAdapter([tool_resp, final_resp])
-        harness = Harness(adapter=adapter, system="s", tools=[error_spec],
-                          max_turns=5, run_dir=str(tmp_path))
+        harness = Harness(
+            adapter=adapter,
+            system="s",
+            tools=[error_spec],
+            max_turns=5,
+            run_dir=str(tmp_path),
+        )
         result = harness.run_result("go")
         assert result.status == "success"  # harness continues after tool errors
         records = read_jsonl(result.run_file)

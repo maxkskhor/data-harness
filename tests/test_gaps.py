@@ -5,7 +5,6 @@ Written before the fixes; all should fail initially.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -13,24 +12,30 @@ import pytest
 from dataact.cache import SessionCache
 from dataact.loop import Harness
 from dataact.providers.base import NormalizedResponse, ProviderAdapter, StopReason
-from dataact.result import CacheStorageInfo, RunResult
 from dataact.testing import FakeAdapter
-from dataact.types import Message, TextBlock, ToolAnnotations, ToolSpec, ToolUseBlock
+from dataact.types import TextBlock, ToolAnnotations, ToolSpec, ToolUseBlock
 
 
-def make_text_response(text: str, *, input_tokens: int = 5,
-                       output_tokens: int = 2) -> NormalizedResponse:
+def make_text_response(
+    text: str, *, input_tokens: int = 5, output_tokens: int = 2
+) -> NormalizedResponse:
     return NormalizedResponse(
         stop_reason=StopReason.END_TURN,
         content=[TextBlock(text=text)],
-        input_tokens=input_tokens, output_tokens=output_tokens,
-        cache_read_tokens=0, cache_write_tokens=0,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cache_read_tokens=0,
+        cache_write_tokens=0,
     )
 
 
-def make_harness(responses: list[NormalizedResponse], *, tmp_path: Path,
-                 tools: list[ToolSpec] | None = None,
-                 cache: SessionCache | None = None) -> Harness:
+def make_harness(
+    responses: list[NormalizedResponse],
+    *,
+    tmp_path: Path,
+    tools: list[ToolSpec] | None = None,
+    cache: SessionCache | None = None,
+) -> Harness:
     return Harness(
         adapter=FakeAdapter(responses),
         system="s",
@@ -51,19 +56,26 @@ class TestStopReasonSemantics:
         """After tool-use then end-turn, stop_reason must be END_TURN, not TOOL_USE."""
         tool_resp = NormalizedResponse(
             stop_reason=StopReason.TOOL_USE,
-            content=[ToolUseBlock(tool_use_id="t1", tool_name="echo",
-                                  tool_input={"text": "x"})],
-            input_tokens=5, output_tokens=2,
-            cache_read_tokens=0, cache_write_tokens=0,
+            content=[
+                ToolUseBlock(
+                    tool_use_id="t1", tool_name="echo", tool_input={"text": "x"}
+                )
+            ],
+            input_tokens=5,
+            output_tokens=2,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
         )
         final_resp = make_text_response("done")
         echo_spec = ToolSpec(
-            name="echo", description="echo",
+            name="echo",
+            description="echo",
             input_schema={"type": "object", "properties": {"text": {"type": "string"}}},
             handler=lambda text: text,
         )
-        harness = make_harness([tool_resp, final_resp], tmp_path=tmp_path,
-                                tools=[echo_spec])
+        harness = make_harness(
+            [tool_resp, final_resp], tmp_path=tmp_path, tools=[echo_spec]
+        )
         result = harness.run_result("go")
         assert result.status == "success"
         assert result.stop_reason == StopReason.END_TURN
@@ -78,21 +90,29 @@ class TestStopReasonSemantics:
         tool_responses = [
             NormalizedResponse(
                 stop_reason=StopReason.TOOL_USE,
-                content=[ToolUseBlock(tool_use_id=f"t{i}", tool_name="echo",
-                                      tool_input={"text": "x"})],
-                input_tokens=5, output_tokens=2,
-                cache_read_tokens=0, cache_write_tokens=0,
+                content=[
+                    ToolUseBlock(
+                        tool_use_id=f"t{i}", tool_name="echo", tool_input={"text": "x"}
+                    )
+                ],
+                input_tokens=5,
+                output_tokens=2,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
             )
             for i in range(10)
         ]
         echo_spec = ToolSpec(
-            name="echo", description="echo",
+            name="echo",
+            description="echo",
             input_schema={"type": "object", "properties": {"text": {"type": "string"}}},
             handler=lambda text: text,
         )
         harness = Harness(
             adapter=FakeAdapter(tool_responses),
-            system="s", tools=[echo_spec], max_turns=3,
+            system="s",
+            tools=[echo_spec],
+            max_turns=3,
             run_dir=str(tmp_path),
         )
         result = harness.run_result("go")
@@ -118,7 +138,9 @@ class TestStatusError:
 
         harness = Harness(
             adapter=BoomAdapter(),
-            system="s", tools=[], max_turns=5,
+            system="s",
+            tools=[],
+            max_turns=5,
             run_dir=str(tmp_path),
         )
         result = harness.run_result("go")
@@ -138,7 +160,9 @@ class TestStatusError:
 
         harness = Harness(
             adapter=BoomAdapter(),
-            system="s", tools=[], max_turns=5,
+            system="s",
+            tools=[],
+            max_turns=5,
             run_dir=str(tmp_path),
         )
         with pytest.raises(RuntimeError, match="boom"):
@@ -159,8 +183,9 @@ class TestCacheStorageTypeSemantics:
         """
         cache = SessionCache()
         cache.put("x", 42)
-        harness = make_harness([make_text_response("ok")], tmp_path=tmp_path,
-                                cache=cache)
+        harness = make_harness(
+            [make_text_response("ok")], tmp_path=tmp_path, cache=cache
+        )
         result = harness.run_result("go")
         info = result.cache_storage["x"]
         assert info.location == "memory"
@@ -170,8 +195,9 @@ class TestCacheStorageTypeSemantics:
         """storage_type for in-memory handles should be 'memory'."""
         cache = SessionCache()
         cache.put("x", 42)
-        harness = make_harness([make_text_response("ok")], tmp_path=tmp_path,
-                                cache=cache)
+        harness = make_harness(
+            [make_text_response("ok")], tmp_path=tmp_path, cache=cache
+        )
         result = harness.run_result("go")
         assert result.cache_storage["x"].storage_type == "memory"
 
@@ -197,20 +223,23 @@ class TestCacheSnapshotsPostMutation:
             return "saved computed"
 
         mutate_spec = ToolSpec(
-            name="mutate", description="mutate",
+            name="mutate",
+            description="mutate",
             input_schema={"type": "object"},
             handler=mutating_tool,
         )
         tool_resp = NormalizedResponse(
             stop_reason=StopReason.TOOL_USE,
-            content=[ToolUseBlock(tool_use_id="t1", tool_name="mutate",
-                                  tool_input={})],
-            input_tokens=5, output_tokens=2,
-            cache_read_tokens=0, cache_write_tokens=0,
+            content=[ToolUseBlock(tool_use_id="t1", tool_name="mutate", tool_input={})],
+            input_tokens=5,
+            output_tokens=2,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
         )
         final_resp = make_text_response("done")
-        harness = make_harness([tool_resp, final_resp], tmp_path=tmp_path,
-                                tools=[mutate_spec], cache=cache)
+        harness = make_harness(
+            [tool_resp, final_resp], tmp_path=tmp_path, tools=[mutate_spec], cache=cache
+        )
         result = harness.run_result("go")
         # computed was created during the run — it must appear in snapshots
         assert "computed" in result.cache_snapshots
@@ -232,8 +261,9 @@ class TestCacheStorageNoLeaks:
         cache = SessionCache()
         sensitive = {"secret_key": "abc123", "data": list(range(100))}
         cache.put("secret", sensitive)
-        harness = make_harness([make_text_response("ok")], tmp_path=tmp_path,
-                                cache=cache)
+        harness = make_harness(
+            [make_text_response("ok")], tmp_path=tmp_path, cache=cache
+        )
         result = harness.run_result("go")
         info = result.cache_storage["secret"]
         # CacheStorageInfo must not have a "value" field
@@ -243,6 +273,7 @@ class TestCacheStorageNoLeaks:
         assert hasattr(info, "storage_type")
         # The raw dict values must not appear
         import dataclasses
+
         fields = {f.name for f in dataclasses.fields(info)}
         assert fields == {"location", "storage_type"}
 
@@ -251,8 +282,9 @@ class TestCacheStorageNoLeaks:
         cache = SessionCache()
         large_list = list(range(1000))
         cache.put("large", large_list)
-        harness = make_harness([make_text_response("ok")], tmp_path=tmp_path,
-                                cache=cache)
+        harness = make_harness(
+            [make_text_response("ok")], tmp_path=tmp_path, cache=cache
+        )
         result = harness.run_result("go")
         snapshot = result.cache_snapshots["large"]
         # Snapshot is a string

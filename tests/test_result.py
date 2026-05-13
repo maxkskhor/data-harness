@@ -5,8 +5,6 @@ TDD: these tests are written before the implementation exists.
 
 from __future__ import annotations
 
-import copy
-import json
 from pathlib import Path
 
 import pytest
@@ -16,17 +14,22 @@ from dataact.exceptions import MaxTurnsExceeded
 from dataact.loop import Harness
 from dataact.providers.base import NormalizedResponse, StopReason
 from dataact.result import CacheStorageInfo, RunResult, Usage
-from dataact.types import TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
 from dataact.testing import FakeAdapter
-
+from dataact.types import TextBlock, ToolSpec, ToolUseBlock
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def make_text_response(text: str, *, input_tokens: int = 10, output_tokens: int = 5,
-                       cache_read: int = 0, cache_write: int = 0) -> NormalizedResponse:
+def make_text_response(
+    text: str,
+    *,
+    input_tokens: int = 10,
+    output_tokens: int = 5,
+    cache_read: int = 0,
+    cache_write: int = 0,
+) -> NormalizedResponse:
     return NormalizedResponse(
         stop_reason=StopReason.END_TURN,
         content=[TextBlock(text=text)],
@@ -37,8 +40,12 @@ def make_text_response(text: str, *, input_tokens: int = 10, output_tokens: int 
     )
 
 
-def make_harness(responses: list[NormalizedResponse], *, tmp_path: Path,
-                 cache: SessionCache | None = None) -> Harness:
+def make_harness(
+    responses: list[NormalizedResponse],
+    *,
+    tmp_path: Path,
+    cache: SessionCache | None = None,
+) -> Harness:
     adapter = FakeAdapter(responses)
     return Harness(
         adapter=adapter,
@@ -64,18 +71,21 @@ class TestUsage:
         assert u.cache_write_tokens == 0
 
     def test_explicit_fields(self):
-        u = Usage(input_tokens=10, output_tokens=5, cache_read_tokens=2,
-                  cache_write_tokens=3)
+        u = Usage(
+            input_tokens=10, output_tokens=5, cache_read_tokens=2, cache_write_tokens=3
+        )
         assert u.input_tokens == 10
         assert u.output_tokens == 5
         assert u.cache_read_tokens == 2
         assert u.cache_write_tokens == 3
 
     def test_add(self):
-        a = Usage(input_tokens=10, output_tokens=5, cache_read_tokens=1,
-                  cache_write_tokens=2)
-        b = Usage(input_tokens=3, output_tokens=7, cache_read_tokens=4,
-                  cache_write_tokens=0)
+        a = Usage(
+            input_tokens=10, output_tokens=5, cache_read_tokens=1, cache_write_tokens=2
+        )
+        b = Usage(
+            input_tokens=3, output_tokens=7, cache_read_tokens=4, cache_write_tokens=0
+        )
         total = a + b
         assert total.input_tokens == 13
         assert total.output_tokens == 12
@@ -169,17 +179,24 @@ class TestHarnessRunResult:
         assert harness_a.run_result("hi").text == harness_b.run("hi")
 
     def test_status_success(self, tmp_path):
-        result = make_harness([make_text_response("ok")], tmp_path=tmp_path).run_result("x")
+        result = make_harness([make_text_response("ok")], tmp_path=tmp_path).run_result(
+            "x"
+        )
         assert result.status == "success"
 
     def test_usage_aggregated(self, tmp_path):
         # Two-turn run with tool use then end
         tool_resp = NormalizedResponse(
             stop_reason=StopReason.TOOL_USE,
-            content=[ToolUseBlock(tool_use_id="1", tool_name="echo",
-                                  tool_input={"text": "hi"})],
-            input_tokens=10, output_tokens=5,
-            cache_read_tokens=2, cache_write_tokens=1,
+            content=[
+                ToolUseBlock(
+                    tool_use_id="1", tool_name="echo", tool_input={"text": "hi"}
+                )
+            ],
+            input_tokens=10,
+            output_tokens=5,
+            cache_read_tokens=2,
+            cache_write_tokens=1,
         )
         final_resp = make_text_response("done", input_tokens=8, output_tokens=3)
         echo_spec = ToolSpec(
@@ -190,8 +207,11 @@ class TestHarnessRunResult:
         )
         adapter = FakeAdapter([tool_resp, final_resp])
         harness = Harness(
-            adapter=adapter, system="s", tools=[echo_spec],
-            max_turns=5, run_dir=str(tmp_path),
+            adapter=adapter,
+            system="s",
+            tools=[echo_spec],
+            max_turns=5,
+            run_dir=str(tmp_path),
         )
         result = harness.run_result("go")
         assert result.usage.input_tokens == 18
@@ -201,14 +221,18 @@ class TestHarnessRunResult:
         assert result.turns == 2
 
     def test_run_file_populated(self, tmp_path):
-        result = make_harness([make_text_response("ok")], tmp_path=tmp_path).run_result("x")
+        result = make_harness([make_text_response("ok")], tmp_path=tmp_path).run_result(
+            "x"
+        )
         assert result.run_file is not None
         assert Path(result.run_file).exists()
 
     def test_cache_snapshots_compact_strings(self, tmp_path):
         cache = SessionCache()
         cache.put("mylist", [1, 2, 3])
-        harness = make_harness([make_text_response("done")], tmp_path=tmp_path, cache=cache)
+        harness = make_harness(
+            [make_text_response("done")], tmp_path=tmp_path, cache=cache
+        )
         result = harness.run_result("go")
         assert "mylist" in result.cache_snapshots
         snapshot = result.cache_snapshots["mylist"]
@@ -219,7 +243,9 @@ class TestHarnessRunResult:
     def test_cache_storage_typed_metadata(self, tmp_path):
         cache = SessionCache()
         cache.put("x", 42)
-        harness = make_harness([make_text_response("ok")], tmp_path=tmp_path, cache=cache)
+        harness = make_harness(
+            [make_text_response("ok")], tmp_path=tmp_path, cache=cache
+        )
         result = harness.run_result("go")
         assert "x" in result.cache_storage
         info = result.cache_storage["x"]
@@ -227,23 +253,31 @@ class TestHarnessRunResult:
         assert info.location == "memory"
 
     def test_stop_reason_populated(self, tmp_path):
-        result = make_harness([make_text_response("ok")], tmp_path=tmp_path).run_result("x")
+        result = make_harness([make_text_response("ok")], tmp_path=tmp_path).run_result(
+            "x"
+        )
         from dataact.providers.base import StopReason
+
         assert result.stop_reason == StopReason.END_TURN
 
     def test_max_turns_returns_result_not_raises(self, tmp_path):
         # run_result should NOT raise MaxTurnsExceeded - it returns status instead
-        responses = [make_text_response(f"turn {i}",
-                                        input_tokens=5, output_tokens=2)
-                     for i in range(10)]
         # All responses are TOOL_USE to force max turns
         from dataact.providers.base import NormalizedResponse as NR
+
         tool_responses = [
-            NR(stop_reason=StopReason.TOOL_USE,
-               content=[ToolUseBlock(tool_use_id=f"t{i}", tool_name="echo",
-                                     tool_input={"text": "x"})],
-               input_tokens=5, output_tokens=2,
-               cache_read_tokens=0, cache_write_tokens=0)
+            NR(
+                stop_reason=StopReason.TOOL_USE,
+                content=[
+                    ToolUseBlock(
+                        tool_use_id=f"t{i}", tool_name="echo", tool_input={"text": "x"}
+                    )
+                ],
+                input_tokens=5,
+                output_tokens=2,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
+            )
             for i in range(10)
         ]
         echo_spec = ToolSpec(
@@ -254,8 +288,11 @@ class TestHarnessRunResult:
         )
         adapter = FakeAdapter(tool_responses)
         harness = Harness(
-            adapter=adapter, system="s", tools=[echo_spec],
-            max_turns=3, run_dir=str(tmp_path),
+            adapter=adapter,
+            system="s",
+            tools=[echo_spec],
+            max_turns=3,
+            run_dir=str(tmp_path),
         )
         result = harness.run_result("go")
         assert result.status == "max_turns_exceeded"
@@ -270,10 +307,15 @@ class TestHarnessRunResult:
         tool_responses = [
             NormalizedResponse(
                 stop_reason=StopReason.TOOL_USE,
-                content=[ToolUseBlock(tool_use_id=f"t{i}", tool_name="echo",
-                                      tool_input={"text": "x"})],
-                input_tokens=5, output_tokens=2,
-                cache_read_tokens=0, cache_write_tokens=0,
+                content=[
+                    ToolUseBlock(
+                        tool_use_id=f"t{i}", tool_name="echo", tool_input={"text": "x"}
+                    )
+                ],
+                input_tokens=5,
+                output_tokens=2,
+                cache_read_tokens=0,
+                cache_write_tokens=0,
             )
             for i in range(10)
         ]
@@ -285,8 +327,11 @@ class TestHarnessRunResult:
         )
         adapter = FakeAdapter(tool_responses)
         harness = Harness(
-            adapter=adapter, system="s", tools=[echo_spec],
-            max_turns=3, run_dir=str(tmp_path),
+            adapter=adapter,
+            system="s",
+            tools=[echo_spec],
+            max_turns=3,
+            run_dir=str(tmp_path),
         )
         with pytest.raises(MaxTurnsExceeded):
             harness.run("go")
@@ -299,8 +344,9 @@ class TestHarnessRunResult:
 
 class TestHarnessAskResult:
     def test_returns_run_result(self, tmp_path):
-        harness = make_harness([make_text_response("hi"), make_text_response("bye")],
-                                tmp_path=tmp_path)
+        harness = make_harness(
+            [make_text_response("hi"), make_text_response("bye")], tmp_path=tmp_path
+        )
         harness.ask("first")
         result = harness.ask_result("second")
         assert isinstance(result, RunResult)
@@ -334,6 +380,7 @@ class TestHarnessAskResult:
 class TestAgentRunResult:
     def test_returns_run_result(self, tmp_path):
         from dataact.agent import Agent
+
         adapter = FakeAdapter([FakeAdapter.text("done")])
         agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
         result = agent.run_result("hi")
@@ -341,6 +388,7 @@ class TestAgentRunResult:
 
     def test_text_matches_run(self, tmp_path):
         from dataact.agent import Agent
+
         adapter_a = FakeAdapter([FakeAdapter.text("hello")])
         adapter_b = FakeAdapter([FakeAdapter.text("hello")])
         agent_a = Agent(adapter=adapter_a, system="sys", run_dir=str(tmp_path))
@@ -349,6 +397,7 @@ class TestAgentRunResult:
 
     def test_status_success(self, tmp_path):
         from dataact.agent import Agent
+
         adapter = FakeAdapter([FakeAdapter.text("ok")])
         agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
         result = agent.run_result("x")
@@ -356,6 +405,7 @@ class TestAgentRunResult:
 
     def test_run_file_populated(self, tmp_path):
         from dataact.agent import Agent
+
         adapter = FakeAdapter([FakeAdapter.text("ok")])
         agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
         result = agent.run_result("x")
@@ -364,6 +414,7 @@ class TestAgentRunResult:
 
     def test_run_still_returns_string(self, tmp_path):
         from dataact.agent import Agent
+
         adapter = FakeAdapter([FakeAdapter.text("hello")])
         agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
         assert agent.run("hi") == "hello"
@@ -377,6 +428,7 @@ class TestAgentRunResult:
 class TestAgentSessionAskResult:
     def test_returns_run_result(self, tmp_path):
         from dataact.agent import Agent
+
         adapter = FakeAdapter([FakeAdapter.text("first"), FakeAdapter.text("second")])
         agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
         session = agent.session()
@@ -388,12 +440,23 @@ class TestAgentSessionAskResult:
     def test_usage_per_ask(self, tmp_path):
         from dataact.agent import Agent
         from dataact.providers.base import NormalizedResponse as NR
-        r1 = NR(stop_reason=StopReason.END_TURN, content=[TextBlock(text="a")],
-                input_tokens=10, output_tokens=5,
-                cache_read_tokens=0, cache_write_tokens=0)
-        r2 = NR(stop_reason=StopReason.END_TURN, content=[TextBlock(text="b")],
-                input_tokens=7, output_tokens=3,
-                cache_read_tokens=0, cache_write_tokens=0)
+
+        r1 = NR(
+            stop_reason=StopReason.END_TURN,
+            content=[TextBlock(text="a")],
+            input_tokens=10,
+            output_tokens=5,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
+        )
+        r2 = NR(
+            stop_reason=StopReason.END_TURN,
+            content=[TextBlock(text="b")],
+            input_tokens=7,
+            output_tokens=3,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
+        )
         adapter = FakeAdapter([r1, r2])
         agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
         session = agent.session()
@@ -404,6 +467,7 @@ class TestAgentSessionAskResult:
 
     def test_ask_still_returns_string(self, tmp_path):
         from dataact.agent import Agent
+
         adapter = FakeAdapter([FakeAdapter.text("hi")])
         agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
         session = agent.session()

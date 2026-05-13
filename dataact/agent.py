@@ -141,7 +141,9 @@ class Agent:
         return self._last_run_file
 
     def connector(self, name: str, *, description: str) -> ConnectorBuilder:
-        self._connectors[name] = _ConnectorDefinition(name=name, description=description)
+        self._connectors[name] = _ConnectorDefinition(
+            name=name, description=description
+        )
         return ConnectorBuilder(self, name)
 
     def enable_planner(self) -> Agent:
@@ -160,7 +162,9 @@ class Agent:
     def run_result(self, user_message: str) -> RunResult:
         harness = self._make_harness()
         self._last_harness = harness
-        result = harness.run_result(user_message, run_id=str(uuid.uuid4()), session_id=None)
+        result = harness.run_result(
+            user_message, run_id=str(uuid.uuid4()), session_id=None
+        )
         self._last_run_file = harness.run_file
         return result
 
@@ -195,11 +199,17 @@ class Agent:
     ) -> Harness:
         effective_cache = cache if cache is not None else self._cache
         effective_planner = (
-            planner if planner is not None else Planner() if self._planner_enabled else None
+            planner
+            if planner is not None
+            else Planner()
+            if self._planner_enabled
+            else None
         )
         tools = self._build_tools(planner=effective_planner, cache=effective_cache)
         if self._subagent_factory is not None:
-            subagent_parent_tools = self._build_tools(planner=None, cache=effective_cache)
+            subagent_parent_tools = self._build_tools(
+                planner=None, cache=effective_cache
+            )
             effective_run_dir = (
                 str(self._run_dir) if self._run_dir is not None else "./runs"
             )
@@ -296,6 +306,7 @@ class AgentSession:
         result = self.ask_result(user_message)
         if result.status == "max_turns_exceeded":
             from dataact.exceptions import MaxTurnsExceeded
+
             raise MaxTurnsExceeded(result.turns)
         if result.status == "error":
             raise RuntimeError(result.error or "unknown error")
@@ -343,7 +354,9 @@ class AsyncAgent:
         return self._last_run_file
 
     def connector(self, name: str, *, description: str) -> ConnectorBuilder:
-        self._connectors[name] = _ConnectorDefinition(name=name, description=description)
+        self._connectors[name] = _ConnectorDefinition(
+            name=name, description=description
+        )
         return ConnectorBuilder(self, name)
 
     def enable_planner(self) -> AsyncAgent:
@@ -365,6 +378,7 @@ class AsyncAgent:
     async def run(self, user_message: str) -> str:
         result = await self.run_result(user_message)
         from dataact.exceptions import MaxTurnsExceeded
+
         if result.status == "max_turns_exceeded":
             raise MaxTurnsExceeded(result.turns)
         if result.status == "error":
@@ -402,7 +416,11 @@ class AsyncAgent:
     ) -> AsyncHarness:
         effective_cache = cache if cache is not None else self._cache
         effective_planner = (
-            planner if planner is not None else Planner() if self._planner_enabled else None
+            planner
+            if planner is not None
+            else Planner()
+            if self._planner_enabled
+            else None
         )
         tools = self._build_tools(planner=effective_planner, cache=effective_cache)
 
@@ -483,6 +501,7 @@ class AsyncAgentSession:
         result = await self.ask_result(user_message)
         if result.status == "max_turns_exceeded":
             from dataact.exceptions import MaxTurnsExceeded
+
             raise MaxTurnsExceeded(result.turns)
         if result.status == "error":
             raise RuntimeError(result.error or "unknown error")

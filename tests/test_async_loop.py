@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import pytest
 
+from dataact.agent import AsyncAgent
 from dataact.exceptions import MaxTurnsExceeded
 from dataact.loop import AsyncHarness
-from dataact.agent import AsyncAgent, AsyncAgentSession
 from dataact.testing import FakeAsyncAdapter
-from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
-
+from dataact.types import ToolSpec
 
 # ---------------------------------------------------------------------------
 # AsyncHarness — basic run_result / run

@@ -412,7 +412,7 @@ def test_jsonl_new_fields(tmp_path):
         assert "visible_tools" in line, "visible_tools missing from JSONL record"
         assert "tool_error_count" in line, "tool_error_count missing from JSONL record"
 
-    ann_line = next((l for l in lines if l.get("tool_annotations")), None)
+    ann_line = next((ln for ln in lines if ln.get("tool_annotations")), None)
     assert ann_line is not None, "No JSONL record contains tool_annotations"
     assert "get_pi" in ann_line["tool_annotations"]
     assert ann_line["tool_annotations"]["get_pi"]["read_only"] is True

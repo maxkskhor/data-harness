@@ -5,6 +5,7 @@ run. Can also be invoked directly:
 
     python tests/_smoke_dashboard.py smoke_results/latest.json
 """
+
 from __future__ import annotations
 
 import json
@@ -406,7 +407,9 @@ function buildMd() {
 </script>
 </body>
 </html>
-""".replace("__SMOKE_DATA__", "__SMOKE_DATA__")  # sentinel kept for .replace() in build_html
+""".replace(
+    "__SMOKE_DATA__", "__SMOKE_DATA__"
+)  # sentinel kept for .replace() in build_html
 
 
 if __name__ == "__main__":

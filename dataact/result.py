@@ -31,7 +31,9 @@ class CacheStorageInfo:
 
     def __post_init__(self) -> None:
         if self.location not in ("memory", "disk"):
-            raise ValueError(f"Invalid location: {self.location!r}. Must be 'memory' or 'disk'.")
+            raise ValueError(
+                f"Invalid location: {self.location!r}. Must be 'memory' or 'disk'."
+            )
 
 
 @dataclass

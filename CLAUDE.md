@@ -137,3 +137,13 @@ The important boundaries are:
 - State boundary: handles are explicit and valid Python identifiers.
 - Subagent boundary: no implicit parent state; input/output handles are explicit.
 - Logging boundary: reconstruct behavior without dumping full datasets.
+
+## Release checklist
+
+Before merging any branch that will trigger a PyPI release:
+
+1. Run `uv run ruff check dataact tests` — must exit 0.
+2. Run `uv run ruff format --check dataact tests` — must exit 0.
+3. Run `uv run pytest tests/ -m "not live"` — must exit 0.
+
+The `release.yml` workflow runs all three steps before `uv build` and `uv publish`. A failure in any step blocks the publish. Fix lint and format issues locally before pushing release tags or triggering the workflow manually.
