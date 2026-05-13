@@ -121,6 +121,7 @@ class ConnectorRegistry:
                     input_schema=orig_spec.input_schema,
                     handler=make_handler(handler, preferred),
                     visible=orig_spec.visible,
+                    annotations=orig_spec.annotations,
                 )
                 new_list.append(new_spec)
                 result.append(new_spec)

@@ -8,7 +8,15 @@ from contextlib import redirect_stdout
 from typing import Any
 
 from dataact.cache import SessionCache
-from dataact.types import ToolSpec
+from dataact.types import ToolAnnotations, ToolSpec
+
+_INTERPRETER_ANNOTATIONS = ToolAnnotations(
+    title="Python Interpreter",
+    read_only=False,
+    cache_mutating=True,
+    destructive=False,
+    open_world=False,
+)
 
 _DEFAULT_ALLOWLIST = frozenset(
     {
@@ -122,7 +130,7 @@ class PythonInterpreter:
             description=(
                 "Run Python code over cached data handles. "
                 "Cache handles are available as local variables. "
-                "Call save(name, value) to store computed artifacts back to cache."
+                "Call save(name, value) to store computed artefacts back to cache."
             ),
             input_schema={
                 "type": "object",
@@ -132,6 +140,7 @@ class PythonInterpreter:
                 "required": ["code"],
             },
             handler=interp.run,
+            annotations=_INTERPRETER_ANNOTATIONS,
         )
 
 

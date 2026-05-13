@@ -1,9 +1,7 @@
 """High-level `Agent` convenience layer.
 
 `Agent` is a thin composition over `Harness`, `SessionCache`, and the built-in
-tools. It exists so the quick-start example reads cleanly. The low-level
-primitives remain the canonical teaching surface — `agent.explain()` returns a
-sketch of the equivalent explicit wiring.
+tools. `agent.explain()` returns a sketch of the equivalent explicit wiring.
 
 `Agent.run()` is one-shot: each call builds a fresh `Harness` and starts with a
 new message history. Use `Agent.session()` for chatbot-style follow-up over one
@@ -12,6 +10,7 @@ conversation.
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,13 +19,14 @@ from typing import Any
 from dataact.cache import SessionCache
 from dataact.loop import Harness
 from dataact.providers.base import ProviderAdapter
+from dataact.result import RunResult
 from dataact.schema import infer_input_schema
 from dataact.tools.connectors import ConnectorRegistry
 from dataact.tools.interpreter import PythonInterpreter
 from dataact.tools.planner import Planner
-from dataact.tools.subagent import make_subagent_spec
+from dataact.tools.subagent import _copy_cache_value, make_subagent_spec
 from dataact.tools.variables import make_list_variables_spec
-from dataact.types import ToolSpec
+from dataact.types import ToolAnnotations, ToolSpec
 
 
 @dataclass(frozen=True)
@@ -35,6 +35,7 @@ class _ConnectorToolDefinition:
     fn: Callable[..., Any]
     description: str
     input_schema: dict
+    annotations: ToolAnnotations | None = None
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,7 @@ class ConnectorBuilder:
         *,
         description: str,
         input_schema: dict | None = None,
+        annotations: ToolAnnotations | None = None,
     ) -> Callable[..., Any]:
         schema = input_schema if input_schema is not None else infer_input_schema(fn)
         self._agent._connector_tools.append(
@@ -62,6 +64,7 @@ class ConnectorBuilder:
                 fn=fn,
                 description=description,
                 input_schema=schema,
+                annotations=annotations,
             )
         )
         return fn
@@ -121,6 +124,13 @@ class Agent:
     def session(self) -> AgentSession:
         return AgentSession(self)
 
+    def run_result(self, user_message: str) -> RunResult:
+        harness = self._make_harness()
+        self._last_harness = harness
+        result = harness.run_result(user_message, run_id=str(uuid.uuid4()), session_id=None)
+        self._last_run_file = harness.run_file
+        return result
+
     def run(self, user_message: str) -> str:
         harness = self._make_harness()
         self._last_harness = harness
@@ -161,6 +171,7 @@ class Agent:
                             input_schema=definition.input_schema,
                             handler=definition.fn,
                             visible=False,
+                            annotations=definition.annotations,
                         )
                         for definition in self._connector_tools
                         if definition.connector_name == connector_name
@@ -237,8 +248,23 @@ class AgentSession:
             hot_limit=agent.cache.hot_limit,
         )
         for name, value in agent.cache.items():
-            self._cache.put(name, value)
+            self._cache.put(name, _copy_cache_value(value))
         self._harness = agent._make_harness(cache=self._cache)
+        self._id: str = str(uuid.uuid4())
+        self._last_result: RunResult | None = None
+        self._turns: int = 0
+
+    @property
+    def id(self) -> str:
+        return self._id
+
+    @property
+    def last_result(self) -> RunResult | None:
+        return self._last_result
+
+    @property
+    def turns(self) -> int:
+        return self._turns
 
     @property
     def cache(self) -> SessionCache:
@@ -258,11 +284,24 @@ class AgentSession:
     def list_handles(self) -> dict[str, str]:
         return self._cache.list_handles()
 
-    def ask(self, user_message: str) -> str:
-        result = self._harness.ask(user_message)
+    def ask_result(self, user_message: str) -> RunResult:
+        result = self._harness.ask_result(
+            user_message, run_id=str(uuid.uuid4()), session_id=self._id
+        )
+        self._last_result = result
+        self._turns += result.turns
         self._agent._last_harness = self._harness
         self._agent._last_run_file = self._harness.run_file
         return result
+
+    def ask(self, user_message: str) -> str:
+        result = self.ask_result(user_message)
+        if result.status == "max_turns_exceeded":
+            from dataact.exceptions import MaxTurnsExceeded
+            raise MaxTurnsExceeded(result.turns)
+        if result.status == "error":
+            raise RuntimeError(result.error or "unknown error")
+        return result.text
 
 
 _EXPLAIN_TEMPLATE = """\
