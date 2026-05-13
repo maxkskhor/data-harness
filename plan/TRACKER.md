@@ -32,18 +32,18 @@ Update this file as work starts or completes.
 | # | Item | Status | Notes |
 |---|------|--------|-------|
 | 1 | Real sandbox (container-level) | deferred | moved from PLAN_v3 |
-| 2 | Async loop | deferred | moved from PLAN_v3 |
-| 3 | Streaming responses | deferred | moved from PLAN_v3 |
+| 2 | Async loop | done | `AsyncHarness`, `AsyncAgent`, `AsyncAgentSession` in loop.py / agent.py |
+| 3 | Streaming responses | done | `run_stream`/`ask_stream` on `AsyncHarness` and `AsyncAgent`; provider `stream()` base in providers/base.py |
 
 ## PLAN_v5.md
 
 | # | Item | Status | Notes |
 |---|------|--------|-------|
-| 1 | Typed run results | planned | preserve string APIs; add `RunResult` metadata path |
-| 2 | Shared turn record for logging and results | planned | aggregate usage and tool metadata without parsing JSONL |
-| 3 | Tool annotations | planned | metadata only; no permission framework |
-| 4 | Session inspection | planned | session/run ids plus `last_result`, no resume/list API |
-| 5 | Documentation and examples | planned | add inspection docs after API shape is implemented |
+| 1 | Typed run results | done | `RunResult`, `Usage`, `CacheStorageInfo` in `result.py`; `run_result()`/`ask_result()` on Harness, Agent, AgentSession, AsyncAgent, AsyncAgentSession |
+| 2 | Shared turn record for logging and results | done | `TurnSummary` aggregated in loop; logger and RunResult share the same record |
+| 3 | Tool annotations | done | `ToolAnnotations` on `ToolSpec`; built-in tools annotated; not leaked to providers |
+| 4 | Session inspection | done | `AgentSession.id`, `AgentSession.last_result`, `AgentSession.turns`; run/session UUIDs in RunResult |
+| 5 | Documentation and examples | planned | add inspection docs and `examples/inspect_run.py` |
 
 ## PLAN_TEACHING.md
 
