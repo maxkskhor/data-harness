@@ -40,7 +40,7 @@ class SessionCache:
         self._recency: OrderedDict[str, None] = OrderedDict()
         self._temp_dir: tempfile.TemporaryDirectory[str] | None = None
         if storage_dir is None and hot_limit is not None:
-            self._temp_dir = tempfile.TemporaryDirectory(prefix="dataact-cache-")
+            self._temp_dir = tempfile.TemporaryDirectory(prefix="data-harness-cache-")
             self._storage_dir = Path(self._temp_dir.name)
         elif storage_dir is not None:
             self._storage_dir = Path(storage_dir)

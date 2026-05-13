@@ -1,12 +1,12 @@
-# dataact
+# data-harness
 
 *(data + ReAct — a controlled data-agent SDK for Python workflows)*
 
 A data-native agent SDK for Python — built around controlled execution, handle-based state, provider adapters, sessions, subagents, and reconstructable runs.
 
-Most agent frameworks hand the model a shell and call it a day. `dataact` takes a different approach: the model operates through a constrained Python interpreter, with data stored in a session cache and exposed as named handles. No bash. Explicit state. Logs that can reconstruct what happened.
+Most agent frameworks hand the model a shell and call it a day. `data-harness` takes a different approach: the model operates through a constrained Python interpreter, with data stored in a session cache and exposed as named handles. No bash. Explicit state. Logs that can reconstruct what happened.
 
-`dataact` began as an installable reference implementation for harness design. It is now developing into the full SDK/framework track. A separate `learn-dataact` repository will be created after the SDK stabilises to extract the basic principles without async, production sandboxing, or SDK-heavy features.
+`data-harness` began as an installable reference implementation for harness design. It is now developing into the full SDK/framework track. A separate `learn-data-harness` repository will be created after the SDK stabilises to extract the basic principles without async, production sandboxing, or SDK-heavy features.
 
 The design is covered in a three-part series:
 
@@ -18,7 +18,7 @@ The design is covered in a three-part series:
 
 ## Why no bash?
 
-Giving an agent shell access is the path of least resistance, but it creates real problems in production: unpredictable side effects, security exposure, and behaviour that's hard to reproduce. `dataact` deliberately constrains the model to Python only — which turns out to be enough for most data workloads and forces cleaner tool design.
+Giving an agent shell access is the path of least resistance, but it creates real problems in production: unpredictable side effects, security exposure, and behaviour that's hard to reproduce. `data-harness` deliberately constrains the model to Python only — which turns out to be enough for most data workloads and forces cleaner tool design.
 
 ---
 
@@ -57,15 +57,15 @@ uv sync
 
 `Agent` needs a provider adapter. The adapter is the boundary between the
 provider SDK and the harness: it turns Anthropic/OpenAI responses into
-`dataact`'s normalised `Message`, `ToolUseBlock`, and token-count types. It is
+`data-harness`'s normalised `Message`, `ToolUseBlock`, and token-count types. It is
 explicit on purpose so the harness is not tied to one model provider, and tests
 can swap in `FakeAdapter` without touching the loop.
 
 For Anthropic:
 
 ```python
-from dataact import Agent
-from dataact.providers.anthropic import AnthropicAdapter
+from data_harness import Agent
+from data_harness.providers.anthropic import AnthropicAdapter
 
 adapter = AnthropicAdapter(model="claude-sonnet-4-6")
 agent = Agent(adapter=adapter, system="You are a data analyst.")
@@ -77,11 +77,11 @@ print(result)
 For OpenAI, install the optional extra and change only the adapter:
 
 ```bash
-pip install "dataact[openai]"
+pip install "data-harness[openai]"
 ```
 
 ```python
-from dataact.providers.openai import OpenAIAdapter
+from data_harness.providers.openai import OpenAIAdapter
 
 adapter = OpenAIAdapter(model="gpt-4o-mini")
 ```
@@ -101,8 +101,8 @@ history each time. For chatbot or workbench applications, create a session and
 ask follow-up questions on it:
 
 ```python
-from dataact import Agent
-from dataact.providers.openai import OpenAIAdapter
+from data_harness import Agent
+from data_harness.providers.openai import OpenAIAdapter
 
 adapter = OpenAIAdapter(model="gpt-4o-mini")
 agent = Agent(adapter=adapter, system="You are a data analyst.")
@@ -123,8 +123,8 @@ follow-up to stay in scope.
 Connector helpers keep the quick path small while preserving progressive disclosure. Connector tools start hidden; the model must call `load_connectors` before it can use them.
 
 ```python
-from dataact import Agent
-from dataact.providers.anthropic import AnthropicAdapter
+from data_harness import Agent
+from data_harness.providers.anthropic import AnthropicAdapter
 
 adapter = AnthropicAdapter(model="claude-sonnet-4-6")
 agent = Agent(adapter=adapter, system="You are a data analyst.")
@@ -161,7 +161,7 @@ print(result)
 - `ConnectorRegistry` keeps connector tools hidden until loaded.
 - `Planner` reminders and subagents are opt-in helpers, not a second runtime.
 
-For explicit wiring, read [examples/advanced_wiring.py](examples/advanced_wiring.py). The future `learn-dataact` repository will provide the smaller, linear teaching guide once this SDK surface has stabilised.
+For explicit wiring, read [examples/advanced_wiring.py](examples/advanced_wiring.py). The future `learn-data-harness` repository will provide the smaller, linear teaching guide once this SDK surface has stabilised.
 
 Run the advanced example - it loads a checked-in FRED unemployment-rate sample, runs analysis, uses subagents and the planner (requires `ANTHROPIC_API_KEY`):
 
@@ -181,7 +181,7 @@ uv run pytest tests/smoke_tests.py -m live -v  # requires OPENAI_API_KEY
 ## Project structure
 
 ```
-dataact/
+data_harness/
   loop.py          # Harness: the core ReAct loop
   cache.py         # SessionCache: handle/snapshot storage
   providers/       # Normalised adapter interface (Anthropic and OpenAI)

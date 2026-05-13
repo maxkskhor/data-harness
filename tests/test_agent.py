@@ -6,19 +6,19 @@ from pathlib import Path
 
 import pytest
 
-from dataact.agent import Agent
-from dataact.cache import SessionCache
-from dataact.loop import Harness
-from dataact.testing import FakeAdapter
-from dataact.tools.planner import Planner
-from dataact.types import ToolResultBlock, ToolSpec
+from data_harness.agent import Agent
+from data_harness.cache import SessionCache
+from data_harness.loop import Harness
+from data_harness.testing import FakeAdapter
+from data_harness.tools.planner import Planner
+from data_harness.types import ToolResultBlock, ToolSpec
 
 
 def test_agent_is_exported_from_top_level_package():
-    from dataact import Agent as TopLevelAgent
-    from dataact import AgentSession as TopLevelAgentSession
-    from dataact.agent import Agent as ModuleAgent
-    from dataact.agent import AgentSession as ModuleAgentSession
+    from data_harness import Agent as TopLevelAgent
+    from data_harness import AgentSession as TopLevelAgentSession
+    from data_harness.agent import Agent as ModuleAgent
+    from data_harness.agent import AgentSession as ModuleAgentSession
 
     assert TopLevelAgent is ModuleAgent
     assert TopLevelAgentSession is ModuleAgentSession
@@ -128,7 +128,7 @@ class TestAgentPhase1OneShotInvariant:
         agent.run("first user prompt")
         agent.run("second user prompt")
 
-        from dataact.types import TextBlock
+        from data_harness.types import TextBlock
 
         second_call_msgs = adapter.calls[1]["messages"]
         all_text = " ".join(
@@ -150,7 +150,7 @@ class TestAgentSession:
         assert session.ask("first question") == "first"
         assert session.ask("follow-up question") == "second"
 
-        from dataact.types import TextBlock
+        from data_harness.types import TextBlock
 
         second_call_msgs = adapter.calls[1]["messages"]
         all_text = " ".join(
@@ -198,7 +198,7 @@ class TestAgentSession:
         agent.session().ask("session question")
         agent.run("standalone question")
 
-        from dataact.types import TextBlock
+        from data_harness.types import TextBlock
 
         standalone_call_msgs = adapter.calls[1]["messages"]
         all_text = " ".join(
@@ -494,7 +494,7 @@ class TestAgentSubagents:
             )
 
         monkeypatch.setattr(
-            "dataact.agent.make_subagent_spec", recording_make_subagent_spec
+            "data_harness.agent.make_subagent_spec", recording_make_subagent_spec
         )
         adapter = FakeAdapter([FakeAdapter.text("done")])
         agent = Agent(adapter=adapter, system="sys", run_dir=str(tmp_path))
@@ -505,7 +505,7 @@ class TestAgentSubagents:
         assert "subagent" not in captured_names
 
     def test_subagent_does_not_inherit_planner_hooks(self, monkeypatch, tmp_path):
-        from dataact.loop import Harness as RealHarness
+        from data_harness.loop import Harness as RealHarness
 
         captured = []
 
@@ -514,7 +514,7 @@ class TestAgentSubagents:
             captured.append(harness)
             return harness
 
-        monkeypatch.setattr("dataact.loop.Harness", recording_harness)
+        monkeypatch.setattr("data_harness.loop.Harness", recording_harness)
         adapter = FakeAdapter(
             [
                 FakeAdapter.tool_use("tu_1", "subagent", {"task": "work"}),
@@ -534,7 +534,7 @@ class TestAgentSubagents:
         assert captured[0]._reminders == []
 
     def test_subagent_connector_tools_are_fresh_and_hidden(self, monkeypatch, tmp_path):
-        from dataact.loop import Harness as RealHarness
+        from data_harness.loop import Harness as RealHarness
 
         captured = []
 
@@ -543,7 +543,7 @@ class TestAgentSubagents:
             captured.append(harness)
             return harness
 
-        monkeypatch.setattr("dataact.loop.Harness", recording_harness)
+        monkeypatch.setattr("data_harness.loop.Harness", recording_harness)
         adapter = FakeAdapter(
             [
                 FakeAdapter.tool_use(

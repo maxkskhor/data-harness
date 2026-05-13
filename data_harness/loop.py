@@ -6,19 +6,25 @@ import functools
 from collections.abc import AsyncGenerator, Callable
 from typing import Literal, cast
 
-from dataact.cache import SessionCache
-from dataact.exceptions import MaxTurnsExceeded
-from dataact.format import format_tool_output
-from dataact.logger import log_error_turn, log_turn, setup_logger
-from dataact.observe import time_block
-from dataact.providers.base import (
+from data_harness.cache import SessionCache
+from data_harness.exceptions import MaxTurnsExceeded
+from data_harness.format import format_tool_output
+from data_harness.logger import log_error_turn, log_turn, setup_logger
+from data_harness.observe import time_block
+from data_harness.providers.base import (
     AsyncProviderAdapter,
     NormalizedResponse,
     ProviderAdapter,
     StopReason,
 )
-from dataact.result import CacheStorageInfo, RunResult, Usage
-from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
+from data_harness.result import CacheStorageInfo, RunResult, Usage
+from data_harness.types import (
+    Message,
+    TextBlock,
+    ToolResultBlock,
+    ToolSpec,
+    ToolUseBlock,
+)
 
 _MAX_TURN_REMINDER = (
     "This is the final turn. You MUST produce your complete final output now. "

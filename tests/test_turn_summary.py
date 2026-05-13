@@ -8,11 +8,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from dataact.cache import SessionCache
-from dataact.loop import Harness
-from dataact.providers.base import NormalizedResponse, StopReason
-from dataact.testing import FakeAdapter
-from dataact.types import TextBlock, ToolSpec, ToolUseBlock
+from data_harness.cache import SessionCache
+from data_harness.loop import Harness
+from data_harness.providers.base import NormalizedResponse, StopReason
+from data_harness.testing import FakeAdapter
+from data_harness.types import TextBlock, ToolSpec, ToolUseBlock
 
 
 def make_text_response(

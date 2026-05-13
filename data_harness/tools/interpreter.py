@@ -7,8 +7,8 @@ import traceback
 from contextlib import redirect_stdout
 from typing import Any
 
-from dataact.cache import SessionCache
-from dataact.types import ToolAnnotations, ToolSpec
+from data_harness.cache import SessionCache
+from data_harness.types import ToolAnnotations, ToolSpec
 
 _INTERPRETER_ANNOTATIONS = ToolAnnotations(
     title="Python Interpreter",

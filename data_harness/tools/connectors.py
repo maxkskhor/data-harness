@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from dataact.cache import SessionCache
-from dataact.format import format_tool_output
-from dataact.types import ToolSpec
+from data_harness.cache import SessionCache
+from data_harness.format import format_tool_output
+from data_harness.types import ToolSpec
 
 
 class ConnectorRegistry:

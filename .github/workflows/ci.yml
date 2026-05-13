@@ -13,6 +13,6 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv python install ${{ matrix.python }}
       - run: uv sync --python ${{ matrix.python }}
-      - run: uv run --python ${{ matrix.python }} ruff check dataact tests
-      - run: uv run --python ${{ matrix.python }} ruff format --check dataact tests
+      - run: uv run --python ${{ matrix.python }} ruff check data_harness tests
+      - run: uv run --python ${{ matrix.python }} ruff format --check data_harness tests
       - run: uv run --python ${{ matrix.python }} pytest tests/ -m "not live"

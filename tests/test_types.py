@@ -1,8 +1,14 @@
 import pytest
 
-from dataact.providers.base import ProviderAdapter
-from dataact.serialize import to_jsonable
-from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
+from data_harness.providers.base import ProviderAdapter
+from data_harness.serialize import to_jsonable
+from data_harness.types import (
+    Message,
+    TextBlock,
+    ToolResultBlock,
+    ToolSpec,
+    ToolUseBlock,
+)
 
 
 def test_text_block_roundtrip():

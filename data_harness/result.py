@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-from dataact.providers.base import StopReason
+from data_harness.providers.base import StopReason
 
 
 @dataclass

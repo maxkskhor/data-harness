@@ -10,13 +10,13 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from dataact.providers.base import (
+from data_harness.providers.base import (
     AsyncProviderAdapter,
     NormalizedResponse,
     ProviderAdapter,
     StopReason,
 )
-from dataact.types import Message, TextBlock, ToolSpec, ToolUseBlock
+from data_harness.types import Message, TextBlock, ToolSpec, ToolUseBlock
 
 
 class FakeAdapter(ProviderAdapter):

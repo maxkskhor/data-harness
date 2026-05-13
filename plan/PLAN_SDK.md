@@ -104,8 +104,8 @@ The repo should present three explicit layers.
 The quick path. It removes boilerplate from examples.
 
 ```python
-from dataact import Agent
-from dataact.providers.anthropic import AnthropicAdapter
+from data_harness import Agent
+from data_harness.providers.anthropic import AnthropicAdapter
 
 agent = Agent(
     adapter=AnthropicAdapter(model="claude-sonnet-4-6"),
@@ -364,7 +364,7 @@ Avoid a `dataact/sdk/` package for now. A nested SDK package makes the project f
 Export only the top-level convenience class:
 
 ```python
-from dataact import Agent
+from data_harness import Agent
 ```
 
 Keep existing low-level imports working.

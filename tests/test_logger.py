@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from dataact.logger import log_turn, setup_logger
-from dataact.providers.base import NormalizedResponse, StopReason
-from dataact.types import Message, TextBlock, ToolResultBlock
+from data_harness.logger import log_turn, setup_logger
+from data_harness.providers.base import NormalizedResponse, StopReason
+from data_harness.types import Message, TextBlock, ToolResultBlock
 
 
 def make_response(text="OK"):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataact.cache import SessionCache
-from dataact.types import ToolAnnotations, ToolSpec
+from data_harness.cache import SessionCache
+from data_harness.types import ToolAnnotations, ToolSpec
 
 _LIST_VARIABLES_ANNOTATIONS = ToolAnnotations(
     title="List Variables",

@@ -4,7 +4,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from dataact.cache import SessionCache
+    from data_harness.cache import SessionCache
 
 _INLINE_STR_MAX = 500
 _INLINE_JSON_MAX = 2000

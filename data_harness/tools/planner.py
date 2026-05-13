@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from dataact.types import ToolSpec
+from data_harness.types import ToolSpec
 
 
 class Planner:

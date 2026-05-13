@@ -1,8 +1,8 @@
 import copy
 from unittest.mock import MagicMock, patch
 
-from dataact.providers.base import StopReason
-from dataact.types import Message, TextBlock, ToolSpec, ToolUseBlock
+from data_harness.providers.base import StopReason
+from data_harness.types import Message, TextBlock, ToolSpec, ToolUseBlock
 
 
 def make_anthropic_response(stop_reason="end_turn", content_blocks=None, usage=None):
@@ -51,7 +51,7 @@ class TestStopReason:
 class TestAnthropicAdapter:
     def _make_adapter(self):
         with patch("anthropic.Anthropic"):
-            from dataact.providers.anthropic import AnthropicAdapter
+            from data_harness.providers.anthropic import AnthropicAdapter
 
             adapter = AnthropicAdapter(model="claude-3-5-sonnet-20241022")
         return adapter

@@ -86,7 +86,7 @@ def _convert(obj: Any) -> Any:
 
 def _get_text_block_type():
     try:
-        from dataact.types import TextBlock
+        from data_harness.types import TextBlock
 
         return TextBlock
     except ImportError:
@@ -95,7 +95,7 @@ def _get_text_block_type():
 
 def _get_tool_use_block_type():
     try:
-        from dataact.types import ToolUseBlock
+        from data_harness.types import ToolUseBlock
 
         return ToolUseBlock
     except ImportError:
@@ -104,7 +104,7 @@ def _get_tool_use_block_type():
 
 def _get_tool_result_block_type():
     try:
-        from dataact.types import ToolResultBlock
+        from data_harness.types import ToolResultBlock
 
         return ToolResultBlock
     except ImportError:

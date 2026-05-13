@@ -2,8 +2,8 @@
 
 import pytest
 
-from dataact.cache import SessionCache
-from dataact.tools.variables import make_list_variables_spec
+from data_harness.cache import SessionCache
+from data_harness.tools.variables import make_list_variables_spec
 
 
 class TestListVariables:

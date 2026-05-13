@@ -1,18 +1,18 @@
-from dataact.agent import Agent, AgentSession, AsyncAgent, AsyncAgentSession
-from dataact.exceptions import (
+from data_harness.agent import Agent, AgentSession, AsyncAgent, AsyncAgentSession
+from data_harness.exceptions import (
     MaxTurnsExceeded,
     SubagentRecursionError,
     ToolNotFoundError,
 )
-from dataact.loop import AsyncHarness
-from dataact.providers.base import (
+from data_harness.loop import AsyncHarness
+from data_harness.providers.base import (
     AsyncProviderAdapter,
     NormalizedResponse,
     ProviderAdapter,
     StopReason,
 )
-from dataact.result import CacheStorageInfo, RunResult, Usage
-from dataact.types import (
+from data_harness.result import CacheStorageInfo, RunResult, Usage
+from data_harness.types import (
     ContentBlock,
     Message,
     TextBlock,
