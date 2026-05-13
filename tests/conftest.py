@@ -4,6 +4,7 @@
 Writes to smoke_results/latest.json and smoke_results/latest.html in the
 project root after any session that contains at least one live test.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -15,7 +16,7 @@ from typing import Any
 
 import pytest
 
-_INPUT_PRICE_PER_M = 0.15   # gpt-4o-mini
+_INPUT_PRICE_PER_M = 0.15  # gpt-4o-mini
 _OUTPUT_PRICE_PER_M = 0.60
 
 _session_results: list[dict] = []
@@ -25,6 +26,7 @@ _SMOKE_OUT = _PROJECT_ROOT / "smoke_results"
 
 
 # ── pytest hooks ─────────────────────────────────────────────────────────────
+
 
 def pytest_sessionstart(session: Any) -> None:
     global _session_start, _session_results
@@ -84,14 +86,20 @@ def pytest_sessionfinish(session: Any, exitstatus: int) -> None:
 
 # ── data builders ─────────────────────────────────────────────────────────────
 
+
 def _build_session_data() -> dict:
     total_in = sum(h["input_tokens"] for t in _session_results for h in t["harnesses"])
-    total_out = sum(h["output_tokens"] for t in _session_results for h in t["harnesses"])
+    total_out = sum(
+        h["output_tokens"] for t in _session_results for h in t["harnesses"]
+    )
     passed = sum(1 for t in _session_results if t["status"] == "passed")
     return {
         "run_date": datetime.now(tz=timezone.utc).isoformat(),
         "model": "gpt-4o-mini",
-        "pricing": {"input_per_m": _INPUT_PRICE_PER_M, "output_per_m": _OUTPUT_PRICE_PER_M},
+        "pricing": {
+            "input_per_m": _INPUT_PRICE_PER_M,
+            "output_per_m": _OUTPUT_PRICE_PER_M,
+        },
         "totals": {
             "tests": len(_session_results),
             "passed": passed,
@@ -184,7 +192,9 @@ def _parse_harness_jsonl(jsonl_path: Path, role: str) -> dict:
         "turns": len(records),
         "input_tokens": total_in,
         "output_tokens": total_out,
-        "latency_ms": round(sum(r.get("metrics", {}).get("latency_ms", 0) for r in records)),
+        "latency_ms": round(
+            sum(r.get("metrics", {}).get("latency_ms", 0) for r in records)
+        ),
         "tool_calls": tool_calls,
         "tool_errors": sum(r.get("tool_error_count", 0) for r in records),
         "cost_usd": round(_cost(total_in, total_out), 6),

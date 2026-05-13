@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
-import sys
 from pathlib import Path
 
 
@@ -49,5 +48,6 @@ class TestInspectRunExample:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)  # type: ignore[union-attr]
         from dataact import RunResult
+
         assert hasattr(module, "result")
         assert isinstance(module.result, RunResult)

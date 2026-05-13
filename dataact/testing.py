@@ -8,7 +8,6 @@ Both exist so that unit tests and examples can run without an API key.
 from __future__ import annotations
 
 import copy
-from collections.abc import Awaitable, Callable
 from typing import Any
 
 from dataact.providers.base import (

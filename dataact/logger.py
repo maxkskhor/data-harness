@@ -49,13 +49,17 @@ def setup_logger(run_dir: str = "./runs") -> str:
 
 
 def _annotations_to_dict(ann: ToolAnnotations) -> dict:
-    return {k: v for k, v in {
-        "title": ann.title,
-        "read_only": ann.read_only,
-        "cache_mutating": ann.cache_mutating,
-        "destructive": ann.destructive,
-        "open_world": ann.open_world,
-    }.items() if v is not None}
+    return {
+        k: v
+        for k, v in {
+            "title": ann.title,
+            "read_only": ann.read_only,
+            "cache_mutating": ann.cache_mutating,
+            "destructive": ann.destructive,
+            "open_world": ann.open_world,
+        }.items()
+        if v is not None
+    }
 
 
 def log_turn(

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import functools
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Callable
 from typing import Literal, cast
 
 from dataact.cache import SessionCache
@@ -51,17 +51,25 @@ class Harness:
     def register_reminder(self, hook: Callable[[int, int], str | None]) -> None:
         self._reminders.append(hook)
 
-    def run_result(self, user_message: str, *,
-                   run_id: str | None = None,
-                   session_id: str | None = None) -> RunResult:
+    def run_result(
+        self,
+        user_message: str,
+        *,
+        run_id: str | None = None,
+        session_id: str | None = None,
+    ) -> RunResult:
         self._run_file = setup_logger(self._run_dir)
         self._messages = [Message(role="user", content=[TextBlock(text=user_message)])]
         result = self._run_loop_result()
         return dataclasses.replace(result, run_id=run_id, session_id=session_id)
 
-    def ask_result(self, user_message: str, *,
-                   run_id: str | None = None,
-                   session_id: str | None = None) -> RunResult:
+    def ask_result(
+        self,
+        user_message: str,
+        *,
+        run_id: str | None = None,
+        session_id: str | None = None,
+    ) -> RunResult:
         if self._run_file is None:
             self._run_file = setup_logger(self._run_dir)
         self._messages.append(
@@ -415,9 +423,7 @@ class AsyncHarness:
 
             if response.stop_reason == StopReason.TOOL_USE:
                 tool_results = await self._dispatch_tools(response.content)
-                self._messages.append(
-                    Message(role="user", content=list(tool_results))
-                )
+                self._messages.append(Message(role="user", content=list(tool_results)))
 
             tool_error_count = sum(1 for r in tool_results if r.is_error)
 
@@ -523,9 +529,7 @@ class AsyncHarness:
 
             if response.stop_reason == StopReason.TOOL_USE:
                 tool_results = await self._dispatch_tools(response.content)
-                self._messages.append(
-                    Message(role="user", content=list(tool_results))
-                )
+                self._messages.append(Message(role="user", content=list(tool_results)))
 
             tool_error_count = sum(1 for r in tool_results if r.is_error)
 
