@@ -6,48 +6,51 @@ These items are useful, but they were intentionally deferred until the core runt
 
 ## 1. Real sandbox (container-level)
 
-**Current:** `PythonInterpreter` uses AST checks + restricted builtins. Not a real sandbox — documented limitation.
+**Status: indefinitely deferred.**
 
-**Goal:** run model-generated code in an isolated subprocess or container so that malicious or runaway code cannot affect the host process.
+`PythonInterpreter` uses AST checks + restricted builtins as a lightweight guard. A container-level sandbox is a significant infrastructure addition with non-trivial serialisation boundary requirements. It will not be prioritised until a concrete production use case drives the need.
 
-Options:
-- `subprocess` with `seccomp`/`AppArmor` on Linux; `seatbelt` on macOS.
-- Docker/Podman sidecar with mounted tmpfs volume for data exchange.
-- `pyodide` (WASM) for a dependency-free sandboxed interpreter.
-
-Design constraints to preserve:
+When the time comes:
 - Cache handles must still be injectable as locals (serialise to JSON on the boundary).
 - `save()` helper must write back into the parent `SessionCache`.
 - stdout/stderr must be captured and returned as the tool result.
+
+Options to evaluate then: `subprocess` + `seccomp`/`seatbelt`, Docker/Podman sidecar, or `pyodide` (WASM).
 
 ---
 
 ## 2. Async loop
 
-**Current:** sync, single-threaded `Harness`.
+**Status: implemented.**
 
-**Goal:** `AsyncHarness` that awaits the provider call and tool handlers.
+`AsyncHarness` in `loop.py` awaits provider calls and tool handlers.
 
-Why it matters:
-- Enables concurrent subagent spawns without threading.
-- Unblocks FastAPI/asyncio integration for server-hosted agents.
-
-Design notes:
-- `ProviderAdapter.chat()` becomes `async def chat()`.
-- `ToolSpec.handler` becomes an async callable, or sync handlers are wrapped with `asyncio.to_thread`.
-- `Harness.run()` becomes `AsyncHarness.run()` as a coroutine.
-- Keep the sync `Harness` as a thin wrapper around `asyncio.run(async_harness.run(...))`.
+- `AsyncProviderAdapter` in `providers/base.py` is the async ABC.
+- Sync tool handlers are wrapped with `asyncio.to_thread`; async handlers are awaited directly.
+- `AsyncHarness` keeps the sync `Harness` untouched — they are independent classes.
+- `AsyncAgent` and `AsyncAgentSession` in `agent.py` wrap `AsyncHarness` at the convenience layer.
+- `FakeAsyncAdapter` in `testing.py` supports async unit tests without a provider key.
 
 ---
 
 ## 3. Streaming responses
 
-**Current:** full-response polling only.
+**Status: implemented.**
 
-**Goal:** stream assistant tokens to the caller so a UI can display partial output.
+`AsyncProviderAdapter.stream(system, messages, tools, *, on_chunk)` delivers text tokens
+via an async callback. The harness bridges the callback to an `AsyncGenerator[str, None]`
+using an `asyncio.Queue`.
 
-Design notes:
-- Anthropic SDK supports `stream=True`; the adapter needs to yield token chunks.
-- `NormalizedResponse` becomes an async generator, or a sync generator for a sync path.
-- Harness accumulates the stream internally for tool-use detection and yields text chunks to the caller through a callback or generator.
-- JSONL logger records the final assembled message, not individual chunks.
+- `AsyncAnthropicAdapter` in `providers/anthropic.py` uses `client.messages.stream()` for
+  real token streaming. Tool-use turns are handled internally; only final-answer text reaches
+  the caller.
+- `AsyncOpenAIAdapter` uses the default base-class implementation (full chat, single chunk).
+  Real OpenAI streaming requires accumulating fragmented delta tool-call fields — deferred.
+- `AsyncHarness.run_stream()` and `ask_stream()` are `AsyncGenerator[str, None]`.
+- `AsyncAgent.run_stream()` and `AsyncAgentSession.ask_stream()` expose the same interface.
+- The JSONL logger records fully assembled messages, not individual chunks.
+
+Public usage::
+
+    async for chunk in agent.run_stream("summarise this dataset"):
+        print(chunk, end="", flush=True)

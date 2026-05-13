@@ -5,7 +5,12 @@ import json
 
 import openai
 
-from dataact.providers.base import NormalizedResponse, ProviderAdapter, StopReason
+from dataact.providers.base import (
+    AsyncProviderAdapter,
+    NormalizedResponse,
+    ProviderAdapter,
+    StopReason,
+)
 from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
 
 _STOP_REASON_MAP = {
@@ -18,42 +23,14 @@ _STOP_REASON_MAP = {
 }
 
 
-class OpenAIAdapter(ProviderAdapter):
-    def __init__(self, model: str = "gpt-4o-mini", max_tokens: int = 4096) -> None:
-        self._model = model
-        self._max_tokens = max_tokens
-        self._client = openai.OpenAI()
+class _OpenAIHelpers:
+    """Shared message-building and response-normalisation logic."""
+
+    _model: str
+    _max_tokens: int
 
     def format_cache_control(self, obj: dict) -> dict:
         return copy.copy(obj)
-
-    def chat(
-        self,
-        system: str,
-        messages: list[Message],
-        tools: list[ToolSpec],
-    ) -> NormalizedResponse:
-        api_messages = self._build_messages(system, messages)
-        api_tools = self._build_tools(tools)
-
-        response = self._client.chat.completions.create(
-            model=self._model,
-            max_tokens=self._max_tokens,
-            messages=api_messages,
-            tools=api_tools or openai.NOT_GIVEN,
-        )
-
-        choice = response.choices[0]
-        stop_reason = _STOP_REASON_MAP.get(choice.finish_reason, StopReason.END_TURN)
-
-        return NormalizedResponse(
-            stop_reason=stop_reason,
-            content=self._normalize_message(choice.message),
-            input_tokens=getattr(response.usage, "prompt_tokens", 0) or 0,
-            output_tokens=getattr(response.usage, "completion_tokens", 0) or 0,
-            cache_read_tokens=0,
-            cache_write_tokens=0,
-        )
 
     def _build_messages(self, system: str, messages: list[Message]) -> list[dict]:
         result = [{"role": "system", "content": system}]
@@ -123,3 +100,69 @@ class OpenAIAdapter(ProviderAdapter):
                 )
             )
         return blocks
+
+    def _make_normalized(self, response) -> NormalizedResponse:
+        choice = response.choices[0]
+        stop_reason = _STOP_REASON_MAP.get(choice.finish_reason, StopReason.END_TURN)
+        return NormalizedResponse(
+            stop_reason=stop_reason,
+            content=self._normalize_message(choice.message),
+            input_tokens=getattr(response.usage, "prompt_tokens", 0) or 0,
+            output_tokens=getattr(response.usage, "completion_tokens", 0) or 0,
+            cache_read_tokens=0,
+            cache_write_tokens=0,
+        )
+
+
+class OpenAIAdapter(_OpenAIHelpers, ProviderAdapter):
+    def __init__(self, model: str = "gpt-4o-mini", max_tokens: int = 4096) -> None:
+        self._model = model
+        self._max_tokens = max_tokens
+        self._client = openai.OpenAI()
+
+    def chat(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+    ) -> NormalizedResponse:
+        api_messages = self._build_messages(system, messages)
+        api_tools = self._build_tools(tools)
+
+        response = self._client.chat.completions.create(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            messages=api_messages,
+            tools=api_tools or openai.NOT_GIVEN,
+        )
+        return self._make_normalized(response)
+
+
+class AsyncOpenAIAdapter(_OpenAIHelpers, AsyncProviderAdapter):
+    """Async OpenAI adapter. Streaming falls back to a full chat call.
+
+    OpenAI tool-call streaming requires accumulating fragmented deltas; a
+    future revision can add real streaming for text-only turns.
+    """
+
+    def __init__(self, model: str = "gpt-4o-mini", max_tokens: int = 4096) -> None:
+        self._model = model
+        self._max_tokens = max_tokens
+        self._client = openai.AsyncOpenAI()
+
+    async def chat(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+    ) -> NormalizedResponse:
+        api_messages = self._build_messages(system, messages)
+        api_tools = self._build_tools(tools)
+
+        response = await self._client.chat.completions.create(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            messages=api_messages,
+            tools=api_tools or openai.NOT_GIVEN,
+        )
+        return self._make_normalized(response)
