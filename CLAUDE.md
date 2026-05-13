@@ -4,9 +4,9 @@ This file provides guidance to coding agents working in this repository.
 
 ## What this is
 
-`dataact` (data + ReAct) is developing into a full SDK/framework for controlled data-agent workflows.
+`data-harness` (data + harness) is developing into a full SDK/framework for controlled data-agent workflows.
 
-The repository began as a readable reference implementation of harness design. That teaching role is now being split out: after the full SDK stabilises, create a separate `learn-dataact` repository that extracts the basic principles without async, production sandboxing, broader SDK ergonomics, or other framework-heavy concerns.
+The repository began as a readable reference implementation of harness design. That teaching role is now being split out: after the full SDK stabilises, create a separate `learn-data-harness` repository that extracts the basic principles without async, production sandboxing, broader SDK ergonomics, or other framework-heavy concerns.
 
 This repository is now the implementation and framework track. It should still make the core boundaries inspectable, but it no longer needs to stay artificially small for tutorial clarity.
 
@@ -14,13 +14,13 @@ The model operates through a constrained Python interpreter only — no bash too
 
 ## Current Direction
 
-Build `dataact` as the full SDK proper. Keep the foundational design visible, but allow the API surface to grow when it supports real data-agent workflows, debuggability, integration, or reproducibility.
+Build `data-harness` as the full SDK proper. Keep the foundational design visible, but allow the API surface to grow when it supports real data-agent workflows, debuggability, integration, or reproducibility.
 
-When there is tension between SDK completeness and teaching simplicity, keep the full implementation in `dataact` and record the distilled teaching version for the future `learn-dataact` repo. Do not downgrade or avoid useful SDK features merely to keep this repository looking like a small tutorial.
+When there is tension between SDK completeness and teaching simplicity, keep the full implementation in `data-harness` and record the distilled teaching version for the future `learn-data-harness` repo. Do not downgrade or avoid useful SDK features merely to keep this repository looking like a small tutorial.
 
-The future `learn-dataact` repo should be the clean teaching resource: basic ReAct loop, Python tool boundary, handle/snapshot cache, progressive tools, logging, and explicit subagent transfer. It should be created after `dataact` has enough stable SDK shape that the guide will not immediately go stale.
+The future `learn-data-harness` repo should be the clean teaching resource: basic ReAct loop, Python tool boundary, handle/snapshot cache, progressive tools, logging, and explicit subagent transfer. It should be created after `data-harness` has enough stable SDK shape that the guide will not immediately go stale.
 
-Do not erase the core harness invariants. `dataact` can become a framework, but it should remain explicit about execution, context, provider, state, subagent, and logging boundaries.
+Do not erase the core harness invariants. `data-harness` can become a framework, but it should remain explicit about execution, context, provider, state, subagent, and logging boundaries.
 
 ## Motivation
 
@@ -55,7 +55,7 @@ uv run python examples/advanced_wiring.py
 ```
 
 Live smoke tests require `OPENAI_API_KEY` and default to `gpt-4o-mini`; set
-`DATAACT_OPENAI_SMOKE_MODEL` to override. The advanced demo requires
+`DATA_HARNESS_OPENAI_SMOKE_MODEL` to override. The advanced demo requires
 `ANTHROPIC_API_KEY`. Both may cost tokens.
 
 ## Architecture
@@ -95,7 +95,7 @@ Tests should assert these invariants directly.
 
 ## Writing Context
 
-This repo supports writing about harness and SDK engineering. The posts should be clear about the split: `dataact` is the fuller implementation/framework track, while `learn-dataact` is the planned teaching guide for the distilled principles.
+This repo supports writing about harness and SDK engineering. The posts should be clear about the split: `data-harness` is the fuller implementation/framework track, while `learn-data-harness` is the planned teaching guide for the distilled principles.
 
 There are two intended writing tracks:
 
@@ -105,7 +105,7 @@ There are two intended writing tracks:
 2. Implementation invariants: the technical details that keep the design coherent.
    Topics: typed content blocks, adapter mutation boundary, tool-use ordering, inline-vs-cache formatting, handle naming, interpreter `save`, suffix-only reminders, explicit subagent state transfer, JSONL logs, invariant tests.
 
-When updating README or docs, avoid claiming `dataact` is still only a teaching/reference implementation. It is now developing into the full SDK/framework. If a simpler teaching resource is needed, point to the planned `learn-dataact` split rather than forcing `dataact` docs to stay beginner-oriented.
+When updating README or docs, avoid claiming `data-harness` is still only a teaching/reference implementation. It is now developing into the full SDK/framework. If a simpler teaching resource is needed, point to the planned `learn-data-harness` split rather than forcing `data-harness` docs to stay beginner-oriented.
 
 All writing in this repo uses British English spelling (e.g. behaviour, normalise, serialise, catalogue, artefact).
 
@@ -121,9 +121,9 @@ The high-level class is still `Agent`, and `Harness` remains the central impleme
 
 The old strict SDK complexity budget is superseded. Use the current plan files to decide scope:
 
-- `PLAN_v4.md`: deferred runtime work such as real sandboxing, async, and streaming.
-- `PLAN_v5.md`: Claude-SDK-informed result/session/tool metadata refactor.
-- `PLAN_TEACHING.md`: future `learn-dataact` teaching split after the SDK stabilises.
+- `plan/PLAN_v4.md`: deferred runtime work such as real sandboxing, async, and streaming.
+- `plan/PLAN_v5.md`: Claude-SDK-informed result/session/tool metadata refactor.
+- `plan/PLAN_TEACHING.md`: future `learn-data-harness` teaching split after the SDK stabilises.
 
 For connector convenience, store immutable connector definitions on `Agent` and build a fresh `ConnectorRegistry` plus fresh `ToolSpec` instances for every `run()`. Do not reset visibility on long-lived specs.
 
@@ -142,8 +142,8 @@ The important boundaries are:
 
 Before merging any branch that will trigger a PyPI release:
 
-1. Run `uv run ruff check dataact tests` — must exit 0.
-2. Run `uv run ruff format --check dataact tests` — must exit 0.
+1. Run `uv run ruff check data_harness tests` — must exit 0.
+2. Run `uv run ruff format --check data_harness tests` — must exit 0.
 3. Run `uv run pytest tests/ -m "not live"` — must exit 0.
 
 The `release.yml` workflow runs all three steps before `uv build` and `uv publish`. A failure in any step blocks the publish. Fix lint and format issues locally before pushing release tags or triggering the workflow manually.
