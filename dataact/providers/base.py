@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from enum import Enum
 
-from dataact.types import ContentBlock, Message, ToolSpec
+from dataact.types import ContentBlock, Message, TextBlock, ToolSpec
 
 
 class StopReason(Enum):
@@ -33,3 +34,34 @@ class ProviderAdapter(ABC):
 
     @abstractmethod
     def format_cache_control(self, obj: dict) -> dict: ...
+
+
+class AsyncProviderAdapter(ABC):
+    @abstractmethod
+    async def chat(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+    ) -> NormalizedResponse: ...
+
+    @abstractmethod
+    def format_cache_control(self, obj: dict) -> dict: ...
+
+    async def stream(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+        *,
+        on_chunk: Callable[[str], Awaitable[None]],
+    ) -> NormalizedResponse:
+        """Default: full chat then deliver assembled text as one chunk.
+
+        Override in provider-specific subclasses to enable real token streaming.
+        """
+        response = await self.chat(system, messages, tools)
+        for block in response.content:
+            if isinstance(block, TextBlock):
+                await on_chunk(block.text)
+        return response

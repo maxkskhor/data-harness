@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Awaitable, Callable
 
 import anthropic
 
-from dataact.providers.base import NormalizedResponse, ProviderAdapter, StopReason
+from dataact.providers.base import (
+    AsyncProviderAdapter,
+    NormalizedResponse,
+    ProviderAdapter,
+    StopReason,
+)
 from dataact.types import Message, TextBlock, ToolResultBlock, ToolSpec, ToolUseBlock
 
 _STOP_REASON_MAP = {
@@ -15,50 +21,16 @@ _STOP_REASON_MAP = {
 }
 
 
-class AnthropicAdapter(ProviderAdapter):
-    def __init__(
-        self, model: str = "claude-sonnet-4-6", max_tokens: int = 8096
-    ) -> None:
-        self._model = model
-        self._max_tokens = max_tokens
-        self._client = anthropic.Anthropic()
+class _AnthropicHelpers:
+    """Shared message-building and response-normalisation logic."""
+
+    _model: str
+    _max_tokens: int
 
     def format_cache_control(self, obj: dict) -> dict:
         result = copy.copy(obj)
         result["cache_control"] = {"type": "ephemeral"}
         return result
-
-    def chat(
-        self,
-        system: str,
-        messages: list[Message],
-        tools: list[ToolSpec],
-    ) -> NormalizedResponse:
-        # Deep-copy inputs so we never mutate harness state
-        api_system = self._build_system(system)
-        api_messages = self._build_messages(messages)
-        api_tools = self._build_tools(tools)
-
-        resp = self._client.messages.create(
-            model=self._model,
-            max_tokens=self._max_tokens,
-            system=api_system,
-            messages=api_messages,
-            tools=api_tools or anthropic.NOT_GIVEN,
-        )
-
-        stop_reason = _STOP_REASON_MAP.get(resp.stop_reason, StopReason.END_TURN)
-        content = self._normalize_content(resp.content)
-
-        return NormalizedResponse(
-            stop_reason=stop_reason,
-            content=content,
-            input_tokens=resp.usage.input_tokens,
-            output_tokens=resp.usage.output_tokens,
-            cache_read_tokens=getattr(resp.usage, "cache_read_input_tokens", 0) or 0,
-            cache_write_tokens=getattr(resp.usage, "cache_creation_input_tokens", 0)
-            or 0,
-        )
 
     def _build_system(self, system: str) -> list[dict]:
         return [self.format_cache_control({"type": "text", "text": system})]
@@ -67,10 +39,8 @@ class AnthropicAdapter(ProviderAdapter):
         result = []
         for i, msg in enumerate(messages):
             blocks = [self._block_to_dict(b) for b in msg.content]
-            # Apply cache_control to last user message
             if i == len(messages) - 1 and msg.role == "user" and blocks:
-                last_block = blocks[-1]
-                blocks[-1] = self.format_cache_control(last_block)
+                blocks[-1] = self.format_cache_control(blocks[-1])
             result.append({"role": msg.role, "content": blocks})
         return result
 
@@ -110,3 +80,97 @@ class AnthropicAdapter(ProviderAdapter):
                     )
                 )
         return blocks
+
+    def _normalize_response(self, resp) -> NormalizedResponse:
+        stop_reason = _STOP_REASON_MAP.get(resp.stop_reason, StopReason.END_TURN)
+        content = self._normalize_content(resp.content)
+        return NormalizedResponse(
+            stop_reason=stop_reason,
+            content=content,
+            input_tokens=resp.usage.input_tokens,
+            output_tokens=resp.usage.output_tokens,
+            cache_read_tokens=getattr(resp.usage, "cache_read_input_tokens", 0) or 0,
+            cache_write_tokens=getattr(resp.usage, "cache_creation_input_tokens", 0)
+            or 0,
+        )
+
+
+class AnthropicAdapter(_AnthropicHelpers, ProviderAdapter):
+    def __init__(
+        self, model: str = "claude-sonnet-4-6", max_tokens: int = 8096
+    ) -> None:
+        self._model = model
+        self._max_tokens = max_tokens
+        self._client = anthropic.Anthropic()
+
+    def chat(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+    ) -> NormalizedResponse:
+        api_system = self._build_system(system)
+        api_messages = self._build_messages(messages)
+        api_tools = self._build_tools(tools)
+
+        resp = self._client.messages.create(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            system=api_system,
+            messages=api_messages,
+            tools=api_tools or anthropic.NOT_GIVEN,
+        )
+        return self._normalize_response(resp)
+
+
+class AsyncAnthropicAdapter(_AnthropicHelpers, AsyncProviderAdapter):
+    def __init__(
+        self, model: str = "claude-sonnet-4-6", max_tokens: int = 8096
+    ) -> None:
+        self._model = model
+        self._max_tokens = max_tokens
+        self._client = anthropic.AsyncAnthropic()
+
+    async def chat(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+    ) -> NormalizedResponse:
+        api_system = self._build_system(system)
+        api_messages = self._build_messages(messages)
+        api_tools = self._build_tools(tools)
+
+        resp = await self._client.messages.create(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            system=api_system,
+            messages=api_messages,
+            tools=api_tools or anthropic.NOT_GIVEN,
+        )
+        return self._normalize_response(resp)
+
+    async def stream(
+        self,
+        system: str,
+        messages: list[Message],
+        tools: list[ToolSpec],
+        *,
+        on_chunk: Callable[[str], Awaitable[None]],
+    ) -> NormalizedResponse:
+        api_system = self._build_system(system)
+        api_messages = self._build_messages(messages)
+        api_tools = self._build_tools(tools)
+
+        async with self._client.messages.stream(
+            model=self._model,
+            max_tokens=self._max_tokens,
+            system=api_system,
+            messages=api_messages,
+            tools=api_tools or anthropic.NOT_GIVEN,
+        ) as stream:
+            async for text in stream.text_stream:
+                await on_chunk(text)
+            final = await stream.get_final_message()
+
+        return self._normalize_response(final)
