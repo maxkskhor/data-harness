@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from dataact.cache import SessionCache
-from dataact.types import ToolSpec
+from dataact.types import ToolAnnotations, ToolSpec
+
+_LIST_VARIABLES_ANNOTATIONS = ToolAnnotations(
+    title="List Variables",
+    read_only=True,
+    cache_mutating=False,
+    open_world=False,
+)
 
 
 def make_list_variables_spec(cache: SessionCache) -> ToolSpec:
@@ -22,4 +29,5 @@ def make_list_variables_spec(cache: SessionCache) -> ToolSpec:
         ),
         input_schema={"type": "object", "properties": {}},
         handler=list_variables,
+        annotations=_LIST_VARIABLES_ANNOTATIONS,
     )

@@ -120,7 +120,7 @@ class SessionCache:
                 if include_paths:
                     metadata[name]["path"] = str(entry.path)
             else:
-                metadata[name] = {"location": "memory", "storage_type": "hot"}
+                metadata[name] = {"location": "memory", "storage_type": "memory"}
         return metadata
 
     def delete(self, name: str) -> None:

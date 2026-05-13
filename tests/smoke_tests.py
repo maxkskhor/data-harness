@@ -29,10 +29,12 @@ import pytest
 from dataact import Agent
 from dataact.cache import SessionCache
 from dataact.loop import Harness
+from dataact.providers.base import StopReason
 from dataact.providers.openai import OpenAIAdapter
+from dataact.result import CacheStorageInfo, RunResult
 from dataact.tools.planner import Planner
 from dataact.tools.subagent import make_subagent_spec
-from dataact.types import ToolSpec
+from dataact.types import ToolAnnotations, ToolSpec
 from examples.advanced_wiring import build_base_tools, load_unemployment_rate
 
 pytestmark = pytest.mark.live
@@ -316,3 +318,135 @@ def test_openai_tool_error_is_reported_and_logged(tmp_path):
         block for line in _latest_jsonl(tmp_path) for block in line["tool_results"]
     ]
     assert any(block["is_error"] for block in tool_results)
+
+
+# ---------------------------------------------------------------------------
+# PLAN_v5: RunResult typed return surface
+# ---------------------------------------------------------------------------
+
+
+def test_run_result_typed_return(tmp_path):
+    _require_openai_key()
+    agent = Agent(
+        adapter=_openai(max_tokens=64),
+        system="Answer concisely.",
+        max_turns=2,
+        run_dir=str(tmp_path),
+    )
+
+    result = agent.run_result("What is 6 times 7? Reply with only the number.")
+
+    assert isinstance(result, RunResult)
+    assert result.status == "success"
+    assert result.usage.input_tokens > 0
+    assert result.usage.output_tokens > 0
+    assert result.stop_reason == StopReason.END_TURN
+    assert result.run_id is not None
+    assert result.run_file is not None
+    assert Path(result.run_file).exists()
+    assert "42" in result.text
+
+
+# ---------------------------------------------------------------------------
+# PLAN_v5: AgentSession multi-turn conversation
+# ---------------------------------------------------------------------------
+
+
+def test_agent_session_multiturn(tmp_path):
+    _require_openai_key()
+    agent = Agent(
+        adapter=_openai(max_tokens=128),
+        system=(
+            "You are a helpful assistant with a good memory. "
+            "When asked what the user told you, repeat it exactly."
+        ),
+        max_turns=3,
+        run_dir=str(tmp_path),
+    )
+
+    session = agent.session()
+    r1 = session.ask_result("My favourite number is 7. Please remember that.")
+    assert isinstance(r1, RunResult)
+    assert r1.status == "success"
+    assert r1.run_id is not None
+
+    r2 = session.ask_result("What is my favourite number?")
+    assert isinstance(r2, RunResult)
+    assert r2.status == "success"
+    assert "7" in r2.text
+
+    assert session.turns == r1.turns + r2.turns
+    assert session.last_result is r2
+    assert session.id is not None
+
+
+# ---------------------------------------------------------------------------
+# PLAN_v5: JSONL enriched fields (visible_tools, tool_error_count, tool_annotations)
+# ---------------------------------------------------------------------------
+
+
+def test_jsonl_new_fields(tmp_path):
+    _require_openai_key()
+
+    get_pi = ToolSpec(
+        name="get_pi",
+        description="Returns the mathematical constant pi as a string.",
+        input_schema={"type": "object", "properties": {}},
+        handler=lambda: "3.14159265",
+        annotations=ToolAnnotations(title="Get Pi", read_only=True),
+    )
+    harness = Harness(
+        adapter=_openai(max_tokens=128),
+        system="Use get_pi once when asked about pi, then answer.",
+        tools=[get_pi],
+        max_turns=4,
+        run_dir=str(tmp_path),
+    )
+
+    harness.run("What is pi? Use the get_pi tool, then tell me the value.")
+
+    lines = _latest_jsonl(tmp_path)
+    assert lines, "No JSONL records written"
+
+    for line in lines:
+        assert "visible_tools" in line, "visible_tools missing from JSONL record"
+        assert "tool_error_count" in line, "tool_error_count missing from JSONL record"
+
+    ann_line = next((l for l in lines if l.get("tool_annotations")), None)
+    assert ann_line is not None, "No JSONL record contains tool_annotations"
+    assert "get_pi" in ann_line["tool_annotations"]
+    assert ann_line["tool_annotations"]["get_pi"]["read_only"] is True
+
+
+# ---------------------------------------------------------------------------
+# PLAN_v5: RunResult.cache_storage returns typed CacheStorageInfo
+# ---------------------------------------------------------------------------
+
+
+def test_cache_storage_info_live(tmp_path):
+    _require_openai_key()
+    agent = Agent(
+        adapter=_openai(max_tokens=256),
+        system=(
+            "Use python_interpreter for calculations. "
+            "When given exact Python code, execute it unchanged."
+        ),
+        max_turns=4,
+        run_dir=str(tmp_path),
+    )
+
+    result = agent.run_result(
+        "Call python_interpreter with this exact code:\n"
+        "save('answer', 42)\n"
+        "print(42)\n"
+        "Then reply with the number."
+    )
+
+    assert result.status == "success"
+    assert "answer" in result.cache_storage, (
+        f"'answer' not in cache_storage. Keys: {list(result.cache_storage.keys())}"
+    )
+    info = result.cache_storage["answer"]
+    assert isinstance(info, CacheStorageInfo)
+    assert info.location == "memory"
+    assert info.storage_type == "memory"

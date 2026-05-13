@@ -4,6 +4,15 @@ from dataclasses import dataclass
 from typing import Any, Callable, Literal
 
 
+@dataclass(frozen=True)
+class ToolAnnotations:
+    title: str | None = None
+    read_only: bool | None = None
+    cache_mutating: bool | None = None
+    destructive: bool | None = None
+    open_world: bool | None = None
+
+
 @dataclass
 class TextBlock:
     text: str
@@ -45,6 +54,7 @@ class ToolSpec:
     input_schema: dict
     handler: Callable[..., Any] | None = None
     visible: bool = True
+    annotations: ToolAnnotations | None = None
 
     def to_provider_dict(self) -> dict:
         return {
