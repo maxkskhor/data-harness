@@ -1,210 +1,182 @@
 # data-harness
 
-*(data + ReAct — a controlled data-agent SDK for Python workflows)*
+**A Python SDK for controlled data-agent workflows.**
 
-A data-native agent SDK for Python — built around controlled execution, handle-based state, provider adapters, sessions, subagents, and reconstructable runs.
+No bash. Handle-based state. Logs that reconstruct what happened.
 
-Most agent frameworks hand the model a shell and call it a day. `data-harness` takes a different approach: the model operates through a constrained Python interpreter, with data stored in a session cache and exposed as named handles. No bash. Explicit state. Logs that can reconstruct what happened.
-
-`data-harness` began as an installable reference implementation for harness design. It is now developing into the full SDK/framework track. A separate `learn-data-harness` repository will be created after the SDK stabilises to extract the basic principles without async, production sandboxing, or SDK-heavy features.
-
-The design is covered in a three-part series:
-
-- [Designing a ReAct Harness for Data Workflows Without Bash](https://maxkskhor.substack.com/p/designing-a-react-harness-for-data)
-- [How a Bash-Free Data Agent Remembers Its Work](https://maxkskhor.substack.com/p/how-a-bash-free-data-agent-remembers)
-- [The Bugs Hidden Inside a Data Agent Harness](https://maxkskhor.substack.com/p/the-engineering-invariants-behind)
+**[Documentation](https://maxkskhor.github.io/data-harness/)** · [PyPI](https://pypi.org/project/data-harness/) · [Changelog](#changelog)
 
 ---
 
-## Why no bash?
-
-Giving an agent shell access is the path of least resistance, but it creates real problems in production: unpredictable side effects, security exposure, and behaviour that's hard to reproduce. `data-harness` deliberately constrains the model to Python only — which turns out to be enough for most data workloads and forces cleaner tool design.
-
----
-
-## Core design decisions
-
-Each decision here is intentional. Understanding them is the point.
-
-**Handle/snapshot pattern**
-Large objects (DataFrames, arrays, query results) live in a `SessionCache`, not in message history. The model only sees a compact snapshot — shape, columns, a few sample rows. It accesses the data by writing Python against the handle name. This keeps context lean without hiding data from the model.
-
-**Prefix-stable system prompt**
-The system prompt never changes between turns. Reminders, state, and nags are appended to the conversation suffix. This is a KV-cache discipline: a stable prefix means the provider can cache it, which reduces latency and cost on long runs.
-
-**Progressive connector disclosure**
-Data connectors (databases, APIs, warehouses) are registered but hidden from the tool list until explicitly loaded. A shorter tool list means the model makes better routing decisions. Connectors are only visible when relevant.
-
-**Subagent isolation**
-Spawned subagents get a fresh adapter and a fresh cache. State is transferred explicitly via `input_handles`. No implicit shared state. This makes subagent behaviour reproducible and debuggable.
-
-**Suffix-only nag reminders**
-The planner escalates reminders at 4 / 8 / 12 turns without progress. These are always appended to the suffix, never inserted into the prefix, so the KV cache is never busted by reminder text.
-
-**JSONL turn logging**
-Every turn is logged to a `.jsonl` file from the start. Not bolted on later. Each line is a complete turn record including latency, token counts, and cache hit/miss. Reproducibility is a first-class concern.
+Most agent frameworks hand the model a shell and call it a day. `data-harness` takes a different approach: the model executes Python only, large data objects live in a session cache and are exposed as named handles, and every turn is logged to JSONL. The result is a data agent that is auditable, reproducible, and safe enough to run in production.
 
 ---
 
 ## Install
 
 ```bash
-# requires Python 3.10+ and uv
-uv sync
+pip install data-harness
 ```
 
-## Quick start
-
-`Agent` needs a provider adapter. The adapter is the boundary between the
-provider SDK and the harness: it turns Anthropic/OpenAI responses into
-`data-harness`'s normalised `Message`, `ToolUseBlock`, and token-count types. It is
-explicit on purpose so the harness is not tied to one model provider, and tests
-can swap in `FakeAdapter` without touching the loop.
-
-For Anthropic:
-
-```python
-from data_harness import Agent
-from data_harness.providers.anthropic import AnthropicAdapter
-
-adapter = AnthropicAdapter(model="claude-sonnet-4-6")
-agent = Agent(adapter=adapter, system="You are a data analyst.")
-
-result = agent.run("Compute the mean of [1, 2, 3, 4, 5] and print it.")
-print(result)
-```
-
-For OpenAI, install the optional extra and change only the adapter:
+OpenAI support:
 
 ```bash
 pip install "data-harness[openai]"
 ```
 
-```python
-from data_harness.providers.openai import OpenAIAdapter
+Requires Python 3.10+.
 
-adapter = OpenAIAdapter(model="gpt-4o-mini")
-```
+---
 
-Run the minimal Anthropic example:
-
-```bash
-uv run python examples/quickstart.py
-```
-
-`examples/quickstart.py` requires `ANTHROPIC_API_KEY` when run as a script. Tests import `build_agent()` and drive it with `FakeAdapter`, so the example stays covered without token spend.
-
-## Chat sessions
-
-`Agent.run()` is still the simple one-shot path: it starts a fresh message
-history each time. For chatbot or workbench applications, create a session and
-ask follow-up questions on it:
-
-```python
-from data_harness import Agent
-from data_harness.providers.openai import OpenAIAdapter
-
-adapter = OpenAIAdapter(model="gpt-4o-mini")
-agent = Agent(adapter=adapter, system="You are a data analyst.")
-
-session = agent.session()
-session.put("uploaded_data", df)
-
-print(session.ask("What columns are in the uploaded data?"))
-print(session.ask("Which numeric column has the highest average?"))
-```
-
-The session keeps one `Harness`, one message history, and one `SessionCache`.
-This is the path to use when a UI needs uploaded artefacts and conversation
-follow-up to stay in scope.
-
-## Connector example
-
-Connector helpers keep the quick path small while preserving progressive disclosure. Connector tools start hidden; the model must call `load_connectors` before it can use them.
+## Quickstart
 
 ```python
 from data_harness import Agent
 from data_harness.providers.anthropic import AnthropicAdapter
 
-adapter = AnthropicAdapter(model="claude-sonnet-4-6")
-agent = Agent(adapter=adapter, system="You are a data analyst.")
-
-market_data = agent.connector(
-    "market_data",
-    description="Market data tools.",
+agent = Agent(
+    adapter=AnthropicAdapter(model="claude-sonnet-4-6"),
+    system="You are a data analyst.",
 )
 
+print(agent.run("Compute the mean of [1, 2, 3, 4, 5]."))
+```
 
-def fetch_ohlcv(symbol: str) -> list[dict]:
-    return [{"symbol": symbol, "close": 101.2}]
+Switch to OpenAI by changing only the adapter:
 
+```python
+from data_harness.providers.openai import OpenAIAdapter
 
-market_data.tool(
-    fetch_ohlcv,
-    description="Fetch OHLCV data for a ticker.",
+agent = Agent(
+    adapter=OpenAIAdapter(model="gpt-4o-mini"),
+    system="You are a data analyst.",
 )
-
-result = agent.run("Load market_data and inspect AAPL.")
-print(result)
-```
-
-## What `Agent` composes
-
-`Agent` is a thin composition layer over the lower-level primitives:
-
-- A provider adapter translates model-provider SDK objects into the harness's normalised response types.
-- `Harness` owns the ReAct loop, messages, dispatch, reminders, and JSONL logging.
-- `SessionCache` stores large values as handles plus compact snapshots.
-- `AgentSession` keeps a chat-style harness and cache alive across follow-up questions.
-- `python_interpreter` is the controlled execution surface; there is no bash tool.
-- `list_variables` exposes cache handles without dumping raw payloads.
-- `ConnectorRegistry` keeps connector tools hidden until loaded.
-- `Planner` reminders and subagents are opt-in helpers, not a second runtime.
-
-For explicit wiring, read [examples/advanced_wiring.py](examples/advanced_wiring.py). The future `learn-data-harness` repository will provide the smaller, linear teaching guide once this SDK surface has stabilised.
-
-Run the advanced example - it loads a checked-in FRED unemployment-rate sample, runs analysis, uses subagents and the planner (requires `ANTHROPIC_API_KEY`):
-
-```bash
-uv run python examples/advanced_wiring.py
-```
-
-Run tests:
-
-```bash
-uv run pytest tests/ -v
-uv run pytest tests/smoke_tests.py -m live -v  # requires OPENAI_API_KEY
 ```
 
 ---
 
-## Project structure
+## Multi-turn sessions
 
+`run()` is one-shot. For follow-up questions over shared state, use a session:
+
+```python
+session = agent.session()
+session.put("sales", df)  # pre-load a DataFrame into the cache
+
+print(session.ask("What is the total revenue?"))
+print(session.ask("Which product category was highest?"))
 ```
-data_harness/
-  loop.py          # Harness: the core ReAct loop
-  cache.py         # SessionCache: handle/snapshot storage
-  providers/       # Normalised adapter interface (Anthropic and OpenAI)
-  tools/
-    interpreter.py # Sandboxed Python executor
-    connectors.py  # Progressive connector registry
-    planner.py     # Plan/nag tool
-    subagent.py    # Isolated subagent spawning
-    variables.py   # list_variables tool
-  types.py         # Shared types: Message, ToolSpec, ContentBlock
-  logger.py        # JSONL turn logging
-  observe.py       # Latency measurement
-examples/
-  quickstart.py        # Minimal Agent path
-  advanced_wiring.py   # Explicit Harness wiring
-  data/                # Small public sample data for the advanced demo
+
+The session keeps one message history and one cache alive across all `ask()` calls.
+
+---
+
+## Data connectors
+
+Connectors group related tools and start *hidden* — the model loads them on demand. This keeps the tool list short and routing decisions sharp.
+
+```python
+market_data = agent.connector("market_data", description="Equity price data.")
+
+@market_data.tool(description="Fetch daily OHLCV data for a ticker.")
+def fetch_ohlcv(symbol: str) -> list[dict]:
+    ...
+
+agent.run("Load market_data and fetch AAPL prices.")
+```
+
+---
+
+## Async and streaming
+
+```python
+from data_harness import AsyncAgent
+from data_harness.providers.anthropic import AnthropicAdapter
+
+agent = AsyncAgent(adapter=AnthropicAdapter(model="claude-sonnet-4-6"), system="...")
+
+# Stream tokens as they arrive
+async for event in agent.run_stream("Describe the dataset."):
+    if event.type == "content_block_delta":
+        from data_harness import TextDelta
+        if isinstance(event.delta, TextDelta):
+            print(event.delta.text, end="", flush=True)
+```
+
+---
+
+## Why these constraints?
+
+| Design decision | Why it matters |
+|---|---|
+| **Python only, no bash** | No shell side-effects, no destructive commands, reproducible runs |
+| **Handle/snapshot pattern** | Large objects never bloat message history; the model still operates on them via Python |
+| **Prefix-stable system prompt** | The provider's KV cache stays warm across turns, reducing latency and cost |
+| **Progressive connector disclosure** | Fewer visible tools → better model routing decisions |
+| **Subagent isolation** | Spawned subagents get a fresh cache; state crosses boundaries only through explicit handles |
+| **JSONL logging from turn one** | Every run is reconstructable without raw data leaking into the log |
+
+The design is covered in detail in a [three-part series](https://maxkskhor.substack.com/p/designing-a-react-harness-for-data) and in the [Architecture guide](https://maxkskhor.github.io/data-harness/guide/design/).
+
+---
+
+## What `Agent` composes
+
+`Agent` is a thin layer over lower-level primitives you can wire directly for full control:
+
+| Component | Role |
+|---|---|
+| `Harness` | The ReAct loop — messages, tool dispatch, reminders, JSONL logging |
+| `SessionCache` | Handle-based store; keeps large objects out of message history |
+| `ProviderAdapter` | Translates provider SDK responses into harness types |
+| `python_interpreter` | The model's only execution surface |
+| `ConnectorRegistry` | Hides connector tools until the model loads them |
+| `Planner` | Opt-in nag reminders when progress stalls |
+| `Subagent` | Isolated worker with explicit state transfer |
+
+See [`examples/advanced_wiring.py`](examples/advanced_wiring.py) for explicit Harness wiring.
+
+---
+
+## Running the examples
+
+```bash
+# Minimal Agent example (requires ANTHROPIC_API_KEY)
+uv run python examples/quickstart.py
+
+# Full wiring with connectors, planner, and subagents (requires ANTHROPIC_API_KEY)
+uv run python examples/advanced_wiring.py
+```
+
+---
+
+## Running the tests
+
+```bash
+uv run python -m pytest tests/ -v
+uv run python -m pytest tests/smoke_tests.py -m live -v  # requires OPENAI_API_KEY
 ```
 
 ---
 
 ## Sandbox disclaimer
 
-The Python interpreter uses AST checks and restricted globals to reduce accidental misuse. It is not a container sandbox and should not be treated as safe for untrusted input.
+The Python interpreter uses AST checks and restricted globals to reduce accidental misuse. It is **not** a container sandbox and should not be treated as safe for untrusted input.
+
+---
+
+## Changelog
+
+### 0.3.0
+- Streaming protocol: SSE event types, `stream_events()`, `AsyncAgent.run_stream()`
+
+### 0.2.0
+- Async support: `AsyncAgent`, `AsyncAgentSession`, `AsyncHarness`
+- `AgentSession` for multi-turn conversations
+- `RunResult` with token usage and cache state
+
+### 0.1.0
+- Initial release: `Agent`, `Harness`, `SessionCache`, `ProviderAdapter`
 
 ---
 
