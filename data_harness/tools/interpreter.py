@@ -34,6 +34,27 @@ _DEFAULT_ALLOWLIST = frozenset(
 
 _FORBIDDEN_NAMES = frozenset({"eval", "exec", "__import__", "open", "compile"})
 
+_EMPTY_OUTPUT_GUIDANCE = (
+    "Code ran successfully but produced no stdout. "
+    "Use print(...) to inspect values, or save(name, value) to persist results "
+    "for later calls."
+)
+
+_LOCALS_ERROR = (
+    "Error: locals() is not available in python_interpreter. "
+    "Use cache handles directly as local variables. "
+    "Call list_variables to see available handles."
+)
+
+_SENTINEL = object()
+
+
+class PythonInterpreterError(Exception):
+    """Raised by PythonInterpreter.run() on any execution failure."""
+
+    def __repr__(self) -> str:
+        return str(self)
+
 
 class _SecurityVisitor(ast.NodeVisitor):
     """AST visitor that raises ValueError on forbidden patterns."""
@@ -72,6 +93,17 @@ class _SecurityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def _has_locals_call(tree: ast.AST) -> bool:
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "locals"
+        ):
+            return True
+    return False
+
+
 class PythonInterpreter:
     def __init__(
         self,
@@ -86,12 +118,17 @@ class PythonInterpreter:
         try:
             tree = ast.parse(code)
         except SyntaxError as exc:
-            return f"SyntaxError: {exc}"
+            raise PythonInterpreterError(f"SyntaxError: {exc}") from exc
 
         visitor = _SecurityVisitor(self._allowlist)
         visitor.visit(tree)
         if visitor.errors:
-            return "SecurityError: " + "; ".join(visitor.errors) + " — not allowed"
+            raise PythonInterpreterError(
+                "SecurityError: " + "; ".join(visitor.errors) + " — not allowed"
+            )
+
+        if _has_locals_call(tree):
+            raise PythonInterpreterError(_LOCALS_ERROR)
 
         # Build fresh locals for this call
         local_vars: dict[str, Any] = {}
@@ -106,21 +143,55 @@ class PythonInterpreter:
 
         local_vars["save"] = save
 
-        # Capture stdout
+        globals_dict: dict[str, Any] = {"__builtins__": _safe_builtins(self._allowlist)}
+
+        # Capture stdout; attempt final-expression capture when the last
+        # statement is a bare expression (notebook-like behaviour).
         buf = io.StringIO()
-        try:
-            with redirect_stdout(buf):
-                exec(
-                    compile(tree, "<code>", "exec"),
-                    {"__builtins__": _safe_builtins(self._allowlist)},
-                    local_vars,
-                )  # noqa: S102
-        except Exception:
-            err = traceback.format_exc()
-            return f"Error:\n{err}"
+        last_val: object = _SENTINEL
+
+        if tree.body and isinstance(tree.body[-1], ast.Expr):
+            body_tree = ast.Module(body=tree.body[:-1], type_ignores=[])
+            expr_tree = ast.Expression(body=tree.body[-1].value)
+            ast.fix_missing_locations(body_tree)
+            ast.fix_missing_locations(expr_tree)
+            try:
+                with redirect_stdout(buf):
+                    exec(  # noqa: S102
+                        compile(body_tree, "<code>", "exec"),
+                        globals_dict,
+                        local_vars,
+                    )
+                    last_val = eval(  # noqa: S307
+                        compile(expr_tree, "<code>", "eval"),
+                        globals_dict,
+                        local_vars,
+                    )
+            except Exception:
+                raise PythonInterpreterError(
+                    f"Error:\n{traceback.format_exc()}"
+                ) from None
+        else:
+            try:
+                with redirect_stdout(buf):
+                    exec(  # noqa: S102
+                        compile(tree, "<code>", "exec"),
+                        globals_dict,
+                        local_vars,
+                    )
+            except Exception:
+                raise PythonInterpreterError(
+                    f"Error:\n{traceback.format_exc()}"
+                ) from None
 
         output = buf.getvalue()
-        return output if output else "ran successfully with no output"
+        if output:
+            return output
+
+        if last_val is not _SENTINEL and last_val is not None:
+            return repr(last_val)
+
+        return _EMPTY_OUTPUT_GUIDANCE
 
     @staticmethod
     def make_tool_spec(cache: SessionCache) -> ToolSpec:
@@ -128,9 +199,19 @@ class PythonInterpreter:
         return ToolSpec(
             name="python_interpreter",
             description=(
-                "Run Python code over cached data handles. "
-                "Cache handles are available as local variables. "
-                "Call save(name, value) to store computed artefacts back to cache."
+                "Run Python code in a sandboxed interpreter with direct access to "
+                "cached data handles.\n\n"
+                "• Cache handles are available as local variables — use them directly, "
+                "e.g. print(fred_unrate.head()). Do NOT use locals() to look up "
+                "handles by name.\n"
+                "• The interpreter captures printed stdout only. Always use print(...) "
+                "to inspect values, e.g. print(df.describe()).\n"
+                "• If the last statement is a bare expression (e.g. df.describe()), "
+                "its repr is returned automatically when nothing was printed.\n"
+                "• Each call starts with fresh local variables. Any variable not saved "
+                "with save(name, value) is discarded at the end of the call.\n"
+                "• Call save(name, value) to persist computed artefacts for later "
+                "calls."
             ),
             input_schema={
                 "type": "object",

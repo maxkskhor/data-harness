@@ -165,6 +165,50 @@ async def test_async_harness_dispatches_async_tool(tmp_path):
     assert results == ["hi"]
 
 
+async def test_async_harness_raising_handler_is_error(tmp_path):
+    """A raising tool handler must produce is_error=True in the non-streaming path.
+
+    Regression: tools that catch and return error strings instead of raising
+    will silently produce is_error=False, hiding failures from the model.
+    """
+
+    def exploding_tool() -> str:
+        raise ValueError("async boom")
+
+    tool_spec = ToolSpec(
+        name="exploding",
+        description="always raises",
+        input_schema={"type": "object", "properties": {}},
+        handler=exploding_tool,
+        visible=True,
+    )
+    responses = [
+        FakeAsyncAdapter.tool_use("tu1", "exploding", {}),
+        FakeAsyncAdapter.text("done"),
+    ]
+    adapter = FakeAsyncAdapter(responses)
+    harness = AsyncHarness(
+        adapter=adapter,
+        system="sys",
+        tools=[tool_spec],
+        max_turns=5,
+        run_dir=str(tmp_path),
+    )
+    result = await harness.run_result("go")
+    assert result.status == "success"
+    # Inspect the tool result in the message history
+    from data_harness.types import ToolResultBlock
+
+    for msg in reversed(harness._messages):
+        if msg.role == "user":
+            tool_results = [b for b in msg.content if isinstance(b, ToolResultBlock)]
+            if tool_results:
+                assert tool_results[0].is_error is True
+                assert "async boom" in tool_results[0].content
+                return
+    raise AssertionError("no ToolResultBlock found")
+
+
 # ---------------------------------------------------------------------------
 # AsyncHarness — streaming
 # ---------------------------------------------------------------------------

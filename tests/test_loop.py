@@ -251,6 +251,39 @@ class TestLoopBasic:
         tool_results = [b for b in last_user.content if isinstance(b, ToolResultBlock)]
         assert any(tr.is_error for tr in tool_results)
 
+    def test_raising_handler_is_error(self, tmp_path):
+        """A tool handler that raises must produce is_error=True in ToolResultBlock.
+
+        Regression: tools that catch and return error strings instead of raising
+        will silently produce is_error=False, hiding failures from the model.
+        """
+
+        def exploding_tool() -> str:
+            raise ValueError("boom from handler")
+
+        tool = ToolSpec(
+            name="exploding",
+            description="always raises",
+            input_schema={"type": "object", "properties": {}},
+            handler=exploding_tool,
+        )
+        adapter = FakeAdapter(
+            [
+                make_tool_response("tu_1", "exploding", {}),
+                make_text_response("done"),
+            ]
+        )
+        harness = Harness(
+            adapter=adapter, system="sys", tools=[tool], run_dir=str(tmp_path)
+        )
+        harness.run("go")
+        msgs = adapter._calls[1]["messages"]
+        last_user = [m for m in msgs if m.role == "user"][-1]
+        tool_results = [b for b in last_user.content if isinstance(b, ToolResultBlock)]
+        assert len(tool_results) == 1
+        assert tool_results[0].is_error is True
+        assert "boom from handler" in tool_results[0].content
+
     def test_system_byte_stable(self, tmp_path):
         tool = ToolSpec(
             name="echo",
