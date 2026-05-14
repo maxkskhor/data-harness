@@ -24,6 +24,26 @@ class _ColdEntry:
 
 
 class SessionCache:
+    """In-process object store that exposes large values as named handles with compact snapshots.
+
+    Large objects (DataFrames, arrays, query results) are stored by name.
+    The model only ever sees a compact snapshot — shape, columns, a few sample
+    rows — and operates on the data by writing Python against the handle name.
+    This keeps message context lean without hiding data from the model.
+
+    When ``hot_limit`` is set, least-recently-used handles are spilled to disk
+    automatically. DataFrames are written as Parquet, NumPy arrays as ``.npy``,
+    and everything else as pickle.
+
+    Args:
+        sample_size: Number of rows/elements to include in each snapshot.
+        storage_dir: Directory for disk-spilled handles. If ``None`` and
+            ``hot_limit`` is set, a temporary directory is created
+            automatically.
+        hot_limit: Maximum number of handles kept in memory at once. ``None``
+            means unbounded (all handles stay in memory).
+    """
+
     def __init__(
         self,
         sample_size: int = 5,
@@ -54,6 +74,24 @@ class SessionCache:
             self._storage_dir = None
 
     def put(self, name: str, value: Any, overwrite: bool = False) -> str:
+        """Store a value under ``name`` and return the handle actually used.
+
+        If ``name`` is already taken and ``overwrite`` is ``False``, a numeric
+        suffix is appended (``name_2``, ``name_3``, …) and the new handle is
+        returned.
+
+        Args:
+            name: Desired handle name. Must be a valid Python identifier.
+            value: Any Python object. DataFrames and NumPy arrays get
+                specialised snapshot and spill formats.
+            overwrite: Replace the existing handle if ``True``.
+
+        Returns:
+            The handle name under which the value was stored.
+
+        Raises:
+            ValueError: If ``name`` is not a valid Python identifier.
+        """
         if not _is_valid_identifier(name):
             raise ValueError(
                 f"Invalid handle name: {name!r}. Must be a valid Python identifier."
@@ -73,6 +111,17 @@ class SessionCache:
             suffix += 1
 
     def get(self, name: str) -> Any:
+        """Retrieve a value by handle name, promoting cold entries to hot.
+
+        Args:
+            name: A handle previously returned by `put`.
+
+        Returns:
+            The stored Python object.
+
+        Raises:
+            KeyError: If no handle with ``name`` exists.
+        """
         if name in self._store:
             self._mark_recent(name)
             return self._store[name]
@@ -86,6 +135,18 @@ class SessionCache:
         raise KeyError(name)
 
     def snapshot(self, handle: str) -> str:
+        """Return the compact snapshot string for a stored handle.
+
+        The snapshot is a JSON string describing the value's type, shape, and a
+        few sample elements. It is what the model sees in message history
+        instead of the raw object.
+
+        Args:
+            handle: A handle previously returned by `put`.
+
+        Returns:
+            A JSON string summary of the stored value.
+        """
         if handle in self._snapshots:
             return self._snapshots[handle]
         value = self.get(handle)
@@ -94,12 +155,15 @@ class SessionCache:
         return snapshot
 
     def list_handles(self) -> dict[str, str]:
+        """Return a mapping of all handle names to their snapshot strings."""
         return {name: self.snapshot(name) for name in self.handle_names()}
 
     def handle_names(self) -> list[str]:
+        """Return all handle names in most-recently-used order."""
         return list(self._recency.keys())
 
     def has_handle(self, name: str) -> bool:
+        """Return ``True`` if ``name`` is a registered handle (hot or cold)."""
         return name in self._store or name in self._cold
 
     def items(self):
@@ -124,6 +188,14 @@ class SessionCache:
         return metadata
 
     def delete(self, name: str) -> None:
+        """Remove a handle and its associated disk artefact (if any).
+
+        Args:
+            name: Handle to remove.
+
+        Raises:
+            KeyError: If no handle with ``name`` exists.
+        """
         if not self.has_handle(name):
             raise KeyError(name)
         self._store.pop(name, None)
@@ -132,6 +204,7 @@ class SessionCache:
         self._recency.pop(name, None)
 
     def close(self) -> None:
+        """Release the temporary storage directory, if one was created."""
         if self._temp_dir is not None:
             self._temp_dir.cleanup()
             self._temp_dir = None

@@ -38,6 +38,34 @@ _MAX_TURN_REMINDER = (
 
 
 class Harness:
+    """The core synchronous ReAct loop.
+
+    `Harness` owns the message list, dispatches tools, applies suffix-only
+    reminder hooks, and logs every turn to a JSONL file. It is the central
+    implementation boundary in data-harness: everything above it (`Agent`,
+    `AgentSession`) is a convenience layer; everything below it
+    (`ProviderAdapter`, `SessionCache`, `ToolSpec`) is a pure dependency.
+
+    The system prompt is never mutated between turns. Reminders, nags, and
+    dynamic state are always appended to the conversation suffix so the
+    provider's KV cache is not invalidated.
+
+    For most use cases, prefer `Agent` over constructing `Harness` directly.
+    Use `Harness` when you need full control over tool wiring, as shown in
+    ``examples/advanced_wiring.py``.
+
+    Args:
+        adapter: Synchronous provider adapter that translates provider SDK
+            objects into harness types.
+        system: System prompt. Kept byte-identical across all turns.
+        tools: Full tool list. Invisible tools (``visible=False``) are excluded
+            from the provider call but can still be dispatched.
+        max_turns: Hard cap on provider turns before the loop stops and returns
+            a ``"max_turns_exceeded"`` result.
+        run_dir: Directory where JSONL logs are written. Created on first run.
+        cache: Shared `SessionCache`. A fresh cache is created if ``None``.
+    """
+
     def __init__(
         self,
         adapter: ProviderAdapter,
@@ -60,6 +88,14 @@ class Harness:
         self._run_file: str | None = None
 
     def register_reminder(self, hook: Callable[[int, int], str | None]) -> None:
+        """Register a suffix reminder hook called before each provider turn.
+
+        The hook receives ``(current_turn, max_turns)`` and returns a reminder
+        string to append to the conversation suffix, or ``None`` to skip.
+
+        Args:
+            hook: Callable with signature ``(turn: int, max_turns: int) -> str | None``.
+        """
         self._reminders.append(hook)
 
     def run_result(
@@ -69,6 +105,19 @@ class Harness:
         run_id: str | None = None,
         session_id: str | None = None,
     ) -> RunResult:
+        """Start a fresh run and return the full `RunResult`.
+
+        Resets message history. Use `ask_result` for follow-up turns on the
+        same history.
+
+        Args:
+            user_message: The initial user prompt.
+            run_id: Optional identifier stamped into the `RunResult`.
+            session_id: Optional session identifier stamped into the `RunResult`.
+
+        Returns:
+            A `RunResult` describing the outcome, token usage, and cache state.
+        """
         self._run_file = setup_logger(self._run_dir)
         self._messages = [Message(role="user", content=[TextBlock(text=user_message)])]
         result = self._run_loop_result()
@@ -81,6 +130,19 @@ class Harness:
         run_id: str | None = None,
         session_id: str | None = None,
     ) -> RunResult:
+        """Append a follow-up message and continue the existing run.
+
+        Appends ``user_message`` to the current history without resetting it.
+        Useful for multi-turn sessions when driving `Harness` directly.
+
+        Args:
+            user_message: The follow-up user prompt.
+            run_id: Optional identifier stamped into the `RunResult`.
+            session_id: Optional session identifier stamped into the `RunResult`.
+
+        Returns:
+            A `RunResult` describing the outcome of this turn sequence.
+        """
         if self._run_file is None:
             self._run_file = setup_logger(self._run_dir)
         self._messages.append(
@@ -90,6 +152,20 @@ class Harness:
         return dataclasses.replace(result, run_id=run_id, session_id=session_id)
 
     def run(self, user_message: str) -> str:
+        """Start a fresh run and return the final text response.
+
+        Raises `MaxTurnsExceeded` if the loop hits ``max_turns``.
+
+        Args:
+            user_message: The initial user prompt.
+
+        Returns:
+            The model's final text response.
+
+        Raises:
+            MaxTurnsExceeded: If the loop reaches ``max_turns`` without stopping.
+            RuntimeError: If the provider raises an exception during the run.
+        """
         result = self.run_result(user_message)
         if result.status == "max_turns_exceeded":
             raise MaxTurnsExceeded(result.turns)
@@ -98,6 +174,18 @@ class Harness:
         return result.text
 
     def ask(self, user_message: str) -> str:
+        """Append a follow-up message and return the final text response.
+
+        Args:
+            user_message: The follow-up user prompt.
+
+        Returns:
+            The model's final text response.
+
+        Raises:
+            MaxTurnsExceeded: If the loop reaches ``max_turns`` without stopping.
+            RuntimeError: If the provider raises an exception during the run.
+        """
         result = self.ask_result(user_message)
         if result.status == "max_turns_exceeded":
             raise MaxTurnsExceeded(result.turns)
@@ -107,6 +195,7 @@ class Harness:
 
     @property
     def run_file(self) -> str | None:
+        """Path to the JSONL log for the current run, or ``None`` before the first run."""
         return self._run_file
 
     def _run_loop_result(self) -> RunResult:

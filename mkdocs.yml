@@ -1,0 +1,77 @@
+site_name: data-harness
+site_description: A data-native agent SDK for controlled Python workflows.
+site_url: https://maxkskhor.github.io/data-harness/
+repo_name: maxkskhor/data-harness
+repo_url: https://github.com/maxkskhor/data-harness
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - content.code.annotate
+    - toc.integrate
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - def_list
+  - tables
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            merge_init_into_class: true
+
+nav:
+  - Home: index.md
+  - Guide:
+    - Quickstart: guide/quickstart.md
+    - Sessions: guide/sessions.md
+    - Connectors: guide/connectors.md
+    - Async & Streaming: guide/async.md
+    - Architecture: guide/design.md
+  - API Reference:
+    - Agent: api/agent.md
+    - SessionCache: api/cache.md
+    - Harness: api/harness.md
+    - Providers: api/providers.md
+    - Types: api/types.md
+    - Streaming: api/streaming.md
+    - Exceptions: api/exceptions.md

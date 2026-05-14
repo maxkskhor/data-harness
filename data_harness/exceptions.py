@@ -7,6 +7,13 @@ if TYPE_CHECKING:
 
 
 class MaxTurnsExceeded(RuntimeError):
+    """Raised when the ReAct loop reaches ``max_turns`` without an end-turn stop.
+
+    Attributes:
+        turns: The number of turns that were executed before the limit was hit.
+        last_response: The final provider response, if available.
+    """
+
     def __init__(self, turns: int, last_response: "NormalizedResponse | None" = None):
         self.turns = turns
         self.last_response = last_response
@@ -14,8 +21,8 @@ class MaxTurnsExceeded(RuntimeError):
 
 
 class ToolNotFoundError(KeyError):
-    pass
+    """Raised when a tool invocation names a tool that is not registered."""
 
 
 class SubagentRecursionError(RuntimeError):
-    pass
+    """Raised when a subagent attempts to spawn another subagent."""

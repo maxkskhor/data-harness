@@ -45,6 +45,11 @@ class _ConnectorDefinition:
 
 
 class ConnectorBuilder:
+    """Fluent builder for attaching tools to a named connector on an `Agent`.
+
+    Obtain an instance via `Agent.connector` rather than constructing directly.
+    """
+
     def __init__(self, agent: Agent | AsyncAgent, name: str) -> None:
         self._agent = agent
         self._name = name
@@ -57,6 +62,19 @@ class ConnectorBuilder:
         input_schema: dict | None = None,
         annotations: ToolAnnotations | None = None,
     ) -> Callable[..., Any]:
+        """Register ``fn`` as a tool under this connector.
+
+        Args:
+            fn: The callable to expose as a tool. Its name becomes the tool
+                name (prefixed with the connector name).
+            description: Natural-language description shown to the model.
+            input_schema: JSON Schema for the tool's parameters. Inferred from
+                ``fn``'s type annotations when ``None``.
+            annotations: Optional `ToolAnnotations` side-effect hints.
+
+        Returns:
+            ``fn`` unchanged, so the method can be used as a decorator.
+        """
         schema = input_schema if input_schema is not None else infer_input_schema(fn)
         self._agent._connector_tools.append(
             _ConnectorToolDefinition(
@@ -108,6 +126,32 @@ def _build_tools_for(
 
 
 class Agent:
+    """High-level synchronous agent.
+
+    `Agent` composes a `Harness`, a `SessionCache`, and optional tools from a
+    single configuration. Each call to `run` builds a fresh `Harness` with a
+    fresh message history. Use `session` when you need multi-turn conversation
+    state to persist across questions.
+
+    Example::
+
+        from data_harness import Agent
+        from data_harness.providers.anthropic import AnthropicAdapter
+
+        agent = Agent(
+            adapter=AnthropicAdapter(model="claude-sonnet-4-6"),
+            system="You are a data analyst.",
+        )
+        print(agent.run("Compute the mean of [1, 2, 3]."))
+
+    Args:
+        adapter: Synchronous provider adapter.
+        system: System prompt passed unchanged to every `Harness` run.
+        max_turns: Hard cap on provider turns per `run` call.
+        cache: Shared `SessionCache`. A fresh cache is created when ``None``.
+        run_dir: Directory for JSONL logs. Defaults to ``./runs``.
+    """
+
     def __init__(
         self,
         adapter: ProviderAdapter,
@@ -142,25 +186,73 @@ class Agent:
         return self._last_run_file
 
     def connector(self, name: str, *, description: str) -> ConnectorBuilder:
+        """Register a named connector and return a builder for attaching tools.
+
+        Connector tools start hidden; the model must call ``load_connectors``
+        before it can use them (progressive disclosure).
+
+        Args:
+            name: Unique connector name. Used as the tool-name prefix.
+            description: Shown to the model when it lists available connectors.
+
+        Returns:
+            A `ConnectorBuilder` for registering tools under this connector.
+        """
         self._connectors[name] = _ConnectorDefinition(
             name=name, description=description
         )
         return ConnectorBuilder(self, name)
 
     def enable_planner(self) -> Agent:
+        """Enable the planning tool and suffix-based nag reminders.
+
+        The planner escalates reminders at turns 4, 8, and 12 when no progress
+        has been recorded. Call this before `run` or `session`.
+
+        Returns:
+            ``self``, for method chaining.
+        """
         self._planner_enabled = True
         return self
 
     def enable_subagents(
         self, *, adapter_factory: Callable[[], ProviderAdapter]
     ) -> Agent:
+        """Enable the subagent tool, using ``adapter_factory`` for spawned agents.
+
+        Each spawned subagent gets a fresh adapter, fresh message history, and
+        fresh cache. State crosses the boundary only through explicit
+        ``input_handles``.
+
+        Args:
+            adapter_factory: Zero-argument callable that returns a fresh
+                `ProviderAdapter` for each subagent.
+
+        Returns:
+            ``self``, for method chaining.
+        """
         self._subagent_factory = adapter_factory
         return self
 
     def session(self) -> AgentSession:
+        """Create a stateful `AgentSession` for multi-turn conversations.
+
+        Returns:
+            A new `AgentSession` backed by a copy of this agent's cache.
+        """
         return AgentSession(self)
 
     def run_result(self, user_message: str) -> RunResult:
+        """Run the agent and return the full `RunResult`.
+
+        Builds a fresh `Harness` with a fresh message history for each call.
+
+        Args:
+            user_message: The user prompt to send.
+
+        Returns:
+            A `RunResult` with the text response, token usage, and cache state.
+        """
         harness = self._make_harness()
         self._last_harness = harness
         result = harness.run_result(
@@ -170,6 +262,18 @@ class Agent:
         return result
 
     def run(self, user_message: str) -> str:
+        """Run the agent and return the final text response.
+
+        Args:
+            user_message: The user prompt to send.
+
+        Returns:
+            The model's final text response.
+
+        Raises:
+            MaxTurnsExceeded: If the loop reaches ``max_turns``.
+            RuntimeError: If the provider raises an exception.
+        """
         harness = self._make_harness()
         self._last_harness = harness
         result = harness.run(user_message)
@@ -177,6 +281,7 @@ class Agent:
         return result
 
     def explain(self) -> str:
+        """Return a string showing the equivalent explicit `Harness` wiring for this agent."""
         return _EXPLAIN_TEMPLATE.format(
             system=_truncate(self._system),
             max_turns=self._max_turns,
@@ -288,12 +393,31 @@ class AgentSession:
         return self._harness.run_file
 
     def put(self, name: str, value: Any, *, overwrite: bool = False) -> str:
+        """Store a value in the session cache and return the handle used.
+
+        Args:
+            name: Desired handle name. Must be a valid Python identifier.
+            value: Any Python object to store.
+            overwrite: Replace the existing handle if ``True``.
+
+        Returns:
+            The handle name under which the value was stored.
+        """
         return self._cache.put(name, value, overwrite=overwrite)
 
     def list_handles(self) -> dict[str, str]:
+        """Return a mapping of all cache handle names to their snapshot strings."""
         return self._cache.list_handles()
 
     def ask_result(self, user_message: str) -> RunResult:
+        """Send a follow-up message and return the full `RunResult`.
+
+        Args:
+            user_message: The follow-up user prompt.
+
+        Returns:
+            A `RunResult` for this turn sequence.
+        """
         result = self._harness.ask_result(
             user_message, run_id=str(uuid.uuid4()), session_id=self._id
         )
@@ -304,6 +428,18 @@ class AgentSession:
         return result
 
     def ask(self, user_message: str) -> str:
+        """Send a follow-up message and return the final text response.
+
+        Args:
+            user_message: The follow-up user prompt.
+
+        Returns:
+            The model's final text response.
+
+        Raises:
+            MaxTurnsExceeded: If the loop reaches ``max_turns``.
+            RuntimeError: If the provider raises an exception.
+        """
         result = self.ask_result(user_message)
         if result.status == "max_turns_exceeded":
             from data_harness.exceptions import MaxTurnsExceeded
