@@ -24,7 +24,7 @@ class _ColdEntry:
 
 
 class SessionCache:
-    """In-process object store that exposes large values as named handles with compact snapshots.
+    """In-process store that exposes large values as named handles with snapshots.
 
     Large objects (DataFrames, arrays, query results) are stored by name.
     The model only ever sees a compact snapshot — shape, columns, a few sample

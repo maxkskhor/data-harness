@@ -281,7 +281,7 @@ class Agent:
         return result
 
     def explain(self) -> str:
-        """Return a string showing the equivalent explicit `Harness` wiring for this agent."""
+        """Return a string showing the equivalent explicit `Harness` wiring."""
         return _EXPLAIN_TEMPLATE.format(
             system=_truncate(self._system),
             max_turns=self._max_turns,

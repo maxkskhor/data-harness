@@ -195,7 +195,7 @@ class Harness:
 
     @property
     def run_file(self) -> str | None:
-        """Path to the JSONL log for the current run, or ``None`` before the first run."""
+        """Path to the JSONL log for this run, or ``None`` before the first run."""
         return self._run_file
 
     def _run_loop_result(self) -> RunResult:
