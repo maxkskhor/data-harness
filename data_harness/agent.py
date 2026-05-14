@@ -20,6 +20,7 @@ from data_harness.loop import AsyncHarness, Harness
 from data_harness.providers.base import AsyncProviderAdapter, ProviderAdapter
 from data_harness.result import RunResult
 from data_harness.schema import infer_input_schema
+from data_harness.streaming import StreamEvent
 from data_harness.tools.connectors import ConnectorRegistry
 from data_harness.tools.interpreter import PythonInterpreter
 from data_harness.tools.planner import Planner
@@ -385,18 +386,24 @@ class AsyncAgent:
             raise RuntimeError(result.error or "unknown error")
         return result.text
 
-    async def run_stream(self, user_message: str) -> AsyncGenerator[str, None]:
-        """Stream assistant tokens for a one-shot run.
+    async def run_stream(self, user_message: str) -> AsyncGenerator[StreamEvent, None]:
+        """Stream events for a one-shot run.
+
+        Yields StreamEvent objects (message_start, content_block_*, message_delta,
+        message_stop, tool_result) following the Claude Agent SDK protocol.
 
         Usage::
 
-            async for chunk in agent.run_stream("hello"):
-                print(chunk, end="", flush=True)
+            async for event in agent.run_stream("hello"):
+                if event.type == "content_block_delta":
+                    from data_harness.streaming import TextDelta
+                    if isinstance(event.delta, TextDelta):
+                        print(event.delta.text, end="", flush=True)
         """
         harness = self._make_harness()
         self._last_harness = harness
-        async for chunk in harness.run_stream(user_message):
-            yield chunk
+        async for event in harness.run_stream(user_message):
+            yield event
         self._last_run_file = harness.run_file
 
     def _build_tools(
@@ -507,10 +514,10 @@ class AsyncAgentSession:
             raise RuntimeError(result.error or "unknown error")
         return result.text
 
-    async def ask_stream(self, user_message: str) -> AsyncGenerator[str, None]:
-        """Stream assistant tokens for a follow-up turn."""
-        async for chunk in self._harness.ask_stream(user_message):
-            yield chunk
+    async def ask_stream(self, user_message: str) -> AsyncGenerator[StreamEvent, None]:
+        """Stream events for a follow-up turn."""
+        async for event in self._harness.ask_stream(user_message):
+            yield event
         self._agent._last_harness = self._harness
         self._agent._last_run_file = self._harness.run_file
 

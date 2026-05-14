@@ -1,7 +1,18 @@
 import copy
+import json
+from contextlib import asynccontextmanager
 from unittest.mock import MagicMock, patch
 
 from data_harness.providers.base import StopReason
+from data_harness.streaming import (
+    ContentBlockDeltaEvent,
+    ContentBlockStartEvent,
+    InputJSONDelta,
+    MessageDeltaEvent,
+    MessageStartEvent,
+    MessageStopEvent,
+    TextDelta,
+)
 from data_harness.types import Message, TextBlock, ToolSpec, ToolUseBlock
 
 
@@ -199,3 +210,281 @@ class TestAnthropicAdapter:
         for m in messages:
             for block in m.content:
                 assert not hasattr(block, "cache_control")
+
+
+# ---------------------------------------------------------------------------
+# AsyncAnthropicAdapter.stream_events() — maps raw SSE events to StreamEvent
+# ---------------------------------------------------------------------------
+
+
+def _make_sse_event(type_: str, **kwargs) -> MagicMock:
+    """Build a mock raw SSE event with a given type and attributes."""
+    ev = MagicMock()
+    ev.type = type_
+    for k, v in kwargs.items():
+        setattr(ev, k, v)
+    return ev
+
+
+def _make_text_sse_sequence(text: str) -> list[MagicMock]:
+    """Minimal SSE event sequence for a single text block."""
+    cb = MagicMock()
+    cb.type = "text"
+
+    block = MagicMock()
+    block.index = 0
+    block.content_block = cb
+
+    delta_obj = MagicMock()
+    delta_obj.type = "text_delta"
+    delta_obj.text = text
+
+    delta_event = MagicMock()
+    delta_event.type = "content_block_delta"
+    delta_event.index = 0
+    delta_event.delta = delta_obj
+
+    stop_event = MagicMock()
+    stop_event.type = "content_block_stop"
+    stop_event.index = 0
+
+    msg_delta_inner = MagicMock()
+    msg_delta_inner.stop_reason = "end_turn"
+
+    usage_obj = MagicMock()
+    usage_obj.input_tokens = 10
+    usage_obj.output_tokens = 5
+    usage_obj.cache_read_input_tokens = 0
+    usage_obj.cache_creation_input_tokens = 0
+
+    msg_delta = MagicMock()
+    msg_delta.type = "message_delta"
+    msg_delta.delta = msg_delta_inner
+    msg_delta.usage = usage_obj
+
+    msg_stop = MagicMock()
+    msg_stop.type = "message_stop"
+
+    msg_start = MagicMock()
+    msg_start.type = "message_start"
+
+    start = MagicMock()
+    start.type = "content_block_start"
+    start.index = 0
+    start.content_block = cb
+
+    return [msg_start, start, delta_event, stop_event, msg_delta, msg_stop]
+
+
+def _make_tool_sse_sequence(
+    tool_use_id: str, tool_name: str, tool_input: dict
+) -> list[MagicMock]:
+    """Minimal SSE event sequence for a tool_use content block."""
+    msg_start = MagicMock()
+    msg_start.type = "message_start"
+
+    cb = MagicMock()
+    cb.type = "tool_use"
+    cb.id = tool_use_id
+    cb.name = tool_name
+
+    start = MagicMock()
+    start.type = "content_block_start"
+    start.index = 0
+    start.content_block = cb
+
+    delta_obj = MagicMock()
+    delta_obj.type = "input_json_delta"
+    delta_obj.partial_json = json.dumps(tool_input)
+
+    delta_event = MagicMock()
+    delta_event.type = "content_block_delta"
+    delta_event.index = 0
+    delta_event.delta = delta_obj
+
+    stop_event = MagicMock()
+    stop_event.type = "content_block_stop"
+    stop_event.index = 0
+
+    msg_delta_inner = MagicMock()
+    msg_delta_inner.stop_reason = "tool_use"
+
+    usage_obj = MagicMock()
+    usage_obj.input_tokens = 20
+    usage_obj.output_tokens = 8
+    usage_obj.cache_read_input_tokens = 0
+    usage_obj.cache_creation_input_tokens = 0
+
+    msg_delta = MagicMock()
+    msg_delta.type = "message_delta"
+    msg_delta.delta = msg_delta_inner
+    msg_delta.usage = usage_obj
+
+    msg_stop = MagicMock()
+    msg_stop.type = "message_stop"
+
+    return [msg_start, start, delta_event, stop_event, msg_delta, msg_stop]
+
+
+class TestAsyncAnthropicAdapterStreamEvents:
+    def _make_async_adapter(self):
+        with patch("anthropic.AsyncAnthropic"):
+            from data_harness.providers.anthropic import AsyncAnthropicAdapter
+
+            return AsyncAnthropicAdapter(model="claude-sonnet-4-6")
+
+    def _patch_stream(self, adapter, sse_events: list[MagicMock]) -> None:
+        """Patch adapter._client.messages.stream to yield sse_events."""
+
+        async def _aiter(self_inner):
+            for e in sse_events:
+                yield e
+
+        mock_stream = MagicMock()
+        mock_stream.__aiter__ = _aiter
+
+        @asynccontextmanager
+        async def _ctx(*args, **kwargs):
+            yield mock_stream
+
+        adapter._client.messages.stream = _ctx
+
+    async def test_text_stream_events_types(self):
+        adapter = self._make_async_adapter()
+        self._patch_stream(adapter, _make_text_sse_sequence("hi"))
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        types = [e.type for e in events]
+        assert types == [
+            "message_start",
+            "content_block_start",
+            "content_block_delta",
+            "content_block_stop",
+            "message_delta",
+            "message_stop",
+        ]
+
+    async def test_text_stream_carries_text_in_delta(self):
+        adapter = self._make_async_adapter()
+        self._patch_stream(adapter, _make_text_sse_sequence("hello streaming"))
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        text_deltas = [
+            e
+            for e in events
+            if isinstance(e, ContentBlockDeltaEvent) and isinstance(e.delta, TextDelta)
+        ]
+        assert len(text_deltas) == 1
+        assert text_deltas[0].delta.text == "hello streaming"
+
+    async def test_text_stream_message_start(self):
+        adapter = self._make_async_adapter()
+        self._patch_stream(adapter, _make_text_sse_sequence("x"))
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        assert isinstance(events[0], MessageStartEvent)
+
+    async def test_text_stream_message_stop(self):
+        adapter = self._make_async_adapter()
+        self._patch_stream(adapter, _make_text_sse_sequence("x"))
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        assert isinstance(events[-1], MessageStopEvent)
+
+    async def test_text_stream_message_delta_stop_reason(self):
+        adapter = self._make_async_adapter()
+        self._patch_stream(adapter, _make_text_sse_sequence("x"))
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        deltas = [e for e in events if isinstance(e, MessageDeltaEvent)]
+        assert len(deltas) == 1
+        assert deltas[0].stop_reason == StopReason.END_TURN
+
+    async def test_text_stream_usage(self):
+        adapter = self._make_async_adapter()
+        self._patch_stream(adapter, _make_text_sse_sequence("x"))
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        deltas = [e for e in events if isinstance(e, MessageDeltaEvent)]
+        assert deltas[0].input_tokens == 10
+        assert deltas[0].output_tokens == 5
+
+    async def test_tool_use_stream_content_block_start(self):
+        adapter = self._make_async_adapter()
+        self._patch_stream(adapter, _make_tool_sse_sequence("tu1", "my_fn", {"k": "v"}))
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        starts = [e for e in events if isinstance(e, ContentBlockStartEvent)]
+        assert len(starts) == 1
+        from data_harness.types import ToolUseBlock
+
+        assert isinstance(starts[0].content_block, ToolUseBlock)
+        assert starts[0].content_block.tool_use_id == "tu1"
+        assert starts[0].content_block.tool_name == "my_fn"
+
+    async def test_tool_use_stream_json_delta(self):
+        adapter = self._make_async_adapter()
+        self._patch_stream(adapter, _make_tool_sse_sequence("tu1", "fn", {"x": 99}))
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        json_deltas = [
+            e
+            for e in events
+            if isinstance(e, ContentBlockDeltaEvent)
+            and isinstance(e.delta, InputJSONDelta)
+        ]
+        assert len(json_deltas) == 1
+        assert json.loads(json_deltas[0].delta.partial_json) == {"x": 99}
+
+    async def test_tool_use_stream_stop_reason_tool_use(self):
+        adapter = self._make_async_adapter()
+        self._patch_stream(adapter, _make_tool_sse_sequence("tu1", "fn", {}))
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        deltas = [e for e in events if isinstance(e, MessageDeltaEvent)]
+        assert deltas[0].stop_reason == StopReason.TOOL_USE
+
+    async def test_unknown_sse_event_type_skipped(self):
+        """Unknown event types (e.g. SDK higher-level events) are silently ignored."""
+        adapter = self._make_async_adapter()
+        unknown = MagicMock()
+        unknown.type = "totally_unknown_event_type"
+        sse = _make_text_sse_sequence("x")
+        sse.insert(1, unknown)
+        self._patch_stream(adapter, sse)
+
+        events = []
+        async for e in adapter.stream_events("sys", [], []):
+            events.append(e)
+
+        types = [e.type for e in events]
+        assert "totally_unknown_event_type" not in types
+        assert "message_start" in types
+        assert "message_stop" in types

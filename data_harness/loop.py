@@ -18,6 +18,11 @@ from data_harness.providers.base import (
     StopReason,
 )
 from data_harness.result import CacheStorageInfo, RunResult, Usage
+from data_harness.streaming import (
+    StreamEvent,
+    ToolResultEvent,
+    accumulate_stream_events,
+)
 from data_harness.types import (
     Message,
     TextBlock,
@@ -355,27 +360,29 @@ class AsyncHarness:
             raise RuntimeError(result.error or "unknown error")
         return result.text
 
-    async def run_stream(self, user_message: str) -> AsyncGenerator[str, None]:
-        """Stream assistant tokens for a one-shot run.
+    async def run_stream(self, user_message: str) -> AsyncGenerator[StreamEvent, None]:
+        """Stream events for a one-shot run.
 
-        Yields text chunks as they arrive. Tool-use turns are dispatched
-        internally; only final-answer text reaches the caller.
-        The JSONL logger records fully assembled messages, not individual chunks.
+        Yields StreamEvent objects following the same protocol as the Claude
+        Agent SDK.  Each provider turn emits message_start,
+        content_block_start/delta/stop, message_delta, and message_stop events.
+        After the harness dispatches a tool call a ToolResultEvent is emitted.
+        The JSONL logger records fully assembled messages, not individual events.
         """
         self._run_file = setup_logger(self._run_dir)
         self._messages = [Message(role="user", content=[TextBlock(text=user_message)])]
-        async for chunk in self._run_loop_stream():
-            yield chunk
+        async for event in self._run_loop_stream():
+            yield event
 
-    async def ask_stream(self, user_message: str) -> AsyncGenerator[str, None]:
-        """Stream assistant tokens for a follow-up turn in a session."""
+    async def ask_stream(self, user_message: str) -> AsyncGenerator[StreamEvent, None]:
+        """Stream events for a follow-up turn in a session."""
         if self._run_file is None:
             self._run_file = setup_logger(self._run_dir)
         self._messages.append(
             Message(role="user", content=[TextBlock(text=user_message)])
         )
-        async for chunk in self._run_loop_stream():
-            yield chunk
+        async for event in self._run_loop_stream():
+            yield event
 
     async def _run_loop_result(self) -> RunResult:
         if self._run_file is None:
@@ -471,7 +478,7 @@ class AsyncHarness:
                     cache_storage=self._build_cache_storage(),
                 )
 
-    async def _run_loop_stream(self) -> AsyncGenerator[str, None]:
+    async def _run_loop_stream(self) -> AsyncGenerator[StreamEvent, None]:
         if self._run_file is None:
             raise RuntimeError("run_file must be initialised before running the loop")
 
@@ -481,35 +488,17 @@ class AsyncHarness:
             self._apply_reminders(turn)
             visible_tools = [t for t in self._tools if t.visible]
 
-            chunk_queue: asyncio.Queue[str | None] = asyncio.Queue()
+            events_this_turn: list[StreamEvent] = []
 
-            async def on_chunk(text: str) -> None:
-                await chunk_queue.put(text)
-
-            async def do_stream() -> NormalizedResponse:
+            with time_block() as tb:
                 try:
-                    return await self._adapter.stream(
+                    async for evt in self._adapter.stream_events(
                         system=self._system,
                         messages=self._messages,
                         tools=visible_tools,
-                        on_chunk=on_chunk,
-                    )
-                finally:
-                    await chunk_queue.put(None)  # sentinel: stream is done
-
-            with time_block() as tb:
-                stream_task: asyncio.Task[NormalizedResponse] = asyncio.create_task(
-                    do_stream()
-                )
-
-                while True:
-                    chunk = await chunk_queue.get()
-                    if chunk is None:
-                        break
-                    yield chunk
-
-                try:
-                    response = await stream_task
+                    ):
+                        events_this_turn.append(evt)
+                        yield evt
                 except Exception as exc:
                     log_error_turn(
                         turn=turn,
@@ -521,6 +510,7 @@ class AsyncHarness:
                     return
 
             latency = tb.elapsed_ms
+            response = accumulate_stream_events(events_this_turn)
 
             total_usage = total_usage + Usage(
                 input_tokens=response.input_tokens,
@@ -535,6 +525,20 @@ class AsyncHarness:
 
             if response.stop_reason == StopReason.TOOL_USE:
                 tool_results = await self._dispatch_tools(response.content)
+
+                tool_name_map = {
+                    b.tool_use_id: b.tool_name
+                    for b in response.content
+                    if isinstance(b, ToolUseBlock)
+                }
+                for result in tool_results:
+                    yield ToolResultEvent(
+                        tool_use_id=result.tool_use_id,
+                        tool_name=tool_name_map.get(result.tool_use_id, ""),
+                        content=result.content,
+                        is_error=result.is_error,
+                    )
+
                 self._messages.append(Message(role="user", content=list(tool_results)))
 
             tool_error_count = sum(1 for r in tool_results if r.is_error)

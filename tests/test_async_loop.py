@@ -7,6 +7,13 @@ import pytest
 from data_harness.agent import AsyncAgent
 from data_harness.exceptions import MaxTurnsExceeded
 from data_harness.loop import AsyncHarness
+from data_harness.streaming import (
+    ContentBlockDeltaEvent,
+    MessageStopEvent,
+    StreamEvent,
+    TextDelta,
+    ToolResultEvent,
+)
 from data_harness.testing import FakeAsyncAdapter
 from data_harness.types import ToolSpec
 
@@ -163,20 +170,28 @@ async def test_async_harness_dispatches_async_tool(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+def _text_from_events(events: list[StreamEvent]) -> str:
+    return "".join(
+        e.delta.text
+        for e in events
+        if isinstance(e, ContentBlockDeltaEvent) and isinstance(e.delta, TextDelta)
+    )
+
+
 async def test_async_harness_run_stream_yields_chunks(tmp_path):
     adapter = FakeAsyncAdapter([FakeAsyncAdapter.text("hello world")])
     harness = AsyncHarness(
         adapter=adapter, system="sys", tools=[], max_turns=5, run_dir=str(tmp_path)
     )
-    chunks: list[str] = []
-    async for chunk in harness.run_stream("test"):
-        chunks.append(chunk)
-    # FakeAsyncAdapter uses the default stream() which delivers full text as one chunk
-    assert "".join(chunks) == "hello world"
+    events: list[StreamEvent] = []
+    async for event in harness.run_stream("test"):
+        events.append(event)
+    assert _text_from_events(events) == "hello world"
+    assert any(isinstance(e, MessageStopEvent) for e in events)
 
 
 async def test_async_harness_run_stream_tool_dispatch(tmp_path):
-    """Tool turns are handled internally; only final text reaches the caller."""
+    """Tool turns emit ToolResultEvent; final text is in ContentBlockDeltaEvent."""
     side_effects: list[str] = []
 
     def side_tool(v: str) -> str:
@@ -202,11 +217,15 @@ async def test_async_harness_run_stream_tool_dispatch(tmp_path):
         max_turns=5,
         run_dir=str(tmp_path),
     )
-    chunks: list[str] = []
-    async for chunk in harness.run_stream("go"):
-        chunks.append(chunk)
-    assert "".join(chunks) == "final answer"
+    events: list[StreamEvent] = []
+    async for event in harness.run_stream("go"):
+        events.append(event)
+    assert _text_from_events(events) == "final answer"
     assert side_effects == ["x"]
+    tool_result_events = [e for e in events if isinstance(e, ToolResultEvent)]
+    assert len(tool_result_events) == 1
+    assert tool_result_events[0].tool_name == "side_tool"
+    assert not tool_result_events[0].is_error
 
 
 # ---------------------------------------------------------------------------
@@ -248,10 +267,10 @@ async def test_async_agent_run_result(tmp_path):
 async def test_async_agent_run_stream(tmp_path):
     adapter = FakeAsyncAdapter([FakeAsyncAdapter.text("streamed")])
     agent = AsyncAgent(adapter=adapter, system="sys", run_dir=tmp_path)
-    chunks: list[str] = []
-    async for chunk in agent.run_stream("q"):
-        chunks.append(chunk)
-    assert "".join(chunks) == "streamed"
+    events: list[StreamEvent] = []
+    async for event in agent.run_stream("q"):
+        events.append(event)
+    assert _text_from_events(events) == "streamed"
 
 
 # ---------------------------------------------------------------------------
@@ -279,7 +298,7 @@ async def test_async_agent_session_ask_stream(tmp_path):
     adapter = FakeAsyncAdapter([FakeAsyncAdapter.text("stream turn")])
     agent = AsyncAgent(adapter=adapter, system="sys", run_dir=tmp_path)
     session = agent.async_session()
-    chunks: list[str] = []
-    async for chunk in session.ask_stream("hi"):
-        chunks.append(chunk)
-    assert "".join(chunks) == "stream turn"
+    events: list[StreamEvent] = []
+    async for event in session.ask_stream("hi"):
+        events.append(event)
+    assert _text_from_events(events) == "stream turn"

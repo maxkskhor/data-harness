@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING
 
 import anthropic
 
@@ -18,6 +19,9 @@ from data_harness.types import (
     ToolSpec,
     ToolUseBlock,
 )
+
+if TYPE_CHECKING:
+    from data_harness.streaming import StreamEvent
 
 _STOP_REASON_MAP = {
     "end_turn": StopReason.END_TURN,
@@ -156,14 +160,24 @@ class AsyncAnthropicAdapter(_AnthropicHelpers, AsyncProviderAdapter):
         )
         return self._normalize_response(resp)
 
-    async def stream(
+    async def stream_events(
         self,
         system: str,
         messages: list[Message],
         tools: list[ToolSpec],
-        *,
-        on_chunk: Callable[[str], Awaitable[None]],
-    ) -> NormalizedResponse:
+    ) -> AsyncGenerator[StreamEvent, None]:
+        """Yield StreamEvents by mapping raw Anthropic SSE events."""
+        from data_harness.streaming import (
+            ContentBlockDeltaEvent,
+            ContentBlockStartEvent,
+            ContentBlockStopEvent,
+            InputJSONDelta,
+            MessageDeltaEvent,
+            MessageStartEvent,
+            MessageStopEvent,
+            TextDelta,
+        )
+
         api_system = self._build_system(system)
         api_messages = self._build_messages(messages)
         api_tools = self._build_tools(tools)
@@ -175,8 +189,60 @@ class AsyncAnthropicAdapter(_AnthropicHelpers, AsyncProviderAdapter):
             messages=api_messages,
             tools=api_tools or anthropic.NOT_GIVEN,
         ) as stream:
-            async for text in stream.text_stream:
-                await on_chunk(text)
-            final = await stream.get_final_message()
+            async for event in stream:
+                if event.type == "message_start":
+                    yield MessageStartEvent()
 
-        return self._normalize_response(final)
+                elif event.type == "content_block_start":
+                    block = event.content_block
+                    if block.type == "text":
+                        yield ContentBlockStartEvent(
+                            index=event.index,
+                            content_block=TextBlock(text=""),
+                        )
+                    elif block.type == "tool_use":
+                        yield ContentBlockStartEvent(
+                            index=event.index,
+                            content_block=ToolUseBlock(
+                                tool_use_id=block.id,
+                                tool_name=block.name,
+                                tool_input={},
+                            ),
+                        )
+
+                elif event.type == "content_block_delta":
+                    delta = event.delta
+                    if delta.type == "text_delta":
+                        yield ContentBlockDeltaEvent(
+                            index=event.index,
+                            delta=TextDelta(text=delta.text),
+                        )
+                    elif delta.type == "input_json_delta":
+                        yield ContentBlockDeltaEvent(
+                            index=event.index,
+                            delta=InputJSONDelta(partial_json=delta.partial_json),
+                        )
+
+                elif event.type == "content_block_stop":
+                    yield ContentBlockStopEvent(index=event.index)
+
+                elif event.type == "message_delta":
+                    stop_reason = _STOP_REASON_MAP.get(
+                        event.delta.stop_reason, StopReason.END_TURN
+                    )
+                    yield MessageDeltaEvent(
+                        stop_reason=stop_reason,
+                        input_tokens=event.usage.input_tokens,
+                        output_tokens=event.usage.output_tokens,
+                        cache_read_tokens=getattr(
+                            event.usage, "cache_read_input_tokens", 0
+                        )
+                        or 0,
+                        cache_write_tokens=getattr(
+                            event.usage, "cache_creation_input_tokens", 0
+                        )
+                        or 0,
+                    )
+
+                elif event.type == "message_stop":
+                    yield MessageStopEvent()
