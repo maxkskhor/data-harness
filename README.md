@@ -167,6 +167,13 @@ The Python interpreter uses AST checks and restricted globals to reduce accident
 
 ## Changelog
 
+### 0.4.0
+- `python_interpreter`: runtime errors now raise `PythonInterpreterError` so the harness marks `ToolResultBlock.is_error=True`
+- `python_interpreter`: final-expression capture — bare expressions return their repr automatically (notebook-like behaviour)
+- `python_interpreter`: `locals()` usage detected at AST level and returns a targeted error with `list_variables` guidance
+- `python_interpreter`: improved empty-output message directs the model to `print(...)` or `save(name, value)`
+- `python_interpreter`: strengthened tool description with explicit guidance on handle usage, stdout capture, fresh locals, and `save()`
+
 ### 0.3.0
 - Streaming protocol: SSE event types, `stream_events()`, `AsyncAgent.run_stream()`
 
