@@ -1012,7 +1012,7 @@ handles through the Python interpreter.</p>
 
 
 
-        <p>In-process object store that exposes large values as named handles with compact snapshots.</p>
+        <p>In-process store that exposes large values as named handles with snapshots.</p>
 <p>Large objects (DataFrames, arrays, query results) are stored by name.
 The model only ever sees a compact snapshot — shape, columns, a few sample
 rows — and operates on the data by writing Python against the handle name.

@@ -2064,7 +2064,7 @@ fresh cache. State crosses the boundary only through explicit
 
     <div class="doc doc-contents ">
 
-        <p>Return a string showing the equivalent explicit <code>Harness</code> wiring for this agent.</p>
+        <p>Return a string showing the equivalent explicit <code>Harness</code> wiring.</p>
 
 
             <details class="mkdocstrings-source">
@@ -2076,7 +2076,7 @@ fresh cache. State crosses the boundary only through explicit
 <span class="normal"><a href="#__codelineno-0-287">287</a></span>
 <span class="normal"><a href="#__codelineno-0-288">288</a></span>
 <span class="normal"><a href="#__codelineno-0-289">289</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="k">def</span><span class="w"> </span><span class="nf">explain</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a string showing the equivalent explicit `Harness` wiring for this agent.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a string showing the equivalent explicit `Harness` wiring.&quot;&quot;&quot;</span>
 <a id="__codelineno-0-285" name="__codelineno-0-285"></a>    <span class="k">return</span> <span class="n">_EXPLAIN_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
 <a id="__codelineno-0-286" name="__codelineno-0-286"></a>        <span class="n">system</span><span class="o">=</span><span class="n">_truncate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_system</span><span class="p">),</span>
 <a id="__codelineno-0-287" name="__codelineno-0-287"></a>        <span class="n">max_turns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_turns</span><span class="p">,</span>
