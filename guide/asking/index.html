@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://maxkskhor.github.io/data-harness/guide/design/">
+        <link rel="canonical" href="https://maxkskhor.github.io/data-harness/guide/asking/">
       
       
-        <link rel="prev" href="../async/">
+        <link rel="prev" href="../quickstart/">
       
       
-        <link rel="next" href="../../api/agent/">
+        <link rel="next" href="../sessions/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Architecture - data-harness</title>
+        <title>Asking questions - data-harness</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#architecture" class="md-skip">
+        <a href="#asking-questions-about-data" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Architecture
+              Asking questions
             
           </span>
         </div>
@@ -443,10 +443,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../asking/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asking questions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -462,6 +489,103 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#many-providers-through-one-key-openrouter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Many providers through one key (OpenRouter)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structured-answers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structured answers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#charts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Charts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-turn-chat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-turn chat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-semantic-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The semantic layer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production controls
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -555,37 +679,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../design/" class="md-nav__link">
         
   
   
@@ -601,114 +698,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#no-bash" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        No bash
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#handlesnapshot-pattern" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Handle/snapshot pattern
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#prefix-stable-system-prompt" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prefix-stable system prompt
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#progressive-connector-disclosure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Progressive connector disclosure
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#suffix-only-reminders" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Suffix-only reminders
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#subagent-isolation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Subagent isolation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#jsonl-turn-logging" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        JSONL turn logging
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-invariants" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key invariants
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -996,108 +985,107 @@
   
 
 
-<h1 id="architecture">Architecture</h1>
-<p>This page explains the core design decisions in <code>data-harness</code> and why they
-exist. Understanding them makes the API surface predictable.</p>
-<hr />
-<h2 id="no-bash">No bash</h2>
-<p>Giving an agent shell access is the path of least resistance, but it creates
-real problems in data workflows:</p>
-<ul>
-<li><strong>Unpredictable side effects</strong> — shell commands can touch files, processes,
-  and network resources in ways that are hard to audit.</li>
-<li><strong>Security exposure</strong> — prompt injection or a confused model can run
-  destructive commands.</li>
-<li><strong>Reproducibility</strong> — shell state is implicit and hard to reconstruct from
-  logs.</li>
-</ul>
-<p><code>data-harness</code> constrains the model to a Python interpreter only. Python is
-expressive enough for all data work, and the interpreter can be given explicit
-globals and have dangerous operations blocked.</p>
-<hr />
-<h2 id="handlesnapshot-pattern">Handle/snapshot pattern</h2>
-<p>Large objects (DataFrames, arrays, query results) never appear in message
-history. Instead:</p>
-<ol>
-<li>The tool result calls <code>SessionCache.put(name, value)</code>.</li>
-<li><code>format_tool_output</code> returns a compact snapshot — shape, columns, a few
-   sample rows — as the tool result string.</li>
-<li>The model writes Python against the handle name (<code>sales_df</code>, <code>result_2</code>,
-   etc.) to operate on the data.</li>
-</ol>
-<p>This keeps context lean without hiding data from the model.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Tool result →  {&quot;type&quot;: &quot;dataframe&quot;, &quot;shape&quot;: [1200, 5],
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                &quot;columns&quot;: [&quot;date&quot;, &quot;revenue&quot;, ...], &quot;sample&quot;: [...]}
+<h1 id="asking-questions-about-data">Asking questions about data</h1>
+<p>The fastest way to use <code>data-harness</code> is <code>ask</code>. It resolves a provider from your
+environment, loads your data into a <code>SessionCache</code> as handles, runs the agent,
+and returns a <a href="../../api/agent/"><code>RunResult</code></a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">ask</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>Model code  →  result = sales_df[sales_df.revenue &gt; 1000].groupby(&quot;category&quot;).sum()
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>               save(&quot;top_categories&quot;, result)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;sales.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">result</span> <span class="o">=</span> <span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;What was total revenue, and which month was highest?&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>    <span class="c1"># the written answer</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>   <span class="c1"># the structured value the model computed via answer()</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">result</span><span class="o">.</span><span class="n">charts</span>         <span class="c1"># any rendered charts</span>
 </code></pre></div>
-<hr />
-<h2 id="prefix-stable-system-prompt">Prefix-stable system prompt</h2>
-<p>The system prompt is never mutated between turns. Only the conversation suffix
-changes. This is a KV-cache discipline: a stable prefix means the provider
-can cache it, reducing latency and cost on long runs with many turns.</p>
-<p>Reminders, nags, and dynamic state updates are always appended to the suffix.
-The <code>Harness</code> enforces this invariant — it has no API to modify the system
-prompt after construction.</p>
-<hr />
-<h2 id="progressive-connector-disclosure">Progressive connector disclosure</h2>
-<p>Connector tools start hidden (<code>visible=False</code>). The model must call
-<code>load_connectors(connector_name="...")</code> before the tools for that connector
-appear in its tool list.</p>
-<p>A shorter tool list means the model makes better routing decisions. Loading
-all 40 connectors upfront would overwhelm the tool selection at each turn.
-The model loads only what it needs for the current task.</p>
-<hr />
-<h2 id="suffix-only-reminders">Suffix-only reminders</h2>
-<p>The <code>Planner</code> escalates reminders when the model has not made progress for
-several turns. These reminders are always appended to the conversation suffix
-as <code>TextBlock</code> items. They are never inserted into the prefix.</p>
-<p>This preserves the stable-prefix invariant and avoids invalidating the
-provider's KV cache on every reminder injection.</p>
-<hr />
-<h2 id="subagent-isolation">Subagent isolation</h2>
-<p>Spawned subagents get:</p>
+<p><code>ask</code> accepts a DataFrame, a <code>{name: value}</code> mapping, a file path, or a list of
+paths. Provider resolution prefers <code>ANTHROPIC_API_KEY</code>, then <code>OPENAI_API_KEY</code>,
+then <code>OPENROUTER_API_KEY</code>; pass <code>model=</code> to choose explicitly (the name routes to
+the matching provider) or <code>adapter=</code> to supply one directly.</p>
+<h3 id="many-providers-through-one-key-openrouter">Many providers through one key (OpenRouter)</h3>
+<p><a href="https://openrouter.ai">OpenRouter</a> exposes OpenAI, Anthropic, Google, Meta and
+more behind one OpenAI-compatible endpoint — ideal for cross-model testing. Set
+<code>OPENROUTER_API_KEY</code>; any <code>provider/model</code> id (containing <code>/</code>) auto-routes there.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;summarise the data&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&quot;anthropic/claude-3.5-sonnet&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;summarise the data&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&quot;google/gemini-2.0-flash-001&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;summarise the data&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&quot;deepseek/deepseek-chat&quot;</span><span class="p">)</span>  <span class="c1"># cheap</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># or construct it directly:</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness.providers.openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenRouterAdapter</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">,</span> <span class="n">adapter</span><span class="o">=</span><span class="n">OpenRouterAdapter</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">))</span>
+</code></pre></div>
+<p>DeepSeek's own (very cheap) API works directly too — set <code>DEEPSEEK_API_KEY</code> and
+use a bare <code>model="deepseek-chat"</code> (or <code>DeepSeekAdapter</code>). A <code>deepseek/...</code> id
+with a slash routes via OpenRouter instead.</p>
+<h2 id="structured-answers">Structured answers</h2>
+<p>The interpreter exposes an <code>answer(value)</code> helper. When the model calls it, the
+value is returned as <code>RunResult.value</code> — a number, a DataFrame, anything. This
+is the trustworthy, <em>executed</em> result, as opposed to free-form prose which a
+model can occasionally get wrong. Prefer <code>.value</code> for anything programmatic.</p>
+<h2 id="charts">Charts</h2>
+<p>matplotlib is available inside the interpreter. The model builds a figure and it
+is captured automatically as a <code>ChartArtifact</code>. The image bytes are written to
+disk and <strong>never</strong> enter the message history or the JSONL log — only a path
+does, exactly like a cache handle. In Jupyter, <code>RunResult</code> and <code>ChartArtifact</code>
+render inline.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;Plot revenue by region as a bar chart.&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">result</span><span class="o">.</span><span class="n">charts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>   <span class="c1"># renders inline in a notebook</span>
+</code></pre></div>
+<h2 id="multi-turn-chat">Multi-turn chat</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chat</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">chat</span> <span class="o">=</span> <span class="n">Chat</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">chat</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;What was total revenue?&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">chat</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;Which month was highest?&quot;</span><span class="p">)</span>   <span class="c1"># remembers context</span>
+</code></pre></div>
+<p><code>SmartFrame(df).chat("...")</code> is a pandasai-style wrapper over the same machinery.
+There is also an opt-in pandas accessor — <code>import data_harness.pandas</code> then
+<code>df.chat("...")</code> — and a <code>%%ask</code> notebook magic (<code>%load_ext data_harness.notebook</code>).</p>
+<h2 id="sql">SQL</h2>
+<p>With DuckDB installed, <code>ask</code> exposes a <code>sql_query</code> tool that runs SQL directly
+against your DataFrame handles; results become new handles. Point it at a real
+database with a SQLAlchemy URL:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;Use SQL to compute total revenue per region.&quot;</span><span class="p">)</span>   <span class="c1"># DuckDB, in-process</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="o">.</span><span class="n">from_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">enable_sql</span><span class="p">(</span><span class="n">engine_url</span><span class="o">=</span><span class="s2">&quot;postgresql://...&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;Top 5 customers by spend last quarter?&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="the-semantic-layer">The semantic layer</h2>
+<p>Attach column descriptions, units, or business definitions so the model reasons
+correctly. They are folded into the snapshot the model sees.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">ask</span><span class="p">(</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">df</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">&quot;What is churn?&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">semantics</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;df&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;columns&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;churn&quot;</span><span class="p">:</span> <span class="s2">&quot;1 if the customer cancelled in-month&quot;</span><span class="p">}}},</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">)</span>
+</code></pre></div>
+<h2 id="production-controls">Production controls</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">ExecutionCache</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Replay repeat questions with no model call (zero turns, zero tokens):</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="o">.</span><span class="n">from_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">enable_cache</span><span class="p">(</span><span class="n">ExecutionCache</span><span class="p">(</span><span class="s2">&quot;cache.json&quot;</span><span class="p">))</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># Run interpreter code in an isolated process (no network, CPU/time limits):</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="n">sandboxed</span> <span class="o">=</span> <span class="n">Agent</span><span class="o">.</span><span class="n">from_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">execution</span><span class="o">=</span><span class="s2">&quot;subprocess&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Approve or block code before it runs:</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">gated</span> <span class="o">=</span> <span class="n">Agent</span><span class="o">.</span><span class="n">from_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">on_code</span><span class="o">=</span><span class="k">lambda</span> <span class="n">code</span><span class="p">:</span> <span class="p">(</span><span class="nb">print</span><span class="p">(</span><span class="n">code</span><span class="p">),</span> <span class="kc">True</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="c1"># Dry run — return the code without executing it:</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="n">preview</span> <span class="o">=</span> <span class="n">Agent</span><span class="o">.</span><span class="n">from_dataframe</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">code_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
 <ul>
-<li>A fresh <code>AsyncProviderAdapter</code> (or <code>ProviderAdapter</code>)</li>
-<li>A fresh message history (empty)</li>
-<li>A fresh <code>SessionCache</code></li>
+<li><strong>Code-replay cache</strong> keys off the question and the data <em>schema</em> (not the
+  values), so a repeat question replays the recorded code against fresh data —
+  correct and free.</li>
+<li><strong>Subprocess sandbox</strong> isolates execution in a child process with networking
+  disabled and resource limits; handles cross by value and results merge back.
+  It shares the exact AST/security core with the in-process interpreter. It is
+  not a container/VM sandbox — that remains future work.</li>
+<li><strong>Approval gate</strong> lets a human (or policy) see every code block before it runs.</li>
 </ul>
-<p>Parent state crosses the boundary only through explicit <code>input_handles</code>.
-The parent cache is not inherited. This makes subagent behaviour reproducible
-and debuggable independently of the parent run.</p>
-<p>Subagents cannot spawn further subagents — <code>SubagentRecursionError</code> is raised
-if they try.</p>
-<hr />
-<h2 id="jsonl-turn-logging">JSONL turn logging</h2>
-<p>Every turn is logged to a <code>.jsonl</code> file from the start of the run, not bolted
-on later. Each line is a complete turn record:</p>
-<ul>
-<li>The system prompt and message history</li>
-<li>The provider response</li>
-<li>Tool results</li>
-<li>Latency and token counts</li>
-<li>Cache storage metadata</li>
-</ul>
-<p>The log is designed to reconstruct a run without dumping raw dataset payloads.
-Cache handles are logged as snapshots, not raw values.</p>
-<hr />
-<h2 id="key-invariants">Key invariants</h2>
-<p>These are design constraints, not incidental behaviour:</p>
-<ul>
-<li>The system prompt is byte-identical across turns.</li>
-<li>Adapters never mutate harness-owned state.</li>
-<li>Dynamic reminders are suffix-only.</li>
-<li>Tool-use messages are always followed by matching tool-result messages before
-  the next assistant call.</li>
-<li>Raw large payloads stay in <code>SessionCache</code>; messages and logs receive
-  snapshots only.</li>
-<li>Cache handles are valid Python identifiers.</li>
-<li><code>python_interpreter</code> uses fresh locals per call.</li>
-<li>Subagents do not inherit parent cache implicitly.</li>
-<li>JSONL logs support run reconstruction without raw payload leakage.</li>
-</ul>
-<p>Tests in <code>tests/</code> assert these invariants directly.</p>
 
 
 
@@ -1133,7 +1121,7 @@ Cache handles are logged as snapshots, not raw values.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../async/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Async &amp; Streaming">
+          <a href="../quickstart/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Quickstart">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -1143,20 +1131,20 @@ Cache handles are logged as snapshots, not raw values.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Async & Streaming
+                Quickstart
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../api/agent/" class="md-footer__link md-footer__link--next" aria-label="Next: Agent">
+          <a href="../sessions/" class="md-footer__link md-footer__link--next" aria-label="Next: Sessions">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Agent
+                Sessions
               </div>
             </div>
             <div class="md-footer__button md-icon">
