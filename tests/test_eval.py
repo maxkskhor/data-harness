@@ -166,6 +166,23 @@ def test_report_aggregation():
     assert len(report.failures()) == 1
 
 
+def test_report_cost():
+    from data_harness.eval.report import CaseResult
+
+    rows = [
+        CaseResult("c1", "agg", "m", True, "", 1, 1000, 100, 0.0, "success"),
+        CaseResult("c2", "agg", "m", True, "", 1, 2000, 200, 0.0, "success"),
+    ]
+    report = EvalReport(rows)
+    prices = {"m": (0.2, 0.8)}  # ($/Mtok prompt, $/Mtok completion)
+    # (3000 * 0.2 + 300 * 0.8) / 1e6 = 840 / 1e6
+    assert abs(report.total_cost(prices) - 0.00084) < 1e-12
+    lb = report.leaderboard(prices)
+    assert "cost ($)" in lb and "0.0008" in lb
+    # no prices -> no cost column
+    assert "cost ($)" not in report.leaderboard()
+
+
 # --- suites ----------------------------------------------------------------
 def test_bespoke_suite_well_formed():
     cases = bespoke_suite()
@@ -173,6 +190,14 @@ def test_bespoke_suite_well_formed():
     ids = [c.id for c in cases]
     assert len(ids) == len(set(ids))  # unique
     assert {"aggregation", "chart", "adversarial"} <= {c.category for c in cases}
+
+
+def test_evalcase_identity_equality_with_dataframes():
+    # field-wise dataclass eq would raise on DataFrame truthiness; identity is safe
+    a = EvalCase("c", "q", pd.DataFrame({"x": [1]}), numeric(1))
+    b = EvalCase("c", "q", pd.DataFrame({"x": [1]}), numeric(1))
+    assert a != b  # identity, not field-wise
+    assert a in [a]  # membership uses identity, does not raise
 
 
 def test_wtq_row_to_case():

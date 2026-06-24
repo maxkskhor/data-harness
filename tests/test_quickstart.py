@@ -226,3 +226,78 @@ def test_notebook_magic_class_builds():
 
     cls = _load_magics_class()
     assert hasattr(cls, "ask")
+
+
+# --- answer-reliability finalize -------------------------------------------
+def test_ask_finalizes_when_answer_missing(tmp_path):
+    # run 1: prose only, no answer() -> value None; finalize: tool call records it
+    adapter = FakeAdapter(
+        [
+            FakeAdapter.text("The total is 6."),  # initial run, no answer()
+            FakeAdapter.tool_use("f", "python_interpreter", {"code": "answer(6)"}),
+            FakeAdapter.text("Recorded."),
+        ]
+    )
+    res = ask(_frame(), "total revenue", adapter=adapter, run_dir=str(tmp_path))
+    assert res.value == 6  # recovered by the finalize turn
+    assert res.turns == 3  # 1 initial + 2 finalize
+
+
+def test_ask_no_finalize_when_answer_present(tmp_path):
+    # exactly two responses: a third would only be popped if finalize fired
+    adapter = FakeAdapter(
+        [
+            FakeAdapter.tool_use("t", "python_interpreter", {"code": "answer(5)"}),
+            FakeAdapter.text("done"),
+        ]
+    )
+    res = ask(_frame(), "q", adapter=adapter, run_dir=str(tmp_path))
+    assert res.value == 5
+    assert res.turns == 2  # no finalize turn
+
+
+def test_require_answer_false_skips_finalize(tmp_path):
+    adapter = FakeAdapter([FakeAdapter.text("no structured answer here")])
+    res = ask(
+        _frame(), "q", adapter=adapter, require_answer=False, run_dir=str(tmp_path)
+    )
+    assert res.value is None
+    assert res.turns == 1
+
+
+def test_chat_finalizes(tmp_path):
+    adapter = FakeAdapter(
+        [
+            FakeAdapter.text("It is 6."),
+            FakeAdapter.tool_use("f", "python_interpreter", {"code": "answer(6)"}),
+            FakeAdapter.text("Recorded."),
+        ]
+    )
+    chat = Chat(_frame(), adapter=adapter, require_answer=True, run_dir=str(tmp_path))
+    res = chat.ask("total revenue")
+    assert res.value == 6
+
+
+def test_finalize_skipped_when_chart_produced(tmp_path):
+    # a chart is the deliverable -> no finalize turn (only 2 responses scripted)
+    code = (
+        "import matplotlib.pyplot as plt\n"
+        "fig, ax = plt.subplots()\n"
+        "ax.bar(df['month'], df['revenue'])\n"
+    )
+    adapter = _answer_adapter(code, "Here is the chart.")
+    res = ask(_frame(), "plot revenue", adapter=adapter, run_dir=str(tmp_path))
+    assert res.charts and res.value is None
+    assert res.turns == 2  # no finalize
+
+
+def test_finalize_skipped_on_refusal(tmp_path):
+    # a refusal must not be turned into a fabricated value (only 1 response)
+    adapter = FakeAdapter(
+        [FakeAdapter.text("I cannot answer: there is no churn column in the data.")]
+    )
+    res = ask(
+        _frame(), "what is the churn rate?", adapter=adapter, run_dir=str(tmp_path)
+    )
+    assert res.value is None
+    assert res.turns == 1  # no finalize

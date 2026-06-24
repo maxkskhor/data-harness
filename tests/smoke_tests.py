@@ -540,7 +540,7 @@ def test_live_replay_cache_skips_model(tmp_path):
     [
         "openai/gpt-4o-mini",
         "anthropic/claude-haiku-4.5",
-        "deepseek/deepseek-chat",
+        "deepseek/deepseek-v4-flash",
     ],
 )
 def test_live_openrouter_cross_provider(tmp_path, model):

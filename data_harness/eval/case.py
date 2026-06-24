@@ -13,9 +13,12 @@ if TYPE_CHECKING:
 Grader = Callable[["RunResult", "EvalCase"], "Grade"]
 
 
-@dataclass
+@dataclass(eq=False)
 class EvalCase:
     """One evaluation task.
+
+    Uses identity equality (``eq=False``): cases hold DataFrames, and dataclass
+    field-wise comparison would raise on DataFrame truthiness.
 
     Attributes:
         id: Unique, stable identifier.

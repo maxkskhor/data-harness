@@ -48,6 +48,15 @@ value is returned as `RunResult.value` — a number, a DataFrame, anything. This
 is the trustworthy, *executed* result, as opposed to free-form prose which a
 model can occasionally get wrong. Prefer `.value` for anything programmatic.
 
+Models don't always remember to call `answer()`. By default `ask` **finalises**:
+if a run succeeds without a recorded answer, it runs one short follow-up turn
+asking the model to record it, so `.value` is populated more reliably. This is
+guarded — it never fires when a chart was produced (the chart is the answer) or
+the response reads as a refusal (so an unanswerable question isn't coerced into a
+fabricated value). Disable with `ask(..., require_answer=False)`. `Chat` is
+conversational, so it defaults to `require_answer=False`; pass `require_answer=True`
+to opt in.
+
 ## Charts
 
 matplotlib is available inside the interpreter. The model builds a figure and it

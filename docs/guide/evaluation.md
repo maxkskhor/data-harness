@@ -65,6 +65,20 @@ print(report.by_category())     # accuracy per category × model
 `models` may also be `(label, adapter)` tuples for custom clients or offline
 tests with `FakeAdapter`.
 
+### Cost per model
+
+Pass a `{model: (prompt_$/Mtok, completion_$/Mtok)}` price map to add a USD cost
+column. `fetch_openrouter_prices` pulls live prices for you:
+
+```python
+from data_harness.eval import fetch_openrouter_prices
+
+models = ["deepseek/deepseek-v4-flash", "qwen/qwen3.5-flash-02-23"]
+report = evaluate_matrix(bespoke_suite(), models)
+prices = fetch_openrouter_prices(models)
+print(report.to_markdown(prices))   # leaderboard now has a "cost ($)" column
+```
+
 ## Public benchmark
 
 WikiTableQuestions (table QA) loads via the `[eval]` extra:
