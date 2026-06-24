@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "data-harness"
-version = "0.5.0"
+version = "0.6.0"
 description = "Data agent with Python-native tools (no bash)"
 readme = "README.md"
 license = { text = "MIT" }
@@ -42,12 +42,16 @@ sql = [
 notebook = [
     "ipython",
 ]
+eval = [
+    "datasets",
+]
 all = [
     "openai",
     "matplotlib",
     "duckdb",
     "sqlalchemy",
     "ipython",
+    "datasets",
 ]
 
 [dependency-groups]

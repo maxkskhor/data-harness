@@ -1,0 +1,193 @@
+"""Evaluation harness: graders, runner, report, suites (all offline)."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from data_harness.artifacts import ChartArtifact
+from data_harness.eval import (
+    EvalCase,
+    EvalReport,
+    all_of,
+    bespoke_suite,
+    chart_produced,
+    contains,
+    dataframe_equals,
+    evaluate,
+    evaluate_matrix,
+    exact,
+    extract_numbers,
+    numeric,
+    refuses,
+    wtq_row_to_case,
+)
+from data_harness.result import RunResult, Usage
+from data_harness.testing import FakeAdapter
+
+
+def _result(text="", value=None, charts=None) -> RunResult:
+    return RunResult(
+        text=text,
+        status="success",
+        turns=1,
+        run_file=None,
+        stop_reason=None,
+        usage=Usage(),
+        value=value,
+        charts=charts or [],
+    )
+
+
+_CASE = EvalCase("c", "q", pd.DataFrame({"a": [1]}), numeric(1))
+
+
+# --- graders ---------------------------------------------------------------
+def test_numeric_from_value():
+    assert numeric(965)(_result(value=965), _CASE).passed
+
+
+def test_numeric_from_text_with_commas():
+    assert numeric(1234.5)(_result(text="The total is 1,234.5 dollars."), _CASE).passed
+
+
+def test_numeric_tolerance_and_fail():
+    assert numeric(30.0, tol=0.6)(_result(value=30.05), _CASE).passed
+    assert not numeric(30.0, tol=0.01)(_result(value=40), _CASE).passed
+
+
+def test_numeric_ignores_bool():
+    # bool is not accepted as a numeric value match
+    assert not numeric(1)(_result(value=True), _CASE).passed
+
+
+def test_extract_numbers():
+    assert extract_numbers("a 3, then 4.5 and 1,000") == [3.0, 4.5, 1000.0]
+
+
+def test_contains_value_and_text():
+    assert contains("APAC")(_result(text="Top region is APAC."), _CASE).passed
+    assert contains(["Jun", "June"])(_result(value="June"), _CASE).passed
+    assert not contains("EU")(_result(text="region NA"), _CASE).passed
+
+
+def test_exact():
+    assert exact("yes")(_result(value="Yes"), _CASE).passed
+    assert not exact("yes")(_result(value="no"), _CASE).passed
+
+
+def test_chart_produced():
+    art = ChartArtifact(path="/tmp/x.png")
+    assert chart_produced()(_result(charts=[art]), _CASE).passed
+    assert not chart_produced()(_result(), _CASE).passed
+
+
+def test_refuses():
+    assert refuses()(_result(text="I cannot answer; no such column."), _CASE).passed
+    assert not refuses()(_result(text="The answer is 42."), _CASE).passed
+
+
+def test_all_of():
+    g = all_of(contains("Eve"), contains("Ann"))
+    assert g(_result(text="Eve and Ann"), _CASE).passed
+    assert not g(_result(text="Eve only"), _CASE).passed
+
+
+def test_dataframe_equals():
+    df = pd.DataFrame({"region": ["EU"], "total": [290]})
+    assert dataframe_equals(df)(_result(value=df.copy()), _CASE).passed
+    assert not dataframe_equals(df)(_result(value=42), _CASE).passed
+
+
+# --- runner + report -------------------------------------------------------
+def _answer_adapter(*pairs) -> FakeAdapter:
+    """pairs: (code, final_text) per case, in order."""
+    responses = []
+    for i, (code, final) in enumerate(pairs):
+        responses.append(
+            FakeAdapter.tool_use(f"t{i}", "python_interpreter", {"code": code})
+        )
+        responses.append(FakeAdapter.text(final))
+    return FakeAdapter(responses)
+
+
+def test_evaluate_scores_cases(tmp_path):
+    cases = [
+        EvalCase("good", "sum", pd.DataFrame({"a": [1, 2, 3]}), numeric(6)),
+        EvalCase("bad", "sum", pd.DataFrame({"a": [1, 2, 3]}), numeric(999)),
+    ]
+    adapter = _answer_adapter(("answer(6)", "six"), ("answer(6)", "six"))
+    report = evaluate(cases, adapter=adapter, model_label="fake", run_dir=str(tmp_path))
+    assert report.accuracy() == 0.5
+    assert {r.case_id: r.passed for r in report.results} == {"good": True, "bad": False}
+    assert report.results[0].model == "fake"
+    assert report.results[0].turns == 2
+
+
+def test_evaluate_records_run_errors(tmp_path):
+    # adapter with no scripted responses -> ask() raises -> recorded as error
+    cases = [EvalCase("x", "q", pd.DataFrame({"a": [1]}), numeric(1))]
+    report = evaluate(cases, adapter=FakeAdapter([]), run_dir=str(tmp_path))
+    assert report.accuracy() == 0.0
+    assert report.results[0].status == "error"
+
+
+def test_evaluate_matrix(tmp_path):
+    cases = [EvalCase("good", "sum", pd.DataFrame({"a": [1, 2, 3]}), numeric(6))]
+    report = evaluate_matrix(
+        cases,
+        [
+            ("m1", _answer_adapter(("answer(6)", "six"))),
+            ("m2", _answer_adapter(("answer(7)", "seven"))),
+        ],
+        run_dir=str(tmp_path),
+    )
+    assert set(report.models) == {"m1", "m2"}
+    by_model = {r.model: r.passed for r in report.results}
+    assert by_model == {"m1": True, "m2": False}
+    assert "m1" in report.leaderboard()
+
+
+def test_report_aggregation():
+    rows = [
+        ("m", "agg", True),
+        ("m", "agg", False),
+        ("m", "chart", True),
+    ]
+    from data_harness.eval.report import CaseResult
+
+    report = EvalReport(
+        [
+            CaseResult(f"c{i}", cat, model, passed, "", 1, 0, 0, 0.0, "success")
+            for i, (model, cat, passed) in enumerate(rows)
+        ]
+    )
+    assert abs(report.accuracy() - 2 / 3) < 1e-9
+    assert "category" in report.by_category()
+    assert len(report.failures()) == 1
+
+
+# --- suites ----------------------------------------------------------------
+def test_bespoke_suite_well_formed():
+    cases = bespoke_suite()
+    assert len(cases) >= 12
+    ids = [c.id for c in cases]
+    assert len(ids) == len(set(ids))  # unique
+    assert {"aggregation", "chart", "adversarial"} <= {c.category for c in cases}
+
+
+def test_wtq_row_to_case():
+    row = {
+        "question": "Which country has the most golds?",
+        "answers": ["France"],
+        "table": {
+            "header": ["country", "golds"],
+            "rows": [["France", "10"], ["Spain", "3"]],
+        },
+    }
+    case = wtq_row_to_case(7, row)
+    assert case.id == "wtq-7"
+    assert case.category == "wtq"
+    assert list(case.data.columns) == ["country", "golds"]
+    # grader matches the accepted answer in prose
+    assert case.grader(_result(text="The answer is France."), case).passed
+    assert not case.grader(_result(text="Spain"), case).passed

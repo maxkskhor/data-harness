@@ -67,6 +67,7 @@ nav:
     - Sessions: guide/sessions.md
     - Connectors: guide/connectors.md
     - Async & Streaming: guide/async.md
+    - Evaluation: guide/evaluation.md
     - Architecture: guide/design.md
   - API Reference:
     - Agent: api/agent.md
