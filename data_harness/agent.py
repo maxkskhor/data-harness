@@ -18,7 +18,7 @@ from typing import Any
 from data_harness.cache import SessionCache
 from data_harness.loop import AsyncHarness, Harness
 from data_harness.providers.base import AsyncProviderAdapter, ProviderAdapter
-from data_harness.result import RunResult
+from data_harness.result import CacheStorageInfo, RunResult, Usage
 from data_harness.schema import infer_input_schema
 from data_harness.streaming import StreamEvent
 from data_harness.tools.connectors import ConnectorRegistry
@@ -95,12 +95,28 @@ def _build_tools_for(
     cache: SessionCache,
 ) -> list[ToolSpec]:
     """Shared tool-building logic for Agent and AsyncAgent."""
+    run_dir = str(agent._run_dir) if agent._run_dir is not None else "./runs"
+    artifacts_dir = str(Path(run_dir) / "charts")
+    if getattr(agent, "_execution", "inprocess") == "subprocess":
+        from data_harness.tools.sandbox import SubprocessPythonInterpreter
+
+        interpreter_spec = SubprocessPythonInterpreter.make_tool_spec(
+            cache, artifacts_dir=artifacts_dir, **(agent._sandbox_options or {})
+        )
+    else:
+        interpreter_spec = PythonInterpreter.make_tool_spec(
+            cache, artifacts_dir=artifacts_dir
+        )
     tools = [
-        PythonInterpreter.make_tool_spec(cache),
+        interpreter_spec,
         make_list_variables_spec(cache),
     ]
     if planner is not None:
         tools.extend(planner.make_tool_specs())
+    if getattr(agent, "_sql_enabled", False):
+        from data_harness.tools.sql import make_sql_query_spec
+
+        tools.append(make_sql_query_spec(cache, engine_url=agent._sql_engine_url))
     if agent._connectors:
         registry = ConnectorRegistry()
         for connector_name, connector in agent._connectors.items():
@@ -160,6 +176,10 @@ class Agent:
         max_turns: int = 25,
         cache: SessionCache | None = None,
         run_dir: str | Path | None = None,
+        execution: str = "inprocess",
+        sandbox_options: dict[str, Any] | None = None,
+        on_code: Callable[[str], Any] | None = None,
+        code_only: bool = False,
     ) -> None:
         self._adapter = adapter
         self._system = system
@@ -172,6 +192,48 @@ class Agent:
         self._connector_tools: list[_ConnectorToolDefinition] = []
         self._planner_enabled = False
         self._subagent_factory: Callable[[], ProviderAdapter] | None = None
+        self._sql_enabled = False
+        self._sql_engine_url: str | None = None
+        self._execution = execution
+        self._sandbox_options = sandbox_options
+        self._on_code = on_code
+        self._code_only = code_only
+        self._exec_cache: Any = None
+
+    @classmethod
+    def from_dataframe(
+        cls,
+        data: Any,
+        *,
+        adapter: ProviderAdapter | None = None,
+        model: str | None = None,
+        system: str | None = None,
+        semantics: dict[str, dict] | None = None,
+        **kwargs: Any,
+    ) -> Agent:
+        """Build an `Agent` with ``data`` preloaded as cache handles.
+
+        Accepts a DataFrame, a ``{name: value}`` mapping, a file path, or a list
+        of paths. Resolves an adapter from ``model``/the environment and applies
+        the default analyst system prompt unless overridden.
+        """
+        from data_harness.io import to_handles
+        from data_harness.quickstart import _DEFAULT_SYSTEM, resolve_adapter
+
+        agent = cls(
+            adapter=adapter if adapter is not None else resolve_adapter(model),
+            system=system if system is not None else _DEFAULT_SYSTEM,
+            **kwargs,
+        )
+        sem = semantics or {}
+        for name, value in to_handles(data).items():
+            agent.cache.put(name, value, semantics=sem.get(name))
+        return agent
+
+    @classmethod
+    def from_csv(cls, path: str | Path, **kwargs: Any) -> Agent:
+        """Build an `Agent` from a CSV (or other supported file) path."""
+        return cls.from_dataframe(str(path), **kwargs)
 
     @property
     def cache(self) -> SessionCache:
@@ -234,6 +296,85 @@ class Agent:
         self._subagent_factory = adapter_factory
         return self
 
+    def enable_sql(self, *, engine_url: str | None = None) -> Agent:
+        """Enable the ``sql_query`` tool.
+
+        With no ``engine_url``, queries run via DuckDB in-process over the
+        DataFrame handles in the cache. With a SQLAlchemy URL, queries run
+        against that database instead.
+
+        Args:
+            engine_url: Optional SQLAlchemy connection URL.
+
+        Returns:
+            ``self``, for method chaining.
+        """
+        self._sql_enabled = True
+        self._sql_engine_url = engine_url
+        return self
+
+    def enable_cache(self, path: Any = None) -> Agent:
+        """Enable the code-replay cache.
+
+        On a repeat ``run``/``run_result`` with the same question and data
+        schema, the previously recorded interpreter/SQL code is replayed against
+        the current cache without calling the model (zero tokens, no turns).
+
+        Args:
+            path: A JSON file path to persist the cache across processes, an
+                existing `ExecutionCache` to share in-process, or ``None`` for an
+                in-memory cache.
+
+        Returns:
+            ``self``, for method chaining.
+        """
+        from data_harness.exec_cache import ExecutionCache
+
+        if isinstance(path, ExecutionCache):
+            self._exec_cache = path
+        else:
+            self._exec_cache = ExecutionCache(path)
+        return self
+
+    @property
+    def exec_cache(self) -> Any:
+        """The `ExecutionCache`, or ``None`` if caching is disabled."""
+        return self._exec_cache
+
+    def _replay(self, key: str, cached, user_message: str) -> RunResult:
+        from data_harness.exec_cache import make_key  # noqa: F401  (re-export anchor)
+
+        tools = self._build_tools(cache=self._cache)
+        tool_map = {t.name: t for t in tools}
+        for step in cached.steps:
+            spec = tool_map.get(step["tool"])
+            if spec is not None and spec.handler is not None:
+                try:
+                    spec.handler(**step["input"])
+                except Exception:
+                    # A recorded step may fail against fresh data; skip it
+                    # rather than aborting the whole replay.
+                    continue
+        storage = {
+            name: CacheStorageInfo(
+                location=meta["location"], storage_type=meta["storage_type"]
+            )
+            for name, meta in self._cache.storage_metadata().items()
+        }
+        return RunResult(
+            text=cached.text,
+            status="success",
+            turns=0,
+            run_file=None,
+            stop_reason=None,
+            usage=Usage(),
+            cache_snapshots=self._cache.list_handles(),
+            cache_storage=storage,
+            value=self._cache.get_answer(),
+            charts=self._cache.list_charts(),
+            run_id=str(uuid.uuid4()),
+        )
+
     def session(self) -> AgentSession:
         """Create a stateful `AgentSession` for multi-turn conversations.
 
@@ -253,12 +394,27 @@ class Agent:
         Returns:
             A `RunResult` with the text response, token usage, and cache state.
         """
+        key = None
+        if self._exec_cache is not None:
+            from data_harness.exec_cache import make_key
+
+            key = make_key(user_message, self._cache, self._system)
+            cached = self._exec_cache.get(key)
+            if cached is not None:
+                return self._replay(key, cached, user_message)
+
         harness = self._make_harness()
         self._last_harness = harness
         result = harness.run_result(
             user_message, run_id=str(uuid.uuid4()), session_id=None
         )
         self._last_run_file = harness.run_file
+
+        if key is not None and result.status == "success":
+            from data_harness.exec_cache import CachedRun, extract_steps
+
+            steps = extract_steps(harness._messages)
+            self._exec_cache.put(key, CachedRun(steps=steps, text=result.text))
         return result
 
     def run(self, user_message: str) -> str:
@@ -274,11 +430,14 @@ class Agent:
             MaxTurnsExceeded: If the loop reaches ``max_turns``.
             RuntimeError: If the provider raises an exception.
         """
-        harness = self._make_harness()
-        self._last_harness = harness
-        result = harness.run(user_message)
-        self._last_run_file = harness.run_file
-        return result
+        result = self.run_result(user_message)
+        if result.status == "max_turns_exceeded":
+            from data_harness.exceptions import MaxTurnsExceeded
+
+            raise MaxTurnsExceeded(result.turns)
+        if result.status == "error":
+            raise RuntimeError(result.error or "unknown error")
+        return result.text
 
     def explain(self) -> str:
         """Return a string showing the equivalent explicit `Harness` wiring."""
@@ -336,6 +495,8 @@ class Agent:
             "tools": tools,
             "max_turns": self._max_turns,
             "cache": effective_cache,
+            "on_code": self._on_code,
+            "code_only": self._code_only,
         }
         if self._run_dir is not None:
             harness_kwargs["run_dir"] = str(self._run_dir)
@@ -362,7 +523,11 @@ class AgentSession:
             hot_limit=agent.cache.hot_limit,
         )
         for name, value in agent.cache.items():
-            self._cache.put(name, _copy_cache_value(value))
+            self._cache.put(
+                name,
+                _copy_cache_value(value),
+                semantics=agent.cache.get_semantics(name),
+            )
         self._harness = agent._make_harness(cache=self._cache)
         self._id: str = str(uuid.uuid4())
         self._last_result: RunResult | None = None
@@ -477,6 +642,8 @@ class AsyncAgent:
         self._connectors: dict[str, _ConnectorDefinition] = {}
         self._connector_tools: list[_ConnectorToolDefinition] = []
         self._planner_enabled = False
+        self._sql_enabled = False
+        self._sql_engine_url: str | None = None
 
     @property
     def cache(self) -> SessionCache:
@@ -498,6 +665,12 @@ class AsyncAgent:
 
     def enable_planner(self) -> AsyncAgent:
         self._planner_enabled = True
+        return self
+
+    def enable_sql(self, *, engine_url: str | None = None) -> AsyncAgent:
+        """Enable the ``sql_query`` tool (DuckDB in-process, or SQLAlchemy URL)."""
+        self._sql_enabled = True
+        self._sql_engine_url = engine_url
         return self
 
     def async_session(self) -> AsyncAgentSession:
@@ -594,7 +767,11 @@ class AsyncAgentSession:
             hot_limit=agent.cache.hot_limit,
         )
         for name, value in agent.cache.items():
-            self._cache.put(name, _copy_cache_value(value))
+            self._cache.put(
+                name,
+                _copy_cache_value(value),
+                semantics=agent.cache.get_semantics(name),
+            )
         self._harness = agent._make_harness(cache=self._cache)
         self._id: str = str(uuid.uuid4())
         self._last_result: RunResult | None = None

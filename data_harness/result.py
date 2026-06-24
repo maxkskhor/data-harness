@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import html as _html
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
+from data_harness.artifacts import ChartArtifact
 from data_harness.providers.base import StopReason
 
 
@@ -75,6 +77,11 @@ class RunResult:
             directly.
         session_id: Optional session UUID when the run is part of an
             `AgentSession`; ``None`` for one-shot runs.
+        value: The structured final answer the model recorded via ``answer(...)``
+            inside the interpreter (a scalar, DataFrame, etc.), or ``None`` if it
+            only produced prose.
+        charts: Chart artefacts rendered during the run. Image bytes live on
+            disk; only paths are referenced here.
     """
 
     text: str
@@ -88,3 +95,38 @@ class RunResult:
     error: str | None = None
     run_id: str | None = None
     session_id: str | None = None
+    value: Any = field(default=None, repr=False)
+    charts: list[ChartArtifact] = field(default_factory=list, repr=False)
+
+    # --- Rich display for Jupyter / IPython --------------------------------
+    def _repr_markdown_(self) -> str:
+        parts = [self.text] if self.text else []
+        if self.value is not None and not _is_dataframe(self.value):
+            parts.append(f"\n**answer:** `{self.value!r}`")
+        return "\n".join(parts) if parts else f"_(status: {self.status})_"
+
+    def _repr_html_(self) -> str:
+        parts: list[str] = []
+        if self.text:
+            parts.append(f"<p>{_html.escape(self.text)}</p>")
+        if self.value is not None and not _is_dataframe(self.value):
+            parts.append(
+                f"<p><strong>answer:</strong> <code>"
+                f"{_html.escape(repr(self.value))}</code></p>"
+            )
+        if _is_dataframe(self.value):
+            parts.append(self.value.to_html())
+        for chart in self.charts:
+            parts.append(chart._repr_html_())
+        if not parts:
+            parts.append(f"<em>(status: {self.status})</em>")
+        return "\n".join(parts)
+
+
+def _is_dataframe(value: Any) -> bool:
+    try:
+        import pandas as pd
+
+        return isinstance(value, pd.DataFrame)
+    except ImportError:
+        return False

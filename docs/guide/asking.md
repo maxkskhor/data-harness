@@ -1,0 +1,110 @@
+# Asking questions about data
+
+The fastest way to use `data-harness` is `ask`. It resolves a provider from your
+environment, loads your data into a `SessionCache` as handles, runs the agent,
+and returns a [`RunResult`](../api/agent.md).
+
+```python
+import pandas as pd
+from data_harness import ask
+
+df = pd.read_csv("sales.csv")
+result = ask(df, "What was total revenue, and which month was highest?")
+
+print(result.text)    # the written answer
+print(result.value)   # the structured value the model computed via answer()
+result.charts         # any rendered charts
+```
+
+`ask` accepts a DataFrame, a `{name: value}` mapping, a file path, or a list of
+paths. Provider resolution prefers `ANTHROPIC_API_KEY`, then `OPENAI_API_KEY`;
+pass `model=` to choose explicitly (the name routes to the matching provider) or
+`adapter=` to supply one directly.
+
+## Structured answers
+
+The interpreter exposes an `answer(value)` helper. When the model calls it, the
+value is returned as `RunResult.value` — a number, a DataFrame, anything. This
+is the trustworthy, *executed* result, as opposed to free-form prose which a
+model can occasionally get wrong. Prefer `.value` for anything programmatic.
+
+## Charts
+
+matplotlib is available inside the interpreter. The model builds a figure and it
+is captured automatically as a `ChartArtifact`. The image bytes are written to
+disk and **never** enter the message history or the JSONL log — only a path
+does, exactly like a cache handle. In Jupyter, `RunResult` and `ChartArtifact`
+render inline.
+
+```python
+result = ask(df, "Plot revenue by region as a bar chart.")
+result.charts[0]   # renders inline in a notebook
+```
+
+## Multi-turn chat
+
+```python
+from data_harness import Chat
+
+chat = Chat(df)
+chat.ask("What was total revenue?")
+chat.ask("Which month was highest?")   # remembers context
+```
+
+`SmartFrame(df).chat("...")` is a pandasai-style wrapper over the same machinery.
+There is also an opt-in pandas accessor — `import data_harness.pandas` then
+`df.chat("...")` — and a `%%ask` notebook magic (`%load_ext data_harness.notebook`).
+
+## SQL
+
+With DuckDB installed, `ask` exposes a `sql_query` tool that runs SQL directly
+against your DataFrame handles; results become new handles. Point it at a real
+database with a SQLAlchemy URL:
+
+```python
+ask(df, "Use SQL to compute total revenue per region.")   # DuckDB, in-process
+
+from data_harness import Agent
+agent = Agent.from_dataframe(df).enable_sql(engine_url="postgresql://...")
+agent.run("Top 5 customers by spend last quarter?")
+```
+
+## The semantic layer
+
+Attach column descriptions, units, or business definitions so the model reasons
+correctly. They are folded into the snapshot the model sees.
+
+```python
+ask(
+    df,
+    "What is churn?",
+    semantics={"df": {"columns": {"churn": "1 if the customer cancelled in-month"}}},
+)
+```
+
+## Production controls
+
+```python
+from data_harness import Agent, ExecutionCache
+
+# Replay repeat questions with no model call (zero turns, zero tokens):
+agent = Agent.from_dataframe(df).enable_cache(ExecutionCache("cache.json"))
+
+# Run interpreter code in an isolated process (no network, CPU/time limits):
+sandboxed = Agent.from_dataframe(df, execution="subprocess")
+
+# Approve or block code before it runs:
+gated = Agent.from_dataframe(df, on_code=lambda code: (print(code), True)[1])
+
+# Dry run — return the code without executing it:
+preview = Agent.from_dataframe(df, code_only=True)
+```
+
+- **Code-replay cache** keys off the question and the data *schema* (not the
+  values), so a repeat question replays the recorded code against fresh data —
+  correct and free.
+- **Subprocess sandbox** isolates execution in a child process with networking
+  disabled and resource limits; handles cross by value and results merge back.
+  It shares the exact AST/security core with the in-process interpreter. It is
+  not a container/VM sandbox — that remains future work.
+- **Approval gate** lets a human (or policy) see every code block before it runs.

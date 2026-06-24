@@ -37,6 +37,27 @@ _MAX_TURN_REMINDER = (
 )
 
 
+def _evaluate_code_gate(
+    on_code: Callable[[str], object] | None,
+    code_only: bool,
+    code: str,
+) -> str | None:
+    """Decide whether interpreter ``code`` may run.
+
+    Returns a string to short-circuit execution (a dry-run echo or a denial
+    message returned to the model), or ``None`` to proceed.
+    """
+    if code_only:
+        return f"DRY RUN — code not executed:\n{code}"
+    if on_code is not None:
+        decision = on_code(code)
+        if decision is False:
+            return "Execution blocked by the approval gate."
+        if isinstance(decision, str):
+            return decision
+    return None
+
+
 class Harness:
     """The core synchronous ReAct loop.
 
@@ -74,6 +95,8 @@ class Harness:
         max_turns: int = 25,
         run_dir: str = "./runs",
         cache: SessionCache | None = None,
+        on_code: Callable[[str], object] | None = None,
+        code_only: bool = False,
     ) -> None:
         if max_turns < 1:
             raise ValueError(f"max_turns must be at least 1, got {max_turns!r}")
@@ -86,6 +109,8 @@ class Harness:
         self._messages: list[Message] = []
         self._reminders: list[Callable[[int, int], str | None]] = []
         self._run_file: str | None = None
+        self._on_code = on_code
+        self._code_only = code_only
 
     def register_reminder(self, hook: Callable[[int, int], str | None]) -> None:
         """Register a suffix reminder hook called before each provider turn.
@@ -232,6 +257,8 @@ class Harness:
                     usage=total_usage,
                     cache_snapshots=self._cache.list_handles(),
                     cache_storage=self._build_cache_storage(),
+                    value=self._cache.get_answer(),
+                    charts=self._cache.list_charts(),
                     error=repr(exc),
                 )
 
@@ -279,6 +306,8 @@ class Harness:
                     usage=total_usage,
                     cache_snapshots=self._cache.list_handles(),
                     cache_storage=self._build_cache_storage(),
+                    value=self._cache.get_answer(),
+                    charts=self._cache.list_charts(),
                 )
 
             if turn == self._max_turns:
@@ -291,6 +320,8 @@ class Harness:
                     usage=total_usage,
                     cache_snapshots=self._cache.list_handles(),
                     cache_storage=self._build_cache_storage(),
+                    value=self._cache.get_answer(),
+                    charts=self._cache.list_charts(),
                 )
 
     def _build_cache_storage(self) -> dict[str, CacheStorageInfo]:
@@ -343,6 +374,19 @@ class Harness:
                     )
                 )
                 continue
+            if tub.tool_name == "python_interpreter":
+                gate = _evaluate_code_gate(
+                    self._on_code, self._code_only, tub.tool_input.get("code", "")
+                )
+                if gate is not None:
+                    results.append(
+                        ToolResultBlock(
+                            tool_use_id=tub.tool_use_id,
+                            content=gate,
+                            is_error=False,
+                        )
+                    )
+                    continue
             try:
                 raw = spec.handler(**tub.tool_input)
                 output = format_tool_output(raw, cache=self._cache)
@@ -386,6 +430,8 @@ class AsyncHarness:
         max_turns: int = 25,
         run_dir: str = "./runs",
         cache: SessionCache | None = None,
+        on_code: Callable[[str], object] | None = None,
+        code_only: bool = False,
     ) -> None:
         if max_turns < 1:
             raise ValueError(f"max_turns must be at least 1, got {max_turns!r}")
@@ -398,6 +444,8 @@ class AsyncHarness:
         self._messages: list[Message] = []
         self._reminders: list[Callable[[int, int], str | None]] = []
         self._run_file: str | None = None
+        self._on_code = on_code
+        self._code_only = code_only
 
     def register_reminder(self, hook: Callable[[int, int], str | None]) -> None:
         self._reminders.append(hook)
@@ -507,6 +555,8 @@ class AsyncHarness:
                     usage=total_usage,
                     cache_snapshots=self._cache.list_handles(),
                     cache_storage=self._build_cache_storage(),
+                    value=self._cache.get_answer(),
+                    charts=self._cache.list_charts(),
                     error=repr(exc),
                 )
 
@@ -553,6 +603,8 @@ class AsyncHarness:
                     usage=total_usage,
                     cache_snapshots=self._cache.list_handles(),
                     cache_storage=self._build_cache_storage(),
+                    value=self._cache.get_answer(),
+                    charts=self._cache.list_charts(),
                 )
 
             if turn == self._max_turns:
@@ -565,6 +617,8 @@ class AsyncHarness:
                     usage=total_usage,
                     cache_snapshots=self._cache.list_handles(),
                     cache_storage=self._build_cache_storage(),
+                    value=self._cache.get_answer(),
+                    charts=self._cache.list_charts(),
                 )
 
     async def _run_loop_stream(self) -> AsyncGenerator[StreamEvent, None]:
@@ -700,6 +754,19 @@ class AsyncHarness:
                     )
                 )
                 continue
+            if tub.tool_name == "python_interpreter":
+                gate = _evaluate_code_gate(
+                    self._on_code, self._code_only, tub.tool_input.get("code", "")
+                )
+                if gate is not None:
+                    results.append(
+                        ToolResultBlock(
+                            tool_use_id=tub.tool_use_id,
+                            content=gate,
+                            is_error=False,
+                        )
+                    )
+                    continue
             try:
                 if asyncio.iscoroutinefunction(spec.handler):
                     raw = await spec.handler(**tub.tool_input)

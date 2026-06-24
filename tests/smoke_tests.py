@@ -450,3 +450,81 @@ def test_cache_storage_info_live(tmp_path):
     assert isinstance(info, CacheStorageInfo)
     assert info.location == "memory"
     assert info.storage_type == "memory"
+
+
+# --- v0.5 entry points (Tiers 1-3) -----------------------------------------
+def _smoke_model() -> str:
+    return os.environ.get("DATAACT_OPENAI_SMOKE_MODEL", DEFAULT_OPENAI_SMOKE_MODEL)
+
+
+def _sales_frame() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "month": ["Jan", "Feb", "Mar", "Apr"],
+            "revenue": [120, 150, 90, 200],
+            "region": ["NA", "NA", "EU", "EU"],
+        }
+    )
+
+
+def test_live_ask_returns_structured_value(tmp_path):
+    _require_openai_key()
+    from data_harness import ask
+
+    result = ask(
+        _sales_frame(),
+        "What is the total revenue? Use answer() with the number.",
+        model=_smoke_model(),
+        run_dir=str(tmp_path),
+    )
+    assert result.status == "success"
+    assert int(result.value) == 560
+
+
+def test_live_ask_renders_chart(tmp_path):
+    _require_openai_key()
+    from data_harness import ask
+
+    result = ask(
+        _sales_frame(),
+        "Make a bar chart of revenue by month using matplotlib.",
+        model=_smoke_model(),
+        run_dir=str(tmp_path),
+    )
+    assert result.charts, "expected at least one chart artefact"
+    assert result.charts[0].read_bytes()[:4] == b"\x89PNG"
+
+
+def test_live_sql_over_dataframe(tmp_path):
+    _require_openai_key()
+    from data_harness import ask
+
+    result = ask(
+        _sales_frame(),
+        "Use sql_query to compute SUM(revenue) grouped by region, then report the "
+        "region with the highest total.",
+        model=_smoke_model(),
+        run_dir=str(tmp_path),
+    )
+    assert result.status == "success"
+    assert "query_result" in result.cache_snapshots
+    assert "EU" in result.text  # EU = 90 + 200 = 290 is the top region
+
+
+def test_live_replay_cache_skips_model(tmp_path):
+    _require_openai_key()
+    from data_harness import Agent, ExecutionCache
+
+    store = ExecutionCache()
+    a1 = Agent.from_dataframe(
+        _sales_frame(), model=_smoke_model(), run_dir=str(tmp_path)
+    ).enable_cache(store)
+    r1 = a1.run_result("Total revenue? Use answer().")
+    assert r1.turns > 0
+
+    a2 = Agent.from_dataframe(
+        _sales_frame(), model=_smoke_model(), run_dir=str(tmp_path)
+    ).enable_cache(store)
+    r2 = a2.run_result("Total revenue? Use answer().")
+    assert r2.turns == 0  # served from the replay cache, no model call
+    assert int(r2.value) == int(r1.value)
