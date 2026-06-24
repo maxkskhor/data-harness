@@ -59,23 +59,49 @@ class EvalReport:
     def _rate(rows: list[CaseResult]) -> float:
         return sum(r.passed for r in rows) / len(rows) if rows else 0.0
 
-    def leaderboard(self) -> str:
-        """Markdown table of accuracy / tokens / turns per model."""
-        header = (
-            "| model | accuracy | passed | avg turns | total tokens |\n"
-            "|---|---|---|---|---|"
+    @staticmethod
+    def _cost(
+        rows: list[CaseResult], price: tuple[float, float] | None
+    ) -> float | None:
+        """USD cost for ``rows`` given ``(prompt_$/Mtok, completion_$/Mtok)``."""
+        if price is None:
+            return None
+        prompt_per_m, completion_per_m = price
+        total = sum(
+            r.input_tokens * prompt_per_m + r.output_tokens * completion_per_m
+            for r in rows
         )
-        lines = [header]
+        return total / 1_000_000
+
+    def total_cost(self, prices: dict[str, tuple[float, float]]) -> float:
+        """Total USD cost across all models, given per-model price tuples."""
+        return sum(
+            self._cost(self._subset(model=m), prices.get(m)) or 0.0 for m in self.models
+        )
+
+    def leaderboard(self, prices: dict[str, tuple[float, float]] | None = None) -> str:
+        """Markdown table of accuracy / tokens / turns (and cost, if priced)."""
+        cols = ["model", "accuracy", "passed", "avg turns", "total tokens"]
+        if prices is not None:
+            cols.append("cost ($)")
+        lines = ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
         ranked = sorted(self.models, key=lambda m: -self._rate(self._subset(model=m)))
         for model in ranked:
             rows = self._subset(model=model)
             passed = sum(r.passed for r in rows)
             avg_turns = sum(r.turns for r in rows) / len(rows) if rows else 0
             tokens = sum(r.input_tokens + r.output_tokens for r in rows)
-            lines.append(
-                f"| {model} | {self._rate(rows):.0%} | {passed}/{len(rows)} | "
-                f"{avg_turns:.1f} | {tokens:,} |"
-            )
+            cells = [
+                model,
+                f"{self._rate(rows):.0%}",
+                f"{passed}/{len(rows)}",
+                f"{avg_turns:.1f}",
+                f"{tokens:,}",
+            ]
+            if prices is not None:
+                cost = self._cost(rows, prices.get(model))
+                cells.append(f"{cost:.4f}" if cost is not None else "n/a")
+            lines.append("| " + " | ".join(cells) + " |")
         return "\n".join(lines)
 
     def by_category(self) -> str:
@@ -94,13 +120,18 @@ class EvalReport:
     def failures(self) -> list[CaseResult]:
         return [r for r in self.results if not r.passed]
 
-    def to_markdown(self) -> str:
-        parts = [
+    def to_markdown(self, prices: dict[str, tuple[float, float]] | None = None) -> str:
+        heading = (
             f"## Evaluation report — {len(self.results)} runs, "
-            f"overall accuracy {self.accuracy():.0%}",
+            f"overall accuracy {self.accuracy():.0%}"
+        )
+        if prices is not None:
+            heading += f", total cost ${self.total_cost(prices):.4f}"
+        parts = [
+            heading,
             "",
             "### Leaderboard",
-            self.leaderboard(),
+            self.leaderboard(prices),
             "",
             "### By category",
             self.by_category(),

@@ -19,6 +19,7 @@ from data_harness.eval.graders import (
     numeric,
     refuses,
 )
+from data_harness.eval.pricing import fetch_openrouter_prices
 from data_harness.eval.report import CaseResult, EvalReport
 from data_harness.eval.runner import evaluate, evaluate_matrix
 from data_harness.eval.suites import (
@@ -43,6 +44,7 @@ __all__ = [
     "evaluate_matrix",
     "exact",
     "extract_numbers",
+    "fetch_openrouter_prices",
     "load_wikitablequestions",
     "numeric",
     "refuses",

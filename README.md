@@ -268,6 +268,8 @@ The Python interpreter uses AST checks and restricted globals to reduce accident
 - **`answer()` reliability:** `ask()` now finalises by default — if a successful run produced no structured answer, it runs one focused follow-up turn asking the model to record it via `answer()`, so `.value` is populated more reliably (`require_answer=True`, default)
 - The finalize step is **guarded**: it never fires when a chart was produced (the chart is the deliverable) or the answer reads as a refusal (so unanswerable questions aren't turned into fabricated values)
 - `Chat`/`SmartFrame` keep `require_answer=False` by default (conversational); opt in per instance
+- **Eval cost reporting:** `EvalReport` leaderboards can show per-model USD cost; `fetch_openrouter_prices()` pulls live prices, and `eval_demo` includes a cost column
+- Refreshed default eval lineup to current models (DeepSeek V4, recent Qwen); dropped the older `deepseek-chat` (V3) alias from examples/tests
 - `EvalCase` now uses identity equality (avoids DataFrame-truthiness errors when comparing cases)
 
 ### 0.6.0

@@ -166,6 +166,23 @@ def test_report_aggregation():
     assert len(report.failures()) == 1
 
 
+def test_report_cost():
+    from data_harness.eval.report import CaseResult
+
+    rows = [
+        CaseResult("c1", "agg", "m", True, "", 1, 1000, 100, 0.0, "success"),
+        CaseResult("c2", "agg", "m", True, "", 1, 2000, 200, 0.0, "success"),
+    ]
+    report = EvalReport(rows)
+    prices = {"m": (0.2, 0.8)}  # ($/Mtok prompt, $/Mtok completion)
+    # (3000 * 0.2 + 300 * 0.8) / 1e6 = 840 / 1e6
+    assert abs(report.total_cost(prices) - 0.00084) < 1e-12
+    lb = report.leaderboard(prices)
+    assert "cost ($)" in lb and "0.0008" in lb
+    # no prices -> no cost column
+    assert "cost ($)" not in report.leaderboard()
+
+
 # --- suites ----------------------------------------------------------------
 def test_bespoke_suite_well_formed():
     cases = bespoke_suite()
