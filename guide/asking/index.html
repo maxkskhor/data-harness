@@ -1051,6 +1051,14 @@ with a slash routes via OpenRouter instead.</p>
 value is returned as <code>RunResult.value</code> — a number, a DataFrame, anything. This
 is the trustworthy, <em>executed</em> result, as opposed to free-form prose which a
 model can occasionally get wrong. Prefer <code>.value</code> for anything programmatic.</p>
+<p>Models don't always remember to call <code>answer()</code>. By default <code>ask</code> <strong>finalises</strong>:
+if a run succeeds without a recorded answer, it runs one short follow-up turn
+asking the model to record it, so <code>.value</code> is populated more reliably. This is
+guarded — it never fires when a chart was produced (the chart is the answer) or
+the response reads as a refusal (so an unanswerable question isn't coerced into a
+fabricated value). Disable with <code>ask(..., require_answer=False)</code>. <code>Chat</code> is
+conversational, so it defaults to <code>require_answer=False</code>; pass <code>require_answer=True</code>
+to opt in.</p>
 <h2 id="charts">Charts</h2>
 <p>matplotlib is available inside the interpreter. The model builds a figure and it
 is captured automatically as a <code>ChartArtifact</code>. The image bytes are written to

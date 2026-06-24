@@ -648,6 +648,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Multi-model leaderboard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cost-per-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost per model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1070,12 +1087,22 @@ pass/fail, turns, tokens, latency, and status.</p>
 </code></pre></div>
 <p><code>models</code> may also be <code>(label, adapter)</code> tuples for custom clients or offline
 tests with <code>FakeAdapter</code>.</p>
+<h3 id="cost-per-model">Cost per model</h3>
+<p>Pass a <code>{model: (prompt_$/Mtok, completion_$/Mtok)}</code> price map to add a USD cost
+column. <code>fetch_openrouter_prices</code> pulls live prices for you:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness.eval</span><span class="w"> </span><span class="kn">import</span> <span class="n">fetch_openrouter_prices</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;deepseek/deepseek-v4-flash&quot;</span><span class="p">,</span> <span class="s2">&quot;qwen/qwen3.5-flash-02-23&quot;</span><span class="p">]</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">report</span> <span class="o">=</span> <span class="n">evaluate_matrix</span><span class="p">(</span><span class="n">bespoke_suite</span><span class="p">(),</span> <span class="n">models</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">prices</span> <span class="o">=</span> <span class="n">fetch_openrouter_prices</span><span class="p">(</span><span class="n">models</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">(</span><span class="n">prices</span><span class="p">))</span>   <span class="c1"># leaderboard now has a &quot;cost ($)&quot; column</span>
+</code></pre></div>
 <h2 id="public-benchmark">Public benchmark</h2>
 <p>WikiTableQuestions (table QA) loads via the <code>[eval]</code> extra:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness.eval</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_wikitablequestions</span><span class="p">,</span> <span class="n">evaluate</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">cases</span> <span class="o">=</span> <span class="n">load_wikitablequestions</span><span class="p">(</span><span class="n">split</span><span class="o">=</span><span class="s2">&quot;validation&quot;</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">report</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">cases</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness.eval</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_wikitablequestions</span><span class="p">,</span> <span class="n">evaluate</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">cases</span> <span class="o">=</span> <span class="n">load_wikitablequestions</span><span class="p">(</span><span class="n">split</span><span class="o">=</span><span class="s2">&quot;validation&quot;</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">report</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">cases</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&quot;openai/gpt-4o-mini&quot;</span><span class="p">)</span>
 </code></pre></div>
 <p>The row→case conversion (<code>wtq_row_to_case</code>) is exposed separately so you can plug
 in other public benchmarks (DABStep, InfiAgent-DABench, Spider/BIRD) with the
