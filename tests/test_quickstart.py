@@ -55,8 +55,35 @@ def test_resolve_adapter_falls_back_to_openai(monkeypatch):
 def test_resolve_adapter_raises_without_keys(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     with pytest.raises(RuntimeError, match="No provider configured"):
         resolve_adapter()
+
+
+def test_resolve_adapter_routes_slash_model_to_openrouter(monkeypatch):
+    from data_harness.providers.openai import OPENROUTER_BASE_URL, OpenRouterAdapter
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    adapter = resolve_adapter("anthropic/claude-3.5-sonnet")
+    assert isinstance(adapter, OpenRouterAdapter)
+    assert str(adapter._client.base_url).rstrip("/") == OPENROUTER_BASE_URL
+
+
+def test_resolve_adapter_falls_back_to_openrouter(monkeypatch):
+    from data_harness.providers.openai import OpenRouterAdapter
+
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    assert isinstance(resolve_adapter(), OpenRouterAdapter)
+
+
+def test_openrouter_adapter_uses_env_key(monkeypatch):
+    from data_harness.providers.openai import OpenRouterAdapter
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "router-secret")
+    adapter = OpenRouterAdapter(model="openai/gpt-4o-mini")
+    assert adapter._client.api_key == "router-secret"
 
 
 # --- ask() -----------------------------------------------------------------

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 
 import openai
 
@@ -18,6 +19,8 @@ from data_harness.types import (
     ToolSpec,
     ToolUseBlock,
 )
+
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 _STOP_REASON_MAP = {
     "stop": StopReason.END_TURN,
@@ -121,10 +124,17 @@ class _OpenAIHelpers:
 
 
 class OpenAIAdapter(_OpenAIHelpers, ProviderAdapter):
-    def __init__(self, model: str = "gpt-4o-mini", max_tokens: int = 4096) -> None:
+    def __init__(
+        self,
+        model: str = "gpt-4o-mini",
+        max_tokens: int = 4096,
+        *,
+        base_url: str | None = None,
+        api_key: str | None = None,
+    ) -> None:
         self._model = model
         self._max_tokens = max_tokens
-        self._client = openai.OpenAI()
+        self._client = openai.OpenAI(base_url=base_url, api_key=api_key)
 
     def chat(
         self,
@@ -151,10 +161,17 @@ class AsyncOpenAIAdapter(_OpenAIHelpers, AsyncProviderAdapter):
     future revision can add real streaming for text-only turns.
     """
 
-    def __init__(self, model: str = "gpt-4o-mini", max_tokens: int = 4096) -> None:
+    def __init__(
+        self,
+        model: str = "gpt-4o-mini",
+        max_tokens: int = 4096,
+        *,
+        base_url: str | None = None,
+        api_key: str | None = None,
+    ) -> None:
         self._model = model
         self._max_tokens = max_tokens
-        self._client = openai.AsyncOpenAI()
+        self._client = openai.AsyncOpenAI(base_url=base_url, api_key=api_key)
 
     async def chat(
         self,
@@ -172,3 +189,49 @@ class AsyncOpenAIAdapter(_OpenAIHelpers, AsyncProviderAdapter):
             tools=api_tools or openai.NOT_GIVEN,
         )
         return self._make_normalized(response)
+
+
+class OpenRouterAdapter(OpenAIAdapter):
+    """OpenAI-compatible adapter pointed at OpenRouter.
+
+    OpenRouter exposes many providers (OpenAI, Anthropic, Google, Meta, …) behind
+    one OpenAI-format endpoint, which makes it ideal for cross-model testing from
+    a single key. Models use ``provider/model`` ids, e.g.
+    ``anthropic/claude-3.5-sonnet`` or ``openai/gpt-4o-mini``.
+
+    The API key defaults to the ``OPENROUTER_API_KEY`` environment variable.
+    """
+
+    def __init__(
+        self,
+        model: str = "openai/gpt-4o-mini",
+        max_tokens: int = 4096,
+        *,
+        api_key: str | None = None,
+        base_url: str = OPENROUTER_BASE_URL,
+    ) -> None:
+        super().__init__(
+            model=model,
+            max_tokens=max_tokens,
+            base_url=base_url,
+            api_key=api_key or os.environ.get("OPENROUTER_API_KEY"),
+        )
+
+
+class AsyncOpenRouterAdapter(AsyncOpenAIAdapter):
+    """Async OpenAI-compatible adapter pointed at OpenRouter."""
+
+    def __init__(
+        self,
+        model: str = "openai/gpt-4o-mini",
+        max_tokens: int = 4096,
+        *,
+        api_key: str | None = None,
+        base_url: str = OPENROUTER_BASE_URL,
+    ) -> None:
+        super().__init__(
+            model=model,
+            max_tokens=max_tokens,
+            base_url=base_url,
+            api_key=api_key or os.environ.get("OPENROUTER_API_KEY"),
+        )

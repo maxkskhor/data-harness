@@ -45,6 +45,13 @@ Pick a model explicitly (routes to the matching provider):
 ask(df, "plot revenue by month", model="gpt-4o-mini")
 ```
 
+Or reach many providers through one key with [OpenRouter](https://openrouter.ai) — a `provider/model` id auto-routes there (great for cross-model testing). Set `OPENROUTER_API_KEY`:
+
+```python
+ask(df, "summarise the data", model="anthropic/claude-3.5-sonnet")  # via OpenRouter
+ask(df, "summarise the data", model="google/gemini-2.0-flash-001")
+```
+
 In a notebook, the returned `RunResult` renders prose, the computed value, and charts inline. There's also a `%%ask` magic (`%load_ext data_harness.notebook`).
 
 ---
@@ -234,6 +241,7 @@ The Python interpreter uses AST checks and restricted globals to reduce accident
 
 ### 0.5.0
 - **Entry points:** `ask(df, "...")` one-liner, `Chat`/`SmartFrame`, zero-config provider resolution, `Agent.from_dataframe` / `from_csv`, and a `%%ask` notebook magic
+- **OpenRouter:** `OpenRouterAdapter` + `OpenAIAdapter(base_url=...)`; `provider/model` ids (e.g. `anthropic/claude-3.5-sonnet`) auto-route to OpenRouter, and `OPENROUTER_API_KEY` is picked up automatically — one key for many providers
 - **Charts:** matplotlib in the interpreter; open figures captured as `ChartArtifact` handles (bytes stay out of messages/logs); `RunResult.charts` + rich Jupyter display
 - **Structured results:** `answer(value)` interpreter helper → `RunResult.value`
 - **SQL:** `sql_query` tool (DuckDB in-process over cached frames, or a SQLAlchemy URL); `Agent.enable_sql`

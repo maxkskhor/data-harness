@@ -528,3 +528,29 @@ def test_live_replay_cache_skips_model(tmp_path):
     r2 = a2.run_result("Total revenue? Use answer().")
     assert r2.turns == 0  # served from the replay cache, no model call
     assert int(r2.value) == int(r1.value)
+
+
+# --- OpenRouter cross-provider tests ---------------------------------------
+def _require_openrouter_key() -> None:
+    _load_env()
+    if not os.environ.get("OPENROUTER_API_KEY"):
+        pytest.skip("OPENROUTER_API_KEY not set")
+
+
+@pytest.mark.parametrize(
+    "model",
+    ["openai/gpt-4o-mini", "anthropic/claude-3-haiku"],
+)
+def test_live_openrouter_cross_provider(tmp_path, model):
+    """One key, many providers: the same agent works over OpenAI and Anthropic."""
+    _require_openrouter_key()
+    from data_harness import ask
+
+    result = ask(
+        _sales_frame(),
+        "What is the total revenue? Use answer() with the number.",
+        model=model,
+        run_dir=str(tmp_path),
+    )
+    assert result.status == "success", result.error
+    assert int(result.value) == 560

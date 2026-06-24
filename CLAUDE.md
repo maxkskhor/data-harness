@@ -27,7 +27,7 @@ Do not erase the core harness invariants. `data-harness` can become a framework,
 A snapshot so agents stop re-proposing work that already exists. Confirm against the code before relying on it.
 
 - Entry points: `ask(df, "...")` one-liner, `Chat` / `SmartFrame`, `Agent.from_dataframe` / `from_csv`, `resolve_adapter` (env-based provider resolution), and a `%%ask` notebook magic (`data_harness/notebook.py`, `data_harness/pandas.py`).
-- Providers: `AnthropicAdapter` and `OpenAIAdapter`, both behind `ProviderAdapter` / `AsyncProviderAdapter`.
+- Providers: `AnthropicAdapter`, `OpenAIAdapter` (now accepts `base_url`/`api_key`), and `OpenRouterAdapter` (OpenAI-compatible, `provider/model` ids, `OPENROUTER_API_KEY`) — all behind `ProviderAdapter` / `AsyncProviderAdapter`. `resolve_adapter` routes `provider/model` ids to OpenRouter.
 - Sync and async: `Agent` / `Harness` and `AsyncAgent` / `AsyncHarness`.
 - Streaming: `run_stream()` / `ask_stream()` with the SSE event types in `streaming.py`.
 - Multi-turn: `AgentSession` / `AsyncAgentSession` over a shared cache and history.

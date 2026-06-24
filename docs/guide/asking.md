@@ -17,9 +17,24 @@ result.charts         # any rendered charts
 ```
 
 `ask` accepts a DataFrame, a `{name: value}` mapping, a file path, or a list of
-paths. Provider resolution prefers `ANTHROPIC_API_KEY`, then `OPENAI_API_KEY`;
-pass `model=` to choose explicitly (the name routes to the matching provider) or
-`adapter=` to supply one directly.
+paths. Provider resolution prefers `ANTHROPIC_API_KEY`, then `OPENAI_API_KEY`,
+then `OPENROUTER_API_KEY`; pass `model=` to choose explicitly (the name routes to
+the matching provider) or `adapter=` to supply one directly.
+
+### Many providers through one key (OpenRouter)
+
+[OpenRouter](https://openrouter.ai) exposes OpenAI, Anthropic, Google, Meta and
+more behind one OpenAI-compatible endpoint — ideal for cross-model testing. Set
+`OPENROUTER_API_KEY`; any `provider/model` id (containing `/`) auto-routes there.
+
+```python
+ask(df, "summarise the data", model="anthropic/claude-3.5-sonnet")
+ask(df, "summarise the data", model="google/gemini-2.0-flash-001")
+
+# or construct it directly:
+from data_harness.providers.openai import OpenRouterAdapter
+ask(df, "...", adapter=OpenRouterAdapter(model="openai/gpt-4o-mini"))
+```
 
 ## Structured answers
 
