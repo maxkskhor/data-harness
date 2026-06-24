@@ -175,6 +175,14 @@ def test_bespoke_suite_well_formed():
     assert {"aggregation", "chart", "adversarial"} <= {c.category for c in cases}
 
 
+def test_evalcase_identity_equality_with_dataframes():
+    # field-wise dataclass eq would raise on DataFrame truthiness; identity is safe
+    a = EvalCase("c", "q", pd.DataFrame({"x": [1]}), numeric(1))
+    b = EvalCase("c", "q", pd.DataFrame({"x": [1]}), numeric(1))
+    assert a != b  # identity, not field-wise
+    assert a in [a]  # membership uses identity, does not raise
+
+
 def test_wtq_row_to_case():
     row = {
         "question": "Which country has the most golds?",

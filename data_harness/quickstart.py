@@ -11,8 +11,10 @@ pandasai-style wrapper over a single frame. Neither mutates global state.
 
 from __future__ import annotations
 
+import dataclasses
 import importlib.util
 import os
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from data_harness.agent import Agent
@@ -159,6 +161,70 @@ def _handles_preamble(agent: Agent) -> str:
     return f"\n\nAvailable data handles:\n{lines}"
 
 
+_FINALIZE_PROMPT = (
+    "You did not record a structured final answer. Call answer(value) in the "
+    "python_interpreter now with your final result (a number, a DataFrame, etc.), "
+    "computed from the data. Do not add other commentary."
+)
+
+# Lightweight refusal markers so finalize never turns a correct "I can't answer
+# this" into a fabricated value. (Kept local to avoid importing data_harness.eval,
+# which imports this module.)
+_REFUSAL_MARKERS = (
+    "cannot",
+    "can't",
+    "not enough",
+    "no column",
+    "not available",
+    "unable",
+    "don't have",
+    "do not have",
+    "no information",
+    "not possible",
+    "not present",
+)
+
+
+def _looks_like_refusal(text: str | None) -> bool:
+    lowered = (text or "").lower()
+    return any(marker in lowered for marker in _REFUSAL_MARKERS)
+
+
+def _finalize(
+    result: RunResult, continue_turn: Callable[[str], RunResult]
+) -> RunResult:
+    """Coax a structured answer when a successful run produced none.
+
+    If the run succeeded but the model never called ``answer()`` (so
+    ``result.value`` is ``None``), run one focused follow-up turn asking it to
+    record the value, then merge that value into the original result. The
+    original prose is kept; turns/usage are accumulated.
+
+    Guarded so it never fires when a chart was produced (the chart is the
+    deliverable) or the answer reads as a refusal (forcing a value there would
+    invite a hallucination).
+    """
+    if (
+        result.status != "success"
+        or result.value is not None
+        or result.charts
+        or _looks_like_refusal(result.text)
+    ):
+        return result
+    follow = continue_turn(_FINALIZE_PROMPT)
+    if follow.value is None:
+        return result
+    return dataclasses.replace(
+        result,
+        value=follow.value,
+        turns=result.turns + follow.turns,
+        usage=result.usage + follow.usage,
+        charts=result.charts or follow.charts,
+        cache_snapshots=follow.cache_snapshots,
+        cache_storage=follow.cache_storage,
+    )
+
+
 def ask(
     data: Any,
     question: str,
@@ -168,6 +234,7 @@ def ask(
     system: str | None = None,
     semantics: dict[str, dict] | None = None,
     sql: bool | None = None,
+    require_answer: bool = True,
     max_turns: int = 12,
     run_dir: str | None = None,
 ) -> RunResult:
@@ -185,6 +252,9 @@ def ask(
             snapshots.
         sql: Enable the ``sql_query`` tool. ``None`` auto-enables it when DuckDB
             is installed.
+        require_answer: If ``True`` (default) and a successful run produced no
+            structured answer, run one follow-up turn asking the model to record
+            it via ``answer()`` so ``.value`` is populated.
         max_turns: Hard cap on provider turns.
         run_dir: Directory for JSONL logs and chart artefacts.
 
@@ -203,7 +273,10 @@ def ask(
         semantics=semantics,
         sql=sql,
     )
-    return agent.run_result(question + _handles_preamble(agent))
+    result = agent.run_result(question + _handles_preamble(agent))
+    if require_answer and agent.last_harness is not None:
+        result = _finalize(result, agent.last_harness.ask_result)
+    return result
 
 
 class Chat:
@@ -228,6 +301,7 @@ class Chat:
         system: str | None = None,
         semantics: dict[str, dict] | None = None,
         sql: bool | None = None,
+        require_answer: bool = False,
         max_turns: int = 12,
         run_dir: str | None = None,
     ) -> None:
@@ -244,13 +318,17 @@ class Chat:
         )
         self._session = self._agent.session()
         self._first = True
+        self._require_answer = require_answer
 
     def ask(self, question: str) -> RunResult:
         """Ask a follow-up question and return its `RunResult`."""
         if self._first:
             question = question + _handles_preamble(self._agent)
             self._first = False
-        return self._session.ask_result(question)
+        result = self._session.ask_result(question)
+        if self._require_answer:
+            result = _finalize(result, self._session.ask_result)
+        return result
 
     @property
     def session(self):
