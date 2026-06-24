@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "data-harness"
-version = "0.4.0"
+version = "0.5.0"
 description = "Data agent with Python-native tools (no bash)"
 readme = "README.md"
 license = { text = "MIT" }
@@ -30,6 +30,25 @@ dev = [
 openai = [
     "openai",
 ]
+viz = [
+    "matplotlib",
+]
+duckdb = [
+    "duckdb",
+]
+sql = [
+    "sqlalchemy",
+]
+notebook = [
+    "ipython",
+]
+all = [
+    "openai",
+    "matplotlib",
+    "duckdb",
+    "sqlalchemy",
+    "ipython",
+]
 
 [dependency-groups]
 docs = [
@@ -54,6 +73,11 @@ dev-dependencies = [
     "pytest-mock",
     "python-dotenv",
     "ruff",
+    "matplotlib",
+    "duckdb",
+    "sqlalchemy",
+    "ipython",
+    "pyarrow",
 ]
 
 [tool.ruff]

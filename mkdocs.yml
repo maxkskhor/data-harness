@@ -63,6 +63,7 @@ nav:
   - Home: index.md
   - Guide:
     - Quickstart: guide/quickstart.md
+    - Asking questions: guide/asking.md
     - Sessions: guide/sessions.md
     - Connectors: guide/connectors.md
     - Async & Streaming: guide/async.md

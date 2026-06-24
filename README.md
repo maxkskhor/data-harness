@@ -15,59 +15,126 @@ Most agent frameworks hand the model a shell and call it a day. `data-harness` t
 ## Install
 
 ```bash
-pip install data-harness
+pip install data-harness          # core
+pip install "data-harness[all]"   # + openai, charts, duckdb, sqlalchemy, notebook
 ```
 
-OpenAI support:
-
-```bash
-pip install "data-harness[openai]"
-```
-
-Requires Python 3.10+.
+Pick individual extras as needed: `[openai]`, `[viz]`, `[duckdb]`, `[sql]`, `[notebook]`. Requires Python 3.10+.
 
 ---
 
 ## Quickstart
 
+Ask a question about a DataFrame in one line. `ask()` resolves a provider from your environment (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY`), loads the data into the session cache, runs the agent, and returns a `RunResult`:
+
 ```python
-from data_harness import Agent
-from data_harness.providers.anthropic import AnthropicAdapter
+import pandas as pd
+from data_harness import ask
 
-agent = Agent(
-    adapter=AnthropicAdapter(model="claude-sonnet-4-6"),
-    system="You are a data analyst.",
-)
+df = pd.read_csv("sales.csv")
+result = ask(df, "What was total revenue, and which month was highest?")
 
-print(agent.run("Compute the mean of [1, 2, 3, 4, 5]."))
+print(result.text)      # the written answer
+print(result.value)     # the structured result the model computed via answer()
+result.charts           # any charts it rendered (notebook-friendly)
 ```
 
-Switch to OpenAI by changing only the adapter:
+Pick a model explicitly (routes to the matching provider):
 
 ```python
-from data_harness.providers.openai import OpenAIAdapter
+ask(df, "plot revenue by month", model="gpt-4o-mini")
+```
 
-agent = Agent(
-    adapter=OpenAIAdapter(model="gpt-4o-mini"),
-    system="You are a data analyst.",
-)
+Or reach many providers through one key with [OpenRouter](https://openrouter.ai) — a `provider/model` id auto-routes there (great for cross-model testing). Set `OPENROUTER_API_KEY`:
+
+```python
+ask(df, "summarise the data", model="anthropic/claude-3.5-sonnet")  # via OpenRouter
+ask(df, "summarise the data", model="google/gemini-2.0-flash-001")
+ask(df, "summarise the data", model="deepseek/deepseek-chat")       # cheap
+```
+
+DeepSeek's own (very cheap) API is also supported directly — set `DEEPSEEK_API_KEY` and use a bare `model="deepseek-chat"`.
+
+In a notebook, the returned `RunResult` renders prose, the computed value, and charts inline. There's also a `%%ask` magic (`%load_ext data_harness.notebook`).
+
+---
+
+## Multi-turn chat
+
+```python
+from data_harness import Chat
+
+chat = Chat(df)
+chat.ask("What was total revenue?")
+chat.ask("Which month was highest?")   # remembers context
 ```
 
 ---
 
-## Multi-turn sessions
+## Charts
 
-`run()` is one-shot. For follow-up questions over shared state, use a session:
+matplotlib is available inside the interpreter. The model builds a figure and it is captured automatically as an artefact — the image bytes live on disk and never enter the message history or logs (only a path does):
 
 ```python
-session = agent.session()
-session.put("sales", df)  # pre-load a DataFrame into the cache
-
-print(session.ask("What is the total revenue?"))
-print(session.ask("Which product category was highest?"))
+result = ask(df, "Plot revenue by region as a bar chart.")
+result.charts[0]        # a ChartArtifact; renders inline in Jupyter
 ```
 
-The session keeps one message history and one cache alive across all `ask()` calls.
+---
+
+## SQL over your data
+
+With DuckDB installed, `ask` exposes a `sql_query` tool that runs SQL directly against your DataFrames (results become new handles). Point it at a real database with a SQLAlchemy URL:
+
+```python
+ask(df, "Use SQL to get total revenue per region.")          # DuckDB, in-process
+
+from data_harness import Agent
+agent = Agent.from_dataframe(df).enable_sql(engine_url="postgresql://...")
+agent.run("Top 5 customers by spend last quarter?")
+```
+
+---
+
+## Production controls
+
+```python
+from data_harness import Agent, ExecutionCache
+
+agent = (
+    Agent.from_dataframe(df, model="gpt-4o-mini")
+    .enable_cache(ExecutionCache("cache.json"))   # replay repeat questions, 0 tokens
+)
+
+# Run interpreter code in an isolated process (no network, CPU/time limits):
+sandboxed = Agent.from_dataframe(df, execution="subprocess")
+
+# Approve or block code before it runs ("show me the code"):
+def approve(code: str) -> bool:
+    print(code)
+    return True
+
+gated = Agent.from_dataframe(df, on_code=approve)
+preview = Agent.from_dataframe(df, code_only=True)   # dry-run: never executes
+```
+
+- **Code-replay cache** — a repeat question over the same data *schema* replays the recorded code with no model call (zero turns, zero tokens), while staying correct when the data changes.
+- **Subprocess sandbox** — interpreter code runs in a separate process with networking disabled and CPU/wall-clock limits; handles cross by value, results merge back.
+- **Approval gate** — `on_code` sees every code block before execution and can block it; `code_only=True` returns the code without running it.
+
+---
+
+## Lower-level `Agent` and `Harness`
+
+`ask`/`Chat` are conveniences over `Agent`, which is itself a thin layer over `Harness`. Drop down when you want full control:
+
+```python
+from data_harness import Agent
+from data_harness.providers.anthropic import AnthropicAdapter
+
+agent = Agent(adapter=AnthropicAdapter(model="claude-sonnet-4-6"), system="You are a data analyst.")
+print(agent.run("Compute the mean of [1, 2, 3, 4, 5]."))
+```
 
 ---
 
@@ -146,7 +213,15 @@ uv run python examples/quickstart.py
 
 # Full wiring with connectors, planner, and subagents (requires ANTHROPIC_API_KEY)
 uv run python examples/advanced_wiring.py
+
+# Live tour of ask()/charts/SQL on a cheap model (ANTHROPIC or OPENAI key)
+uv run python examples/live_demo.py
+
+# Code-replay cache benchmark (no API key, deterministic)
+uv run python examples/cache_benchmark.py
 ```
+
+See [`examples/demo.ipynb`](examples/demo.ipynb) for an executed notebook covering all the v0.5 features.
 
 ---
 
@@ -154,7 +229,7 @@ uv run python examples/advanced_wiring.py
 
 ```bash
 uv run python -m pytest tests/ -v
-uv run python -m pytest tests/smoke_tests.py -m live -v  # requires OPENAI_API_KEY
+uv run python -m pytest tests/smoke_tests.py -m live -v  # requires OPENROUTER_API_KEY
 ```
 
 ---
@@ -166,6 +241,18 @@ The Python interpreter uses AST checks and restricted globals to reduce accident
 ---
 
 ## Changelog
+
+### 0.5.0
+- **Entry points:** `ask(df, "...")` one-liner, `Chat`/`SmartFrame`, zero-config provider resolution, `Agent.from_dataframe` / `from_csv`, and a `%%ask` notebook magic
+- **OpenRouter & DeepSeek:** `OpenRouterAdapter` + `OpenAIAdapter(base_url=...)`; `provider/model` ids (e.g. `anthropic/claude-3.5-sonnet`) auto-route to OpenRouter, `deepseek-*` ids to DeepSeek's direct API, with `OPENROUTER_API_KEY` / `DEEPSEEK_API_KEY` picked up automatically — one key for many providers
+- **Charts:** matplotlib in the interpreter; open figures captured as `ChartArtifact` handles (bytes stay out of messages/logs); `RunResult.charts` + rich Jupyter display
+- **Structured results:** `answer(value)` interpreter helper → `RunResult.value`
+- **SQL:** `sql_query` tool (DuckDB in-process over cached frames, or a SQLAlchemy URL); `Agent.enable_sql`
+- **Semantic layer:** per-handle column/units descriptions folded into snapshots (`cache.put(..., semantics=...)`, `cache.describe`)
+- **Subprocess sandbox:** `execution="subprocess"` runs interpreter code in an isolated process (no network, CPU/time limits)
+- **Approval gate:** `on_code` callback and `code_only` dry-run
+- **Code-replay cache:** `Agent.enable_cache(...)` replays repeat questions with zero model calls
+- New optional extras: `[viz]`, `[duckdb]`, `[sql]`, `[notebook]`, `[all]`
 
 ### 0.4.0
 - `python_interpreter`: runtime errors now raise `PythonInterpreterError` so the harness marks `ToolResultBlock.is_error=True`

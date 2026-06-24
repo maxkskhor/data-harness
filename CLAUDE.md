@@ -22,6 +22,29 @@ The future `learn-data-harness` repo should be the clean teaching resource: basi
 
 Do not erase the core harness invariants. `data-harness` can become a framework, but it should remain explicit about execution, context, provider, state, subagent, and logging boundaries.
 
+## Shipped surface (as of v0.5.0)
+
+A snapshot so agents stop re-proposing work that already exists. Confirm against the code before relying on it.
+
+- Entry points: `ask(df, "...")` one-liner, `Chat` / `SmartFrame`, `Agent.from_dataframe` / `from_csv`, `resolve_adapter` (env-based provider resolution), and a `%%ask` notebook magic (`data_harness/notebook.py`, `data_harness/pandas.py`).
+- Providers: `AnthropicAdapter`, `OpenAIAdapter` (now accepts `base_url`/`api_key`), `OpenRouterAdapter` (OpenAI-compatible, `provider/model` ids, `OPENROUTER_API_KEY`), and `DeepSeekAdapter` (direct, `deepseek-*` ids, `DEEPSEEK_API_KEY`) — all behind `ProviderAdapter` / `AsyncProviderAdapter`. `resolve_adapter` routes `provider/model` ids to OpenRouter and `deepseek-*` to DeepSeek direct.
+- Sync and async: `Agent` / `Harness` and `AsyncAgent` / `AsyncHarness`.
+- Streaming: `run_stream()` / `ask_stream()` with the SSE event types in `streaming.py`.
+- Multi-turn: `AgentSession` / `AsyncAgentSession` over a shared cache and history.
+- Typed results: `RunResult` (now with `value` + `charts`), `Usage`, `CacheStorageInfo` (`result.py`); `run_result()` / `ask_result()`.
+- Structured answers: `answer(value)` interpreter helper → `RunResult.value`.
+- Charts: matplotlib captured as `ChartArtifact` handles (`artifacts.py`); image bytes never enter messages or logs.
+- State: `SessionCache` with hot/cold disk spilling (Parquet / `.npy` / pickle), an answer slot, chart tracking, and a semantic layer (`put(..., semantics=...)`, `describe`).
+- Tools: `python_interpreter`, `list_variables`, `sql_query` (DuckDB / SQLAlchemy, `tools/sql.py`), opt-in `Planner`, `ConnectorRegistry` progressive disclosure, and isolated `subagent`.
+- Execution: in-process or `execution="subprocess"` (`tools/sandbox.py` + `_sandbox_runner.py`) — isolated process, no network, CPU/time limits; shares the security core via `interpreter.execute_namespace`.
+- Controls: `on_code` approval gate + `code_only` dry-run (in `Harness`); code-replay cache (`exec_cache.py`, `Agent.enable_cache`).
+- File ingestion: `io.py` (`load_dataframe`, `to_handles`).
+- Tool metadata: `ToolAnnotations` on `ToolSpec` (not leaked to providers).
+- Observability: JSONL per-turn logs plus `observe.py` and `examples/inspect_run.py`.
+- Packaging: published to PyPI as `data-harness`; optional extras `[openai]`, `[viz]`, `[duckdb]`, `[sql]`, `[notebook]`, `[all]`; MkDocs site under `docs/`.
+
+Still genuinely missing / deferred: container/VM/WASM-level sandboxing (the subprocess sandbox is the current isolation; PLAN_v4).
+
 ## Motivation
 
 This project is motivated by data workflows where:
@@ -48,19 +71,25 @@ The core design ideas remain:
 
 ```bash
 uv sync
-uv run pytest tests/ -v
-uv run pytest tests/smoke_tests.py -v -m live
+uv run pytest tests/ -m "not live"                              # full offline suite (~450 tests)
+uv run pytest tests/smoke_tests.py -v -m live                   # live provider smoke tests
 uv run pytest tests/test_loop.py::TestLoopBasic::test_exits_on_end_turn -v
-uv run python examples/advanced_wiring.py
+uv run python examples/quickstart.py                            # minimal Agent (ANTHROPIC_API_KEY)
+uv run python examples/advanced_wiring.py                       # connectors + planner + subagents
+uv run python examples/inspect_run.py                           # RunResult / JSONL inspection
+uv run mkdocs serve                                             # preview the docs site
 ```
 
-Live smoke tests require `OPENAI_API_KEY` and default to `gpt-4o-mini`; set
-`DATA_HARNESS_OPENAI_SMOKE_MODEL` to override. The advanced demo requires
-`ANTHROPIC_API_KEY`. Both may cost tokens.
+Live smoke tests run through OpenRouter: they require `OPENROUTER_API_KEY` and
+default to `openai/gpt-4o-mini`; set `DATA_HARNESS_SMOKE_MODEL` to override (e.g.
+`deepseek/deepseek-chat`). The advanced demo requires `ANTHROPIC_API_KEY`. Both
+may cost tokens.
 
 ## Architecture
 
-The core loop is `Harness` in `loop.py`. It owns the message list, dispatches tools, applies reminder hooks, filters visible tools, and logs every turn to JSONL.
+The core loop is `Harness` in `loop.py`. It owns the message list, dispatches tools, applies reminder hooks, filters visible tools, and logs every turn to JSONL. `AsyncHarness` (same module) mirrors this contract for async and streaming runs and must not drift from it.
+
+`run_result()` / `ask_result()` return a typed `RunResult` (`result.py`) carrying text, token `Usage`, and `CacheStorageInfo` — never raw payloads. The model-visible built-in tools are `python_interpreter` and `list_variables` (`tools/variables.py`); the planner, connectors, and subagent are opt-in.
 
 The harness never mutates the system prompt. Reminders, nags, final-turn warnings, tool results, and dynamic state belong in the conversation suffix.
 
@@ -121,9 +150,11 @@ The high-level class is still `Agent`, and `Harness` remains the central impleme
 
 The old strict SDK complexity budget is superseded. Use the current plan files to decide scope:
 
-- `plan/PLAN_v4.md`: deferred runtime work such as real sandboxing, async, and streaming.
-- `plan/PLAN_v5.md`: Claude-SDK-informed result/session/tool metadata refactor.
+- `plan/PLAN_v4.md`: runtime roadmap. Async (v0.2.0) and streaming (v0.3.0) have shipped; container-level sandboxing remains deferred.
+- `plan/PLAN_v5.md`: shipped — typed `RunResult`, shared turn records, `ToolAnnotations`, and session inspection.
 - `plan/PLAN_TEACHING.md`: future `learn-data-harness` teaching split after the SDK stabilises.
+
+Note: the `plan/` and `blogs/` files still use the old `dataact` package name in places. The package is `data-harness` (`data_harness`); treat `dataact` references there as historical.
 
 For connector convenience, store immutable connector definitions on `Agent` and build a fresh `ConnectorRegistry` plus fresh `ToolSpec` instances for every `run()`. Do not reset visibility on long-lived specs.
 

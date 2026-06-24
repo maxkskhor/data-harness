@@ -10,7 +10,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from data_harness.artifacts import ChartArtifact
+
 _VALID_IDENTIFIER = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+_ANSWER_UNSET = object()
 
 
 def _is_valid_identifier(name: str) -> bool:
@@ -57,6 +61,9 @@ class SessionCache:
         self._store: dict[str, Any] = {}
         self._cold: dict[str, _ColdEntry] = {}
         self._snapshots: dict[str, str] = {}
+        self._semantics: dict[str, dict] = {}
+        self._chart_handles: list[str] = []
+        self._answer: Any = _ANSWER_UNSET
         self._recency: OrderedDict[str, None] = OrderedDict()
         self._temp_dir: tempfile.TemporaryDirectory[str] | None = None
         if storage_dir is None and hot_limit is not None:
@@ -73,7 +80,14 @@ class SessionCache:
         else:
             self._storage_dir = None
 
-    def put(self, name: str, value: Any, overwrite: bool = False) -> str:
+    def put(
+        self,
+        name: str,
+        value: Any,
+        overwrite: bool = False,
+        *,
+        semantics: dict | None = None,
+    ) -> str:
         """Store a value under ``name`` and return the handle actually used.
 
         If ``name`` is already taken and ``overwrite`` is ``False``, a numeric
@@ -85,6 +99,8 @@ class SessionCache:
             value: Any Python object. DataFrames and NumPy arrays get
                 specialised snapshot and spill formats.
             overwrite: Replace the existing handle if ``True``.
+            semantics: Optional business/domain context (e.g. column
+                descriptions or units) folded into the snapshot the model sees.
 
         Returns:
             The handle name under which the value was stored.
@@ -99,14 +115,14 @@ class SessionCache:
         if overwrite or not self.has_handle(name):
             if overwrite:
                 self._delete_cold(name)
-            self._put_resolved(name, value)
+            self._put_resolved(name, value, semantics)
             return name
         # Auto-suffix on collision
         suffix = 2
         while True:
             candidate = f"{name}_{suffix}"
             if not self.has_handle(candidate):
-                self._put_resolved(candidate, value)
+                self._put_resolved(candidate, value, semantics)
                 return candidate
             suffix += 1
 
@@ -201,7 +217,10 @@ class SessionCache:
         self._store.pop(name, None)
         self._delete_cold(name)
         self._snapshots.pop(name, None)
+        self._semantics.pop(name, None)
         self._recency.pop(name, None)
+        if name in self._chart_handles:
+            self._chart_handles.remove(name)
 
     def close(self) -> None:
         """Release the temporary storage directory, if one was created."""
@@ -212,11 +231,66 @@ class SessionCache:
     def __del__(self) -> None:
         self.close()
 
-    def _put_resolved(self, name: str, value: Any) -> None:
+    def _put_resolved(
+        self, name: str, value: Any, semantics: dict | None = None
+    ) -> None:
         self._store[name] = value
-        self._snapshots[name] = self._make_snapshot(value)
+        if semantics is not None:
+            self._semantics[name] = semantics
+        if isinstance(value, ChartArtifact):
+            value.handle = name
+            if name not in self._chart_handles:
+                self._chart_handles.append(name)
+        self._snapshots[name] = self._make_snapshot(value, self._semantics.get(name))
         self._mark_recent(name)
         self._enforce_hot_limit()
+
+    # --- Answer slot --------------------------------------------------------
+    def set_answer(self, value: Any) -> None:
+        """Record the designated final answer for the current run."""
+        self._answer = value
+
+    def get_answer(self) -> Any:
+        """Return the recorded answer, or ``None`` if none was set."""
+        return None if self._answer is _ANSWER_UNSET else self._answer
+
+    @property
+    def has_answer(self) -> bool:
+        return self._answer is not _ANSWER_UNSET
+
+    def clear_answer(self) -> None:
+        self._answer = _ANSWER_UNSET
+
+    # --- Charts -------------------------------------------------------------
+    def list_charts(self) -> list[ChartArtifact]:
+        """Return all `ChartArtifact` handles still present in the cache."""
+        charts = []
+        for name in self._chart_handles:
+            if self.has_handle(name):
+                value = self.get(name)
+                if isinstance(value, ChartArtifact):
+                    charts.append(value)
+        return charts
+
+    # --- Semantics ----------------------------------------------------------
+    def describe(self, name: str, semantics: dict) -> None:
+        """Attach or update semantic context for an existing handle.
+
+        Args:
+            name: An existing handle.
+            semantics: Domain context folded into the handle's snapshot.
+
+        Raises:
+            KeyError: If no handle with ``name`` exists.
+        """
+        if not self.has_handle(name):
+            raise KeyError(name)
+        self._semantics[name] = semantics
+        self._snapshots[name] = self._make_snapshot(self.get(name), semantics)
+
+    def get_semantics(self, name: str) -> dict | None:
+        """Return the semantic context attached to ``name``, if any."""
+        return self._semantics.get(name)
 
     def _mark_recent(self, name: str) -> None:
         self._recency[name] = None
@@ -307,12 +381,15 @@ class SessionCache:
             except FileNotFoundError:
                 pass
 
-    def _make_snapshot(self, value: Any) -> str:
+    def _make_snapshot(self, value: Any, semantics: dict | None = None) -> str:
+        if isinstance(value, ChartArtifact):
+            return value.snapshot()
+
         try:
             import pandas as pd
 
             if isinstance(value, pd.DataFrame):
-                return self._snapshot_dataframe(value)
+                return self._with_semantics(self._snapshot_dataframe(value), semantics)
         except ImportError:
             pass
 
@@ -320,16 +397,30 @@ class SessionCache:
             import numpy as np
 
             if isinstance(value, np.ndarray):
-                return self._snapshot_ndarray(value)
+                return self._with_semantics(self._snapshot_ndarray(value), semantics)
         except ImportError:
             pass
 
         if isinstance(value, list):
-            return self._snapshot_list(value)
+            return self._with_semantics(self._snapshot_list(value), semantics)
         if isinstance(value, dict):
-            return self._snapshot_dict(value)
+            return self._with_semantics(self._snapshot_dict(value), semantics)
         # Scalar
-        return f"value: {value!r}"
+        scalar = f"value: {value!r}"
+        if semantics:
+            return f"{scalar} | semantics: {json.dumps(semantics, default=str)}"
+        return scalar
+
+    @staticmethod
+    def _with_semantics(snapshot: str, semantics: dict | None) -> str:
+        if not semantics:
+            return snapshot
+        try:
+            obj = json.loads(snapshot)
+            obj["semantics"] = semantics
+            return json.dumps(obj, default=str)
+        except (ValueError, TypeError):
+            return f"{snapshot} | semantics: {json.dumps(semantics, default=str)}"
 
     def _snapshot_dataframe(self, df) -> str:
         cols = list(df.columns)
