@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 DEFAULT_OPENROUTER_MODEL = "openai/gpt-4o-mini"
+DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
 
 _DEFAULT_SYSTEM = (
     "You are a senior data analyst. You answer questions about the user's data "
@@ -53,9 +54,10 @@ def resolve_adapter(model: str | None = None) -> ProviderAdapter:
     """Resolve a `ProviderAdapter` from an explicit model or the environment.
 
     With no ``model``, prefers ``ANTHROPIC_API_KEY``, then ``OPENAI_API_KEY``,
-    then ``OPENROUTER_API_KEY``. With a ``model``, routes by name: a
-    ``provider/model`` id (containing ``/``) goes to OpenRouter, ``gpt*``/``o*``
-    to OpenAI, otherwise Anthropic.
+    then ``OPENROUTER_API_KEY``, then ``DEEPSEEK_API_KEY``. With a ``model``,
+    routes by name: a ``provider/model`` id (containing ``/``) goes to OpenRouter,
+    ``deepseek*`` to DeepSeek's direct API, ``gpt*``/``o*`` to OpenAI, otherwise
+    Anthropic.
 
     Raises:
         RuntimeError: If no provider can be resolved (no key, no model).
@@ -63,6 +65,8 @@ def resolve_adapter(model: str | None = None) -> ProviderAdapter:
     if model is not None:
         if "/" in model:
             return _make_openrouter(model)
+        if model.startswith("deepseek"):
+            return _make_deepseek(model)
         if _is_openai_model(model):
             return _make_openai(model)
         from data_harness.providers.anthropic import AnthropicAdapter
@@ -77,11 +81,13 @@ def resolve_adapter(model: str | None = None) -> ProviderAdapter:
         return _make_openai(DEFAULT_OPENAI_MODEL)
     if os.environ.get("OPENROUTER_API_KEY"):
         return _make_openrouter(DEFAULT_OPENROUTER_MODEL)
+    if os.environ.get("DEEPSEEK_API_KEY"):
+        return _make_deepseek(DEFAULT_DEEPSEEK_MODEL)
 
     raise RuntimeError(
-        "No provider configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or "
-        "OPENROUTER_API_KEY, or pass an explicit adapter=... / model=... to "
-        "ask()/Chat()."
+        "No provider configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, "
+        "OPENROUTER_API_KEY, or DEEPSEEK_API_KEY, or pass an explicit "
+        "adapter=... / model=... to ask()/Chat()."
     )
 
 
@@ -105,6 +111,17 @@ def _make_openrouter(model: str) -> ProviderAdapter:
             "'data-harness[openai]'."
         ) from exc
     return OpenRouterAdapter(model=model)
+
+
+def _make_deepseek(model: str) -> ProviderAdapter:
+    try:
+        from data_harness.providers.openai import DeepSeekAdapter
+    except ImportError as exc:  # pragma: no cover - exercised via install matrix
+        raise RuntimeError(
+            "DeepSeek support requires the 'openai' extra: pip install "
+            "'data-harness[openai]'."
+        ) from exc
+    return DeepSeekAdapter(model=model)
 
 
 def _build_agent(

@@ -30,11 +30,16 @@ more behind one OpenAI-compatible endpoint — ideal for cross-model testing. Se
 ```python
 ask(df, "summarise the data", model="anthropic/claude-3.5-sonnet")
 ask(df, "summarise the data", model="google/gemini-2.0-flash-001")
+ask(df, "summarise the data", model="deepseek/deepseek-chat")  # cheap
 
 # or construct it directly:
 from data_harness.providers.openai import OpenRouterAdapter
 ask(df, "...", adapter=OpenRouterAdapter(model="openai/gpt-4o-mini"))
 ```
+
+DeepSeek's own (very cheap) API works directly too — set `DEEPSEEK_API_KEY` and
+use a bare `model="deepseek-chat"` (or `DeepSeekAdapter`). A `deepseek/...` id
+with a slash routes via OpenRouter instead.
 
 ## Structured answers
 

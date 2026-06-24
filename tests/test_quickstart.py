@@ -86,6 +86,32 @@ def test_openrouter_adapter_uses_env_key(monkeypatch):
     assert adapter._client.api_key == "router-secret"
 
 
+def test_resolve_adapter_routes_deepseek_direct(monkeypatch):
+    from data_harness.providers.openai import DEEPSEEK_BASE_URL, DeepSeekAdapter
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "ds-key")
+    adapter = resolve_adapter("deepseek-chat")
+    assert isinstance(adapter, DeepSeekAdapter)
+    assert str(adapter._client.base_url).rstrip("/") == DEEPSEEK_BASE_URL
+
+
+def test_resolve_adapter_deepseek_slash_goes_to_openrouter(monkeypatch):
+    from data_harness.providers.openai import OpenRouterAdapter
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    # a slash means OpenRouter, even for deepseek
+    assert isinstance(resolve_adapter("deepseek/deepseek-chat"), OpenRouterAdapter)
+
+
+def test_resolve_adapter_falls_back_to_deepseek(monkeypatch):
+    from data_harness.providers.openai import DeepSeekAdapter
+
+    for var in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "ds-key")
+    assert isinstance(resolve_adapter(), DeepSeekAdapter)
+
+
 # --- ask() -----------------------------------------------------------------
 def test_ask_returns_structured_value(tmp_path):
     code = "total = int(df['revenue'].sum())\nanswer(total)"

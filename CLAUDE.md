@@ -27,7 +27,7 @@ Do not erase the core harness invariants. `data-harness` can become a framework,
 A snapshot so agents stop re-proposing work that already exists. Confirm against the code before relying on it.
 
 - Entry points: `ask(df, "...")` one-liner, `Chat` / `SmartFrame`, `Agent.from_dataframe` / `from_csv`, `resolve_adapter` (env-based provider resolution), and a `%%ask` notebook magic (`data_harness/notebook.py`, `data_harness/pandas.py`).
-- Providers: `AnthropicAdapter`, `OpenAIAdapter` (now accepts `base_url`/`api_key`), and `OpenRouterAdapter` (OpenAI-compatible, `provider/model` ids, `OPENROUTER_API_KEY`) — all behind `ProviderAdapter` / `AsyncProviderAdapter`. `resolve_adapter` routes `provider/model` ids to OpenRouter.
+- Providers: `AnthropicAdapter`, `OpenAIAdapter` (now accepts `base_url`/`api_key`), `OpenRouterAdapter` (OpenAI-compatible, `provider/model` ids, `OPENROUTER_API_KEY`), and `DeepSeekAdapter` (direct, `deepseek-*` ids, `DEEPSEEK_API_KEY`) — all behind `ProviderAdapter` / `AsyncProviderAdapter`. `resolve_adapter` routes `provider/model` ids to OpenRouter and `deepseek-*` to DeepSeek direct.
 - Sync and async: `Agent` / `Harness` and `AsyncAgent` / `AsyncHarness`.
 - Streaming: `run_stream()` / `ask_stream()` with the SSE event types in `streaming.py`.
 - Multi-turn: `AgentSession` / `AsyncAgentSession` over a shared cache and history.
@@ -80,9 +80,10 @@ uv run python examples/inspect_run.py                           # RunResult / JS
 uv run mkdocs serve                                             # preview the docs site
 ```
 
-Live smoke tests require `OPENAI_API_KEY` and default to `gpt-4o-mini`; set
-`DATA_HARNESS_OPENAI_SMOKE_MODEL` to override. The advanced demo requires
-`ANTHROPIC_API_KEY`. Both may cost tokens.
+Live smoke tests run through OpenRouter: they require `OPENROUTER_API_KEY` and
+default to `openai/gpt-4o-mini`; set `DATA_HARNESS_SMOKE_MODEL` to override (e.g.
+`deepseek/deepseek-chat`). The advanced demo requires `ANTHROPIC_API_KEY`. Both
+may cost tokens.
 
 ## Architecture
 

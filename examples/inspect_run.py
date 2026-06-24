@@ -11,7 +11,7 @@ adapter = FakeAdapter([FakeAdapter.text("The mean of [1, 2, 3] is 2.0")])
 agent = Agent(
     adapter=adapter,
     system="You are a helpful data assistant.",
-    run_dir="/tmp/dataact-inspect-run-example",
+    run_dir="/tmp/data-harness-inspect-run-example",
 )
 
 result: RunResult = agent.run_result("What is the mean of [1, 2, 3]?")

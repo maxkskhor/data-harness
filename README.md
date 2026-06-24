@@ -50,7 +50,10 @@ Or reach many providers through one key with [OpenRouter](https://openrouter.ai)
 ```python
 ask(df, "summarise the data", model="anthropic/claude-3.5-sonnet")  # via OpenRouter
 ask(df, "summarise the data", model="google/gemini-2.0-flash-001")
+ask(df, "summarise the data", model="deepseek/deepseek-chat")       # cheap
 ```
+
+DeepSeek's own (very cheap) API is also supported directly — set `DEEPSEEK_API_KEY` and use a bare `model="deepseek-chat"`.
 
 In a notebook, the returned `RunResult` renders prose, the computed value, and charts inline. There's also a `%%ask` magic (`%load_ext data_harness.notebook`).
 
@@ -226,7 +229,7 @@ See [`examples/demo.ipynb`](examples/demo.ipynb) for an executed notebook coveri
 
 ```bash
 uv run python -m pytest tests/ -v
-uv run python -m pytest tests/smoke_tests.py -m live -v  # requires OPENAI_API_KEY
+uv run python -m pytest tests/smoke_tests.py -m live -v  # requires OPENROUTER_API_KEY
 ```
 
 ---
@@ -241,7 +244,7 @@ The Python interpreter uses AST checks and restricted globals to reduce accident
 
 ### 0.5.0
 - **Entry points:** `ask(df, "...")` one-liner, `Chat`/`SmartFrame`, zero-config provider resolution, `Agent.from_dataframe` / `from_csv`, and a `%%ask` notebook magic
-- **OpenRouter:** `OpenRouterAdapter` + `OpenAIAdapter(base_url=...)`; `provider/model` ids (e.g. `anthropic/claude-3.5-sonnet`) auto-route to OpenRouter, and `OPENROUTER_API_KEY` is picked up automatically — one key for many providers
+- **OpenRouter & DeepSeek:** `OpenRouterAdapter` + `OpenAIAdapter(base_url=...)`; `provider/model` ids (e.g. `anthropic/claude-3.5-sonnet`) auto-route to OpenRouter, `deepseek-*` ids to DeepSeek's direct API, with `OPENROUTER_API_KEY` / `DEEPSEEK_API_KEY` picked up automatically — one key for many providers
 - **Charts:** matplotlib in the interpreter; open figures captured as `ChartArtifact` handles (bytes stay out of messages/logs); `RunResult.charts` + rich Jupyter display
 - **Structured results:** `answer(value)` interpreter helper → `RunResult.value`
 - **SQL:** `sql_query` tool (DuckDB in-process over cached frames, or a SQLAlchemy URL); `Agent.enable_sql`

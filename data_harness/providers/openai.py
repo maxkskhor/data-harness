@@ -21,6 +21,7 @@ from data_harness.types import (
 )
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 _STOP_REASON_MAP = {
     "stop": StopReason.END_TURN,
@@ -234,4 +235,47 @@ class AsyncOpenRouterAdapter(AsyncOpenAIAdapter):
             max_tokens=max_tokens,
             base_url=base_url,
             api_key=api_key or os.environ.get("OPENROUTER_API_KEY"),
+        )
+
+
+class DeepSeekAdapter(OpenAIAdapter):
+    """OpenAI-compatible adapter for DeepSeek's (very cheap) direct API.
+
+    Models: ``deepseek-chat`` and ``deepseek-reasoner``. The API key defaults to
+    the ``DEEPSEEK_API_KEY`` environment variable. DeepSeek is also reachable via
+    OpenRouter as ``deepseek/deepseek-chat`` if you prefer a single key.
+    """
+
+    def __init__(
+        self,
+        model: str = "deepseek-chat",
+        max_tokens: int = 4096,
+        *,
+        api_key: str | None = None,
+        base_url: str = DEEPSEEK_BASE_URL,
+    ) -> None:
+        super().__init__(
+            model=model,
+            max_tokens=max_tokens,
+            base_url=base_url,
+            api_key=api_key or os.environ.get("DEEPSEEK_API_KEY"),
+        )
+
+
+class AsyncDeepSeekAdapter(AsyncOpenAIAdapter):
+    """Async OpenAI-compatible adapter for DeepSeek's direct API."""
+
+    def __init__(
+        self,
+        model: str = "deepseek-chat",
+        max_tokens: int = 4096,
+        *,
+        api_key: str | None = None,
+        base_url: str = DEEPSEEK_BASE_URL,
+    ) -> None:
+        super().__init__(
+            model=model,
+            max_tokens=max_tokens,
+            base_url=base_url,
+            api_key=api_key or os.environ.get("DEEPSEEK_API_KEY"),
         )
