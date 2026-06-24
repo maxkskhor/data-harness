@@ -124,6 +124,25 @@ preview = Agent.from_dataframe(df, code_only=True)   # dry-run: never executes
 
 ---
 
+## Evaluation
+
+Measure how well an agent answers real data questions — across models, with
+programmatic grading that leans on the structured `.value`:
+
+```python
+from data_harness.eval import bespoke_suite, evaluate_matrix
+
+report = evaluate_matrix(
+    bespoke_suite(),
+    ["openai/gpt-4o-mini", "anthropic/claude-haiku-4.5", "deepseek/deepseek-chat"],
+)
+print(report.leaderboard())   # accuracy / tokens / turns per model
+```
+
+Built-in graders (`numeric`, `contains`, `dataframe_equals`, `chart_produced`, `refuses`, …), a `bespoke_suite()`, and a public-benchmark loader (`load_wikitablequestions`, via the `[eval]` extra). See the [Evaluation guide](https://maxkskhor.github.io/data-harness/guide/evaluation/).
+
+---
+
 ## Lower-level `Agent` and `Harness`
 
 `ask`/`Chat` are conveniences over `Agent`, which is itself a thin layer over `Harness`. Drop down when you want full control:
@@ -219,6 +238,9 @@ uv run python examples/live_demo.py
 
 # Code-replay cache benchmark (no API key, deterministic)
 uv run python examples/cache_benchmark.py
+
+# Multi-model evaluation leaderboard (requires OPENROUTER_API_KEY)
+uv run python examples/eval_demo.py
 ```
 
 See [`examples/demo.ipynb`](examples/demo.ipynb) for an executed notebook covering all the v0.5 features.
@@ -241,6 +263,11 @@ The Python interpreter uses AST checks and restricted globals to reduce accident
 ---
 
 ## Changelog
+
+### 0.6.0
+- **Evaluation harness (`data_harness.eval`):** define `EvalCase`s with programmatic graders (`numeric`, `contains`, `exact`, `dataframe_equals`, `chart_produced`, `refuses`, `all_of`/`any_of`), run with `evaluate` / `evaluate_matrix`, and read an `EvalReport` (accuracy, leaderboard, per-category, failures)
+- Grading leans on the structured `RunResult.value`; the model matrix runs across providers via OpenRouter
+- Built-in `bespoke_suite()` plus a public-benchmark loader `load_wikitablequestions()` (`[eval]` extra)
 
 ### 0.5.0
 - **Entry points:** `ask(df, "...")` one-liner, `Chat`/`SmartFrame`, zero-config provider resolution, `Agent.from_dataframe` / `from_csv`, and a `%%ask` notebook magic
