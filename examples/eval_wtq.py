@@ -28,7 +28,6 @@ from data_harness.eval import (
 DEFAULT_MODELS = [
     "deepseek/deepseek-v4-flash",
     "qwen/qwen3.5-flash-02-23",
-    "openai/gpt-4o-mini",
     "anthropic/claude-haiku-4.5",
 ]
 
@@ -55,7 +54,8 @@ def main() -> None:
     print("\n" + report.to_markdown(prices))
 
     out = args.out or (
-        Path(args.run_dir) / f"wtq_{dt.datetime.now().strftime('%Y%m%dT%H%M%S')}.json"
+        Path("evals/results")
+        / f"wtq_{dt.datetime.now().strftime('%Y%m%dt%H%M%S')}.json"
     )
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     payload = {

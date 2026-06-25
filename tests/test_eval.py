@@ -222,6 +222,38 @@ def test_evalcase_identity_equality_with_dataframes():
     assert a in [a]  # membership uses identity, does not raise
 
 
+def test_hard_suite_well_formed():
+    from data_harness.eval import ConversationCase, hard_suite
+
+    cases = hard_suite()
+    assert any(isinstance(c, ConversationCase) for c in cases)
+    assert any(isinstance(c, EvalCase) for c in cases)
+    cats = {c.category for c in cases}
+    assert {"join", "multi_step", "stateful"} <= cats
+
+
+def test_conversation_case_runs_multiturn(tmp_path):
+    from data_harness.eval import ConversationCase, Turn
+
+    adapter = FakeAdapter(
+        [
+            FakeAdapter.tool_use("a", "python_interpreter", {"code": "answer(5)"}),
+            FakeAdapter.text("five"),
+            FakeAdapter.tool_use("b", "python_interpreter", {"code": "answer(10)"}),
+            FakeAdapter.text("ten"),
+        ]
+    )
+    conv = ConversationCase(
+        "c",
+        pd.DataFrame({"a": [1, 2]}),
+        [Turn("first?", numeric(5)), Turn("second?", numeric(10))],
+    )
+    report = evaluate([conv], adapter=adapter, run_dir=str(tmp_path))
+    assert [r.case_id for r in report.results] == ["c#t1", "c#t2"]
+    assert all(r.passed for r in report.results)
+    assert report.accuracy() == 1.0
+
+
 def test_wtq_row_to_case():
     row = {
         "question": "Which country has the most golds?",

@@ -264,6 +264,13 @@ The Python interpreter uses AST checks and restricted globals to reduce accident
 
 ## Changelog
 
+### 0.9.0
+- **Revamped eval suite to stretch the design:** a new `hard_suite()` with multi-table joins, deep multi-step reasoning, and **stateful multi-turn conversations**
+- **Multi-turn eval primitive:** `ConversationCase` + `Turn` run graded turns over one `Chat` session, testing `SessionCache` persistence across turns (what single-shot benchmarks can't)
+- **Tracked results in-repo:** example runners write timestamped JSON to a committed `evals/results/` directory (diffable over time); `runs/` stays gitignored
+- Dropped `gpt-4o-mini` from eval lineups (too old for a meaningful comparison); defaults are recent models only
+- Expanded the [Evaluation guide](https://maxkskhor.github.io/data-harness/guide/evaluation/) with a full explanation of the suite
+
 ### 0.8.0
 - **WikiTableQuestions as a tracked metric:** `load_wikitablequestions()` now uses the parquet-native `lighteval/wikitablequestions` mirror (the old script-based dataset no longer loads); a harder public benchmark that differentiates models the bespoke suite saturates
 - **Machine-readable reports:** `EvalReport.to_dict()` / `to_json()` (accuracy, per-model/per-category, cost, every case result) for tracking results over time
