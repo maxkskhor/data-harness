@@ -24,3 +24,6 @@ blogs/
 artifact-*.html
 smoke_results/
 site/
+
+# Claude Code skills (local)
+.agents/

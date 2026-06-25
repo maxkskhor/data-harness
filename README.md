@@ -1,6 +1,6 @@
-<h1 align="center">data-harness</h1>
-
-<p align="center"><strong>The controlled data-agent SDK.</strong></p>
+<p align="center">
+<img src="docs/assets/data-harness-full.png" alt="data-harness — The controlled data-agent SDK" width="460">
+</p>
 
 <p align="center">
 Python, not bash. Large data stays in a cache as handles, never in the prompt.<br/>
