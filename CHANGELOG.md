@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.11.0
+- **Messy-data eval suite** (`messy_suite()`): real-world cleaning — amounts as strings with `$`/separators, dates in several formats, inconsistent country labels, missing values — the kind of friction that actually differentiates models. Ground truth computed in-suite by a reference cleaner. `eval_demo --suite messy`.
+- **README**: centered hero (deepagents-style) and a static `python 3.10+` badge (the dynamic `pyversions` badge showed "missing" with no trove classifiers); added Python/license trove classifiers to package metadata.
+
 ### 0.10.0
 - **Large-data eval suite** (`large_data_suite()`): ~100k-row frames answerable only via the cache **handle**, plus a **snapshot trap** that fails any model reading the sample rows instead of computing over the full data — directly stresses the handle/snapshot design
 - **Cheaper, more diverse default lineup:** dropped `claude-haiku-4.5` (far pricier than comparable open models) and standardised on recent models across five providers — DeepSeek, Qwen, OpenAI (`gpt-5-nano`), Google (`gemini-2.5-flash-lite`), Z.ai (`glm-4.7-flash`)

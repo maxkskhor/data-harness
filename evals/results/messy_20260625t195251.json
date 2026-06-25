@@ -1,0 +1,349 @@
+{
+  "suite": "messy",
+  "models": [
+    "deepseek/deepseek-v4-flash",
+    "qwen/qwen3.5-flash-02-23",
+    "openai/gpt-5-nano",
+    "google/gemini-2.5-flash-lite",
+    "z-ai/glm-4.7-flash"
+  ],
+  "generated_at": "2026-06-25T18:52:51.908235+00:00",
+  "report": {
+    "n_runs": 20,
+    "accuracy": 0.9,
+    "models": {
+      "deepseek/deepseek-v4-flash": {
+        "accuracy": 1.0,
+        "passed": 4,
+        "total": 4,
+        "avg_turns": 6.25,
+        "tokens": 60797,
+        "cost_usd": 0.00597141
+      },
+      "qwen/qwen3.5-flash-02-23": {
+        "accuracy": 1.0,
+        "passed": 4,
+        "total": 4,
+        "avg_turns": 6.5,
+        "tokens": 86386,
+        "cost_usd": 0.006804005000000001
+      },
+      "openai/gpt-5-nano": {
+        "accuracy": 1.0,
+        "passed": 4,
+        "total": 4,
+        "avg_turns": 2.75,
+        "tokens": 28951,
+        "cost_usd": 0.00636295
+      },
+      "google/gemini-2.5-flash-lite": {
+        "accuracy": 0.75,
+        "passed": 3,
+        "total": 4,
+        "avg_turns": 3.0,
+        "tokens": 14769,
+        "cost_usd": 0.0019533
+      },
+      "z-ai/glm-4.7-flash": {
+        "accuracy": 0.75,
+        "passed": 3,
+        "total": 4,
+        "avg_turns": 6.5,
+        "tokens": 61758,
+        "cost_usd": 0.00511818
+      }
+    },
+    "by_category": {
+      "messy_parse": {
+        "deepseek/deepseek-v4-flash": 1.0,
+        "qwen/qwen3.5-flash-02-23": 1.0,
+        "openai/gpt-5-nano": 1.0,
+        "google/gemini-2.5-flash-lite": 1.0,
+        "z-ai/glm-4.7-flash": 1.0
+      },
+      "messy_normalise": {
+        "deepseek/deepseek-v4-flash": 1.0,
+        "qwen/qwen3.5-flash-02-23": 1.0,
+        "openai/gpt-5-nano": 1.0,
+        "google/gemini-2.5-flash-lite": 0.0,
+        "z-ai/glm-4.7-flash": 1.0
+      },
+      "messy_multi_step": {
+        "deepseek/deepseek-v4-flash": 1.0,
+        "qwen/qwen3.5-flash-02-23": 1.0,
+        "openai/gpt-5-nano": 1.0,
+        "google/gemini-2.5-flash-lite": 1.0,
+        "z-ai/glm-4.7-flash": 0.0
+      },
+      "messy_dates": {
+        "deepseek/deepseek-v4-flash": 1.0,
+        "qwen/qwen3.5-flash-02-23": 1.0,
+        "openai/gpt-5-nano": 1.0,
+        "google/gemini-2.5-flash-lite": 1.0,
+        "z-ai/glm-4.7-flash": 1.0
+      }
+    },
+    "results": [
+      {
+        "case_id": "messy_total",
+        "category": "messy_parse",
+        "model": "deepseek/deepseek-v4-flash",
+        "passed": true,
+        "detail": "value=8050.5",
+        "turns": 5,
+        "input_tokens": 9913,
+        "output_tokens": 1104,
+        "latency_ms": 12036.766082979739,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_count",
+        "category": "messy_normalise",
+        "model": "deepseek/deepseek-v4-flash",
+        "passed": true,
+        "detail": "text\u22486.0",
+        "turns": 5,
+        "input_tokens": 7461,
+        "output_tokens": 574,
+        "latency_ms": 9008.143124985509,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_total",
+        "category": "messy_multi_step",
+        "model": "deepseek/deepseek-v4-flash",
+        "passed": true,
+        "detail": "value=6700.5",
+        "turns": 9,
+        "input_tokens": 24966,
+        "output_tokens": 2045,
+        "latency_ms": 22631.366957968567,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_q1_count",
+        "category": "messy_dates",
+        "model": "deepseek/deepseek-v4-flash",
+        "passed": true,
+        "detail": "value=8",
+        "turns": 6,
+        "input_tokens": 12905,
+        "output_tokens": 1829,
+        "latency_ms": 18188.392249983735,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_total",
+        "category": "messy_parse",
+        "model": "qwen/qwen3.5-flash-02-23",
+        "passed": true,
+        "detail": "value=8050.5",
+        "turns": 14,
+        "input_tokens": 54369,
+        "output_tokens": 3131,
+        "latency_ms": 27329.151541984174,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_count",
+        "category": "messy_normalise",
+        "model": "qwen/qwen3.5-flash-02-23",
+        "passed": true,
+        "detail": "value=6",
+        "turns": 3,
+        "input_tokens": 4936,
+        "output_tokens": 679,
+        "latency_ms": 6194.457624980714,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_total",
+        "category": "messy_multi_step",
+        "model": "qwen/qwen3.5-flash-02-23",
+        "passed": true,
+        "detail": "value=6700.5",
+        "turns": 3,
+        "input_tokens": 5769,
+        "output_tokens": 870,
+        "latency_ms": 7861.507583002094,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_q1_count",
+        "category": "messy_dates",
+        "model": "qwen/qwen3.5-flash-02-23",
+        "passed": true,
+        "detail": "value=8",
+        "turns": 6,
+        "input_tokens": 15215,
+        "output_tokens": 1417,
+        "latency_ms": 12313.585875032004,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_total",
+        "category": "messy_parse",
+        "model": "openai/gpt-5-nano",
+        "passed": true,
+        "detail": "value=8050.5",
+        "turns": 5,
+        "input_tokens": 7998,
+        "output_tokens": 5035,
+        "latency_ms": 52434.083833999466,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_count",
+        "category": "messy_normalise",
+        "model": "openai/gpt-5-nano",
+        "passed": true,
+        "detail": "value=6",
+        "turns": 2,
+        "input_tokens": 2303,
+        "output_tokens": 2922,
+        "latency_ms": 31841.953499999363,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_total",
+        "category": "messy_multi_step",
+        "model": "openai/gpt-5-nano",
+        "passed": true,
+        "detail": "value=6700.5",
+        "turns": 2,
+        "input_tokens": 2431,
+        "output_tokens": 3310,
+        "latency_ms": 38511.84716599528,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_q1_count",
+        "category": "messy_dates",
+        "model": "openai/gpt-5-nano",
+        "passed": true,
+        "detail": "value=8",
+        "turns": 2,
+        "input_tokens": 2175,
+        "output_tokens": 2777,
+        "latency_ms": 29896.77925000433,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_total",
+        "category": "messy_parse",
+        "model": "google/gemini-2.5-flash-lite",
+        "passed": true,
+        "detail": "value=8050.5",
+        "turns": 4,
+        "input_tokens": 3767,
+        "output_tokens": 408,
+        "latency_ms": 10781.36587498011,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_count",
+        "category": "messy_normalise",
+        "model": "google/gemini-2.5-flash-lite",
+        "passed": false,
+        "detail": "expected 6 (\u00b11e-06); value=None text='In order to count the number of transactions from the United States, I need to k'",
+        "turns": 1,
+        "input_tokens": 1070,
+        "output_tokens": 32,
+        "latency_ms": 895.654583000578,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_total",
+        "category": "messy_multi_step",
+        "model": "google/gemini-2.5-flash-lite",
+        "passed": true,
+        "detail": "value=6700.5",
+        "turns": 4,
+        "input_tokens": 3332,
+        "output_tokens": 684,
+        "latency_ms": 3679.567000013776,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_q1_count",
+        "category": "messy_dates",
+        "model": "google/gemini-2.5-flash-lite",
+        "passed": true,
+        "detail": "value=8",
+        "turns": 3,
+        "input_tokens": 5012,
+        "output_tokens": 464,
+        "latency_ms": 2266.052082995884,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_total",
+        "category": "messy_parse",
+        "model": "z-ai/glm-4.7-flash",
+        "passed": true,
+        "detail": "text\u22488050.5",
+        "turns": 8,
+        "input_tokens": 16288,
+        "output_tokens": 1256,
+        "latency_ms": 172485.94879097072,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_count",
+        "category": "messy_normalise",
+        "model": "z-ai/glm-4.7-flash",
+        "passed": true,
+        "detail": "value=6",
+        "turns": 6,
+        "input_tokens": 10451,
+        "output_tokens": 1130,
+        "latency_ms": 44119.250916992314,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_us_total",
+        "category": "messy_multi_step",
+        "model": "z-ai/glm-4.7-flash",
+        "passed": false,
+        "detail": "expected 6700.5 (\u00b10.5); value=3700.5 text=''",
+        "turns": 8,
+        "input_tokens": 25523,
+        "output_tokens": 1337,
+        "latency_ms": 43374.72420796985,
+        "status": "success",
+        "error": null
+      },
+      {
+        "case_id": "messy_q1_count",
+        "category": "messy_dates",
+        "model": "z-ai/glm-4.7-flash",
+        "passed": true,
+        "detail": "value=8",
+        "turns": 4,
+        "input_tokens": 5341,
+        "output_tokens": 432,
+        "latency_ms": 38885.27987501584,
+        "status": "success",
+        "error": null
+      }
+    ]
+  }
+}

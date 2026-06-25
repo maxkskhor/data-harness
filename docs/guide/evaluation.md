@@ -25,6 +25,7 @@ the three axes where the design earns its keep:
 | `bespoke_suite()` | single-shot aggregation/filter/chart/refusal | quick smoke; capable models saturate it |
 | `hard_suite()` | multi-table joins, deep multi-step, **stateful multi-turn** | exercises the agent loop + `SessionCache` |
 | `large_data_suite()` | large frames that can only be answered via the **handle** (incl. a snapshot trap) | stresses the handle/snapshot design |
+| `messy_suite()` | real-world cleaning: string amounts, mixed date formats, inconsistent labels, missing values | **differentiates models** (cleaning is where they diverge) |
 | `load_wikitablequestions(...)` | public table-QA over real Wikipedia tables | external credibility; needs the `[eval]` extra |
 
 ```python

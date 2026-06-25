@@ -28,6 +28,7 @@ from data_harness.eval import (
     fetch_openrouter_prices,
     hard_suite,
     large_data_suite,
+    messy_suite,
 )
 
 # Recent, cheap, capable models across diverse providers. (Dropped gpt-4o-mini —
@@ -41,7 +42,12 @@ DEFAULT_MODELS = [
     "z-ai/glm-4.7-flash",  # Z.ai
 ]
 
-SUITES = {"hard": hard_suite, "bespoke": bespoke_suite, "large": large_data_suite}
+SUITES = {
+    "hard": hard_suite,
+    "bespoke": bespoke_suite,
+    "large": large_data_suite,
+    "messy": messy_suite,
+}
 
 
 def main() -> None:
