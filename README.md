@@ -162,6 +162,8 @@ print(report.to_markdown(fetch_openrouter_prices(models)))  # accuracy / turns /
 - **Graders** — `numeric`, `contains`, `exact`, `dataframe_equals`, `chart_produced`, `refuses`, `all_of`/`any_of`.
 - **Reporting** — leaderboards with per-model **cost**, per-category breakdowns, and `to_dict()`/`to_json()` for results tracked in `evals/results/`.
 
+Results are committed as readable leaderboards — see [`evals/results/SUMMARY.md`](evals/results/SUMMARY.md) (a table per suite: accuracy, turns, tokens, cost).
+
 What the runs show: the structured/large/stateful suites **saturate at ~100% across recent models** — i.e. the *design* is robust (even small, cheap models handle 100k-row data via the handle for ~$0.002 and pass the snapshot trap). Model *differentiation* shows up on messy real-world data — WikiTableQuestions spreads recent models **64%→96%**. See the [Evaluation guide](https://maxkskhor.github.io/data-harness/guide/evaluation/).
 
 ---

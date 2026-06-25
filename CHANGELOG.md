@@ -3,6 +3,7 @@
 ### 0.12.0
 - **CLI:** a console command installed as **`dh`** (short) and `data-harness` — `dh "question" data.csv` (multiple files, or pipe CSV via stdin), with `--model`, `--no-sql`, `--json`, `--run-dir`
 - **Streamlit demo app** (`examples/streamlit_app.py`, `[demo]` extra): upload a CSV, ask, see the answer + structured value + charts inline (charts passed as bytes so they always render)
+- **Readable eval results:** each run now writes a human-readable `.md` leaderboard alongside the `.json`, and a committed `evals/results/SUMMARY.md` aggregates all results into one table per suite (`data_harness.eval.write_summary` / `python -m data_harness.eval.summary`)
 
 ### 0.11.0
 - **Messy-data eval suite** (`messy_suite()`): real-world cleaning — amounts as strings with `$`/separators, dates in several formats, inconsistent country labels, missing values — the kind of friction that actually differentiates models. Ground truth computed in-suite by a reference cleaner. `eval_demo --suite messy`.

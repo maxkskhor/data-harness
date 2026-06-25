@@ -264,6 +264,42 @@ def test_large_data_suite_well_formed():
     assert "snapshot_trap" in {c.category for c in cases}
 
 
+def test_leaderboard_markdown_and_summary(tmp_path):
+    import json
+
+    from data_harness.eval import leaderboard_markdown, write_summary
+
+    report = {
+        "n_runs": 2,
+        "accuracy": 0.75,
+        "models": {
+            "m1": {
+                "accuracy": 1.0,
+                "avg_turns": 2.0,
+                "tokens": 1000,
+                "cost_usd": 0.001,
+            },
+            "m2": {"accuracy": 0.5, "avg_turns": 3.0, "tokens": 2000},  # no cost
+        },
+    }
+    md = leaderboard_markdown(report)
+    assert "| model | accuracy" in md and "100%" in md
+    assert md.index("m1") < md.index("m2")  # higher accuracy sorted first
+    assert "0.0010" in md and "n/a" in md  # cost shown / missing
+
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "hard_20260101t000000.json").write_text(
+        json.dumps(
+            {"suite": "hard", "generated_at": "2026-01-01T00:00:00Z", "report": report}
+        )
+    )
+    path = write_summary(results)
+    text = path.read_text()
+    assert path.name == "SUMMARY.md"
+    assert "hard" in text and "m1" in text and "100%" in text
+
+
 def test_messy_suite_well_formed():
     from data_harness.eval import messy_suite
 

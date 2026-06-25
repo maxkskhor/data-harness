@@ -136,9 +136,14 @@ runs are diffable in git (per-run JSONL logs and charts stay in gitignored
 `runs/`):
 
 ```bash
-uv run python examples/eval_demo.py --suite hard      # → evals/results/hard_<ts>.json
-uv run python examples/eval_wtq.py --limit 50         # → evals/results/wtq_<ts>.json
+uv run python examples/eval_demo.py --suite hard   # → evals/results/hard_<ts>.{json,md}
+uv run python examples/eval_wtq.py --limit 50      # → evals/results/wtq_<ts>.{json,md}
 ```
+
+Each run writes a machine-readable `.json` **and** a human-readable `.md`
+leaderboard, and refreshes [`evals/results/SUMMARY.md`](https://github.com/maxkskhor/data-harness/blob/main/evals/results/SUMMARY.md)
+— one readable table per suite, so you can skim the numbers without parsing JSON.
+Regenerate it any time with `python -m data_harness.eval.summary`.
 
 Commit the JSON to record a run; a live, key-gated smoke test
 (`tests/smoke_tests.py -m live`) runs small slices end-to-end, so the benchmark
