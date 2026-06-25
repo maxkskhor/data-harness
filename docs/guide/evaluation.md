@@ -23,7 +23,8 @@ the three axes where the design earns its keep:
 | Suite | What it tests | Use |
 |---|---|---|
 | `bespoke_suite()` | single-shot aggregation/filter/chart/refusal | quick smoke; capable models saturate it |
-| `hard_suite()` | multi-table joins, deep multi-step, **stateful multi-turn** | the real comparison; stretches the design |
+| `hard_suite()` | multi-table joins, deep multi-step, **stateful multi-turn** | exercises the agent loop + `SessionCache` |
+| `large_data_suite()` | large frames that can only be answered via the **handle** (incl. a snapshot trap) | stresses the handle/snapshot design |
 | `load_wikitablequestions(...)` | public table-QA over real Wikipedia tables | external credibility; needs the `[eval]` extra |
 
 ```python
@@ -78,6 +79,18 @@ ConversationCase(
 
 Suites can freely mix `EvalCase` and `ConversationCase`; `evaluate` dispatches on
 the type.
+
+## Large-data: stressing the handle/snapshot design
+
+`large_data_suite()` puts ~100k-row frames in the cache. The model only ever
+sees the compact snapshot (shape + a few sample rows), so answering **requires**
+computing over the full data through the interpreter handle — you can't eyeball
+it, and a naive tool that read the rows into the prompt would blow the context
+window. It also includes a **snapshot trap**: the few sample rows are
+deliberately misleading, so a model that answers from the snapshot instead of
+running code on the handle gets it wrong. This is the suite that directly
+exercises the design's core bet — large data stays in `SessionCache`, never in
+the transcript.
 
 ## Graders
 

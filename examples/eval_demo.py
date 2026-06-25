@@ -27,18 +27,21 @@ from data_harness.eval import (
     evaluate_matrix,
     fetch_openrouter_prices,
     hard_suite,
+    large_data_suite,
 )
 
-# Recent models only — older models (e.g. gpt-4o-mini) make the comparison
-# meaningless. Adjust freely.
+# Recent, cheap, capable models across diverse providers. (Dropped gpt-4o-mini —
+# too old — and claude-haiku-4.5 — far pricier than open models of similar
+# capability here.) Adjust freely.
 DEFAULT_MODELS = [
-    "deepseek/deepseek-v4-flash",
-    "deepseek/deepseek-v4-pro",
-    "qwen/qwen3.5-flash-02-23",
-    "anthropic/claude-haiku-4.5",
+    "deepseek/deepseek-v4-flash",  # DeepSeek
+    "qwen/qwen3.5-flash-02-23",  # Alibaba Qwen
+    "openai/gpt-5-nano",  # OpenAI
+    "google/gemini-2.5-flash-lite",  # Google
+    "z-ai/glm-4.7-flash",  # Z.ai
 ]
 
-SUITES = {"hard": hard_suite, "bespoke": bespoke_suite}
+SUITES = {"hard": hard_suite, "bespoke": bespoke_suite, "large": large_data_suite}
 
 
 def main() -> None:
