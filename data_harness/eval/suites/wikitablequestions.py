@@ -4,6 +4,9 @@ Each example is a table + a natural-language question + accepted answers. We loa
 the table as a DataFrame and grade with ``contains`` against the accepted
 answers. Requires the ``[eval]`` extra (``datasets``); the row→case conversion is
 factored out so it can be unit-tested without the download.
+
+Uses the parquet-native ``lighteval/wikitablequestions`` mirror (the original
+script-based dataset no longer loads in current ``datasets``).
 """
 
 from __future__ import annotations
@@ -12,6 +15,8 @@ from typing import Any
 
 from data_harness.eval.case import EvalCase
 from data_harness.eval.graders import contains
+
+WTQ_DATASET = "lighteval/wikitablequestions"
 
 
 def wtq_row_to_case(index: int, row: dict[str, Any]) -> EvalCase:
@@ -37,7 +42,7 @@ def wtq_row_to_case(index: int, row: dict[str, Any]) -> EvalCase:
 
 
 def load_wikitablequestions(
-    split: str = "validation",
+    split: str = "test",
     limit: int | None = 50,
     *,
     seed: int = 0,
@@ -45,7 +50,7 @@ def load_wikitablequestions(
     """Load WikiTableQuestions cases from Hugging Face ``datasets``.
 
     Args:
-        split: Dataset split (``"validation"``, ``"test"``, ``"train"``).
+        split: Dataset split (``"test"`` or ``"train"``).
         limit: Cap the number of cases (``None`` for all).
         seed: Shuffle seed for reproducible sampling when ``limit`` is set.
 
@@ -63,7 +68,7 @@ def load_wikitablequestions(
             "'data-harness[eval]'."
         ) from exc
 
-    ds = load_dataset("wikitablequestions", split=split)
+    ds = load_dataset(WTQ_DATASET, split=split)
     if limit is not None:
         ds = ds.shuffle(seed=seed).select(range(min(limit, len(ds))))
     return [wtq_row_to_case(i, row) for i, row in enumerate(ds)]

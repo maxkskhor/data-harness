@@ -183,6 +183,28 @@ def test_report_cost():
     assert "cost ($)" not in report.leaderboard()
 
 
+def test_report_to_dict_and_json():
+    import json
+
+    from data_harness.eval.report import CaseResult
+
+    report = EvalReport(
+        [
+            CaseResult("c1", "agg", "m", True, "", 2, 1000, 100, 1.0, "success"),
+            CaseResult("c2", "agg", "m", False, "x", 1, 500, 50, 1.0, "success"),
+        ]
+    )
+    d = report.to_dict({"m": (0.2, 0.8)})
+    assert d["n_runs"] == 2
+    assert d["accuracy"] == 0.5
+    assert d["models"]["m"]["passed"] == 1
+    assert d["models"]["m"]["cost_usd"] > 0
+    assert d["by_category"]["agg"]["m"] == 0.5
+    assert len(d["results"]) == 2
+    # round-trips through JSON
+    assert json.loads(report.to_json())["n_runs"] == 2
+
+
 # --- suites ----------------------------------------------------------------
 def test_bespoke_suite_well_formed():
     cases = bespoke_suite()

@@ -79,20 +79,38 @@ prices = fetch_openrouter_prices(models)
 print(report.to_markdown(prices))   # leaderboard now has a "cost ($)" column
 ```
 
-## Public benchmark
+## Public benchmark (WikiTableQuestions)
 
-WikiTableQuestions (table QA) loads via the `[eval]` extra:
+A harder, public table-QA benchmark — real Wikipedia tables — that differentiates
+strong models which saturate the bespoke suite. Loads via the `[eval]` extra
+(from the parquet-native `lighteval/wikitablequestions` mirror):
 
 ```python
 from data_harness.eval import load_wikitablequestions, evaluate
 
-cases = load_wikitablequestions(split="validation", limit=50)
-report = evaluate(cases, model="openai/gpt-4o-mini")
+cases = load_wikitablequestions(split="test", limit=50)
+report = evaluate(cases, model="deepseek/deepseek-v4-flash")
 ```
 
 The row→case conversion (`wtq_row_to_case`) is exposed separately so you can plug
 in other public benchmarks (DABStep, InfiAgent-DABench, Spider/BIRD) with the
 same grading and reporting.
+
+## Tracking results over time
+
+`EvalReport.to_dict()` / `to_json()` produce a machine-readable summary
+(accuracy, per-model/per-category, cost, and every case result) you can persist
+and diff across runs. `examples/eval_wtq.py` runs the benchmark across models and
+writes a timestamped JSON report next to the leaderboard:
+
+```bash
+uv run python examples/eval_wtq.py --limit 50
+# → prints a cost leaderboard and writes runs/eval_wtq/wtq_<timestamp>.json
+```
+
+A live, key-gated smoke test (`tests/smoke_tests.py -m live`) runs a small WTQ
+slice end-to-end, so the benchmark can be wired into CI-with-secrets or a nightly
+job as a tracked metric.
 
 ## Why this fits data-harness
 

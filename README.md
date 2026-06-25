@@ -264,6 +264,11 @@ The Python interpreter uses AST checks and restricted globals to reduce accident
 
 ## Changelog
 
+### 0.8.0
+- **WikiTableQuestions as a tracked metric:** `load_wikitablequestions()` now uses the parquet-native `lighteval/wikitablequestions` mirror (the old script-based dataset no longer loads); a harder public benchmark that differentiates models the bespoke suite saturates
+- **Machine-readable reports:** `EvalReport.to_dict()` / `to_json()` (accuracy, per-model/per-category, cost, every case result) for tracking results over time
+- `examples/eval_wtq.py` runs the benchmark across models and writes a timestamped JSON report; a live, key-gated WTQ smoke test enables CI/nightly tracking
+
 ### 0.7.0
 - **`answer()` reliability:** `ask()` now finalises by default — if a successful run produced no structured answer, it runs one focused follow-up turn asking the model to record it via `answer()`, so `.value` is populated more reliably (`require_answer=True`, default)
 - The finalize step is **guarded**: it never fires when a chart was produced (the chart is the deliverable) or the answer reads as a refusal (so unanswerable questions aren't turned into fabricated values)
