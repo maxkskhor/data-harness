@@ -679,6 +679,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#large-data-stressing-the-handlesnapshot-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Large-data: stressing the handle/snapshot design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#graders" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1076,7 +1087,12 @@ the three axes where the design earns its keep:</p>
 <tr>
 <td><code>hard_suite()</code></td>
 <td>multi-table joins, deep multi-step, <strong>stateful multi-turn</strong></td>
-<td>the real comparison; stretches the design</td>
+<td>exercises the agent loop + <code>SessionCache</code></td>
+</tr>
+<tr>
+<td><code>large_data_suite()</code></td>
+<td>large frames that can only be answered via the <strong>handle</strong> (incl. a snapshot trap)</td>
+<td>stresses the handle/snapshot design</td>
 </tr>
 <tr>
 <td><code>load_wikitablequestions(...)</code></td>
@@ -1125,6 +1141,16 @@ turn is graded and reported as <code>&lt;id&gt;#t&lt;n&gt;</code>.</p>
 </code></pre></div>
 <p>Suites can freely mix <code>EvalCase</code> and <code>ConversationCase</code>; <code>evaluate</code> dispatches on
 the type.</p>
+<h2 id="large-data-stressing-the-handlesnapshot-design">Large-data: stressing the handle/snapshot design</h2>
+<p><code>large_data_suite()</code> puts ~100k-row frames in the cache. The model only ever
+sees the compact snapshot (shape + a few sample rows), so answering <strong>requires</strong>
+computing over the full data through the interpreter handle — you can't eyeball
+it, and a naive tool that read the rows into the prompt would blow the context
+window. It also includes a <strong>snapshot trap</strong>: the few sample rows are
+deliberately misleading, so a model that answers from the snapshot instead of
+running code on the handle gets it wrong. This is the suite that directly
+exercises the design's core bet — large data stays in <code>SessionCache</code>, never in
+the transcript.</p>
 <h2 id="graders">Graders</h2>
 <p>Each grader checks <code>result.value</code> first (the executed answer), then falls back to
 parsing the prose:</p>
