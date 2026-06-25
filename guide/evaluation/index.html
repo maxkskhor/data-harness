@@ -1217,9 +1217,13 @@ tests with <code>FakeAdapter</code>. Use recent models for a meaningful comparis
 runners write a timestamped JSON into the tracked <code>evals/results/</code> directory, so
 runs are diffable in git (per-run JSONL logs and charts stay in gitignored
 <code>runs/</code>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/eval_demo.py<span class="w"> </span>--suite<span class="w"> </span>hard<span class="w">      </span><span class="c1"># → evals/results/hard_&lt;ts&gt;.json</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/eval_wtq.py<span class="w"> </span>--limit<span class="w"> </span><span class="m">50</span><span class="w">         </span><span class="c1"># → evals/results/wtq_&lt;ts&gt;.json</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/eval_demo.py<span class="w"> </span>--suite<span class="w"> </span>hard<span class="w">   </span><span class="c1"># → evals/results/hard_&lt;ts&gt;.{json,md}</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/eval_wtq.py<span class="w"> </span>--limit<span class="w"> </span><span class="m">50</span><span class="w">      </span><span class="c1"># → evals/results/wtq_&lt;ts&gt;.{json,md}</span>
 </code></pre></div>
+<p>Each run writes a machine-readable <code>.json</code> <strong>and</strong> a human-readable <code>.md</code>
+leaderboard, and refreshes <a href="https://github.com/maxkskhor/data-harness/blob/main/evals/results/SUMMARY.md"><code>evals/results/SUMMARY.md</code></a>
+— one readable table per suite, so you can skim the numbers without parsing JSON.
+Regenerate it any time with <code>python -m data_harness.eval.summary</code>.</p>
 <p>Commit the JSON to record a run; a live, key-gated smoke test
 (<code>tests/smoke_tests.py -m live</code>) runs small slices end-to-end, so the benchmark
 can be wired into CI-with-secrets or a nightly job.</p>
