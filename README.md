@@ -26,7 +26,7 @@ Most data-agent tooling makes you pick between giving a model a **shell** (unsaf
 
 ### Features
 
-- **One-liner** — `ask(df, "...")`: auto-resolves a provider, returns a structured `.value` plus any charts.
+- **One-liner** — `ask(df, "...")` in Python, or `data-harness "..." data.csv` from the shell.
 - **Charts & SQL** — automatic matplotlib capture; a DuckDB / SQLAlchemy `sql_query` tool.
 - **Many providers, one key** — OpenAI, Anthropic, DeepSeek, Qwen, Google, Z.ai… via OpenRouter.
 - **Production controls** — subprocess sandbox, an approval gate, and a zero-token replay cache.
@@ -73,6 +73,22 @@ ask(df, "which region grew fastest?", model="qwen/qwen3.5-flash-02-23")
 Without OpenRouter, `ask()` falls back to `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `DEEPSEEK_API_KEY`. In a notebook, the returned `RunResult` renders prose, the value, and charts inline (there's also a `%%ask` magic via `%load_ext data_harness.notebook`).
 
 ---
+
+## Command line & demo
+
+Ask from the shell — point at one or more files, or pipe CSV via stdin:
+
+```bash
+data-harness "What was total revenue?" sales.csv
+data-harness "Join these and find the top region" orders.csv customers.csv
+cat sales.csv | data-harness "median order amount" --json
+```
+
+A Streamlit demo app (`pip install "data-harness[demo]"`):
+
+```bash
+uv run streamlit run examples/streamlit_app.py
+```
 
 ## Multi-turn chat
 

@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.12.0
+- **CLI:** a `data-harness` console command — `data-harness "question" data.csv` (multiple files, or pipe CSV via stdin), with `--model`, `--no-sql`, `--json`, `--run-dir`
+- **Streamlit demo app** (`examples/streamlit_app.py`, `[demo]` extra): upload a CSV, ask, see the answer + charts inline
+
 ### 0.11.0
 - **Messy-data eval suite** (`messy_suite()`): real-world cleaning — amounts as strings with `$`/separators, dates in several formats, inconsistent country labels, missing values — the kind of friction that actually differentiates models. Ground truth computed in-suite by a reference cleaner. `eval_demo --suite messy`.
 - **README**: centered hero (deepagents-style) and a static `python 3.10+` badge (the dynamic `pyversions` badge showed "missing" with no trove classifiers); added Python/license trove classifiers to package metadata.
