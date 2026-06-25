@@ -264,6 +264,18 @@ def test_large_data_suite_well_formed():
     assert "snapshot_trap" in {c.category for c in cases}
 
 
+def test_messy_suite_well_formed():
+    from data_harness.eval import messy_suite
+
+    cases = messy_suite()
+    assert len(cases) == 4
+    assert {"messy_parse", "messy_normalise", "messy_dates"} <= {
+        c.category for c in cases
+    }
+    # genuinely messy: amounts are strings, not numbers
+    assert cases[0].data["amount"].dtype == object
+
+
 def test_snapshot_trap_actually_misleads():
     from data_harness.eval.suites.large_data import _snapshot_trap
 

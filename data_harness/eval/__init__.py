@@ -27,6 +27,7 @@ from data_harness.eval.suites import (
     hard_suite,
     large_data_suite,
     load_wikitablequestions,
+    messy_suite,
     wtq_row_to_case,
 )
 
@@ -43,6 +44,7 @@ __all__ = [
     "bespoke_suite",
     "hard_suite",
     "large_data_suite",
+    "messy_suite",
     "chart_produced",
     "contains",
     "dataframe_equals",

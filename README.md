@@ -1,13 +1,18 @@
-# data-harness
+<h1 align="center">data-harness</h1>
 
-**The controlled data-agent SDK.**
+<p align="center"><strong>The controlled data-agent SDK.</strong></p>
 
-Python, not bash. Large data stays in a cache as handles, never in the prompt. Every run is logged — and eval-backed.
+<p align="center">
+Python, not bash. Large data stays in a cache as handles, never in the prompt.<br/>
+Every run is logged — and eval-backed.
+</p>
 
-[![PyPI](https://img.shields.io/pypi/v/data-harness.svg)](https://pypi.org/project/data-harness/)
-[![Python](https://img.shields.io/pypi/pyversions/data-harness.svg)](https://pypi.org/project/data-harness/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://maxkskhor.github.io/data-harness/)
+<p align="center">
+<a href="https://pypi.org/project/data-harness/"><img src="https://img.shields.io/pypi/v/data-harness.svg" alt="PyPI"></a>
+<a href="https://pypi.org/project/data-harness/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+<a href="https://maxkskhor.github.io/data-harness/"><img src="https://img.shields.io/badge/docs-mkdocs-blue.svg" alt="Docs"></a>
+</p>
 
 ---
 
