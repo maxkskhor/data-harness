@@ -39,7 +39,8 @@ if uploaded is not None:
         elif isinstance(result.value, pd.DataFrame):
             st.dataframe(result.value)
         for chart in result.charts:
-            st.image(chart.path)
+            # pass bytes (not a path) so the image always renders
+            st.image(chart.read_bytes(), caption=chart.title or "chart")
 
         st.caption(
             f"{result.turns} turns · "

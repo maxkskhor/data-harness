@@ -1,12 +1,12 @@
 """Command-line interface: ask questions about data files from the shell.
 
-    data-harness "What was total revenue?" sales.csv
-    data-harness "Join these and find top region" orders.csv customers.csv
-    cat sales.csv | data-harness "median order amount" --json
+    dh "What was total revenue?" sales.csv
+    dh "Join these and find the top region" orders.csv customers.csv
+    cat sales.csv | dh "median order amount" --json
 
-Resolves a provider from the environment (or ``--model``), runs the agent, and
-prints the answer (and any chart paths). Use ``--json`` for machine-readable
-output.
+Installed as both ``dh`` (short) and ``data-harness``. Resolves a provider from
+the environment (or ``--model``), runs the agent, and prints the answer (and any
+chart paths). Use ``--json`` for machine-readable output.
 """
 
 from __future__ import annotations
@@ -21,7 +21,6 @@ from data_harness.quickstart import ask
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="data-harness",
         description="Ask natural-language questions about your data files.",
     )
     parser.add_argument("question", help="The question to ask.")

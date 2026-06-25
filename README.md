@@ -26,7 +26,7 @@ Most data-agent tooling makes you pick between giving a model a **shell** (unsaf
 
 ### Features
 
-- **One-liner** — `ask(df, "...")` in Python, or `data-harness "..." data.csv` from the shell.
+- **One-liner** — `ask(df, "...")` in Python, or `dh "..." data.csv` from the shell.
 - **Charts & SQL** — automatic matplotlib capture; a DuckDB / SQLAlchemy `sql_query` tool.
 - **Many providers, one key** — OpenAI, Anthropic, DeepSeek, Qwen, Google, Z.ai… via OpenRouter.
 - **Production controls** — subprocess sandbox, an approval gate, and a zero-token replay cache.
@@ -76,12 +76,12 @@ Without OpenRouter, `ask()` falls back to `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`
 
 ## Command line & demo
 
-Ask from the shell — point at one or more files, or pipe CSV via stdin:
+Ask from the shell with **`dh`** (also installed as `data-harness`) — point at one or more files, or pipe CSV via stdin:
 
 ```bash
-data-harness "What was total revenue?" sales.csv
-data-harness "Join these and find the top region" orders.csv customers.csv
-cat sales.csv | data-harness "median order amount" --json
+dh "What was total revenue?" sales.csv
+dh "Join these and find the top region" orders.csv customers.csv
+cat sales.csv | dh "median order amount" --json
 ```
 
 A Streamlit demo app (`pip install "data-harness[demo]"`):
@@ -89,6 +89,10 @@ A Streamlit demo app (`pip install "data-harness[demo]"`):
 ```bash
 uv run streamlit run examples/streamlit_app.py
 ```
+
+<p align="center">
+<img src="docs/assets/streamlit-demo.png" alt="data-harness Streamlit demo" width="700">
+</p>
 
 ## Multi-turn chat
 

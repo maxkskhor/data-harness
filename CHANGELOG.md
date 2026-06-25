@@ -1,8 +1,8 @@
 # Changelog
 
 ### 0.12.0
-- **CLI:** a `data-harness` console command — `data-harness "question" data.csv` (multiple files, or pipe CSV via stdin), with `--model`, `--no-sql`, `--json`, `--run-dir`
-- **Streamlit demo app** (`examples/streamlit_app.py`, `[demo]` extra): upload a CSV, ask, see the answer + charts inline
+- **CLI:** a console command installed as **`dh`** (short) and `data-harness` — `dh "question" data.csv` (multiple files, or pipe CSV via stdin), with `--model`, `--no-sql`, `--json`, `--run-dir`
+- **Streamlit demo app** (`examples/streamlit_app.py`, `[demo]` extra): upload a CSV, ask, see the answer + structured value + charts inline (charts passed as bytes so they always render)
 
 ### 0.11.0
 - **Messy-data eval suite** (`messy_suite()`): real-world cleaning — amounts as strings with `$`/separators, dates in several formats, inconsistent country labels, missing values — the kind of friction that actually differentiates models. Ground truth computed in-suite by a reference cleaner. `eval_demo --suite messy`.

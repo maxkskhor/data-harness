@@ -76,6 +76,7 @@ docs = [
 ]
 
 [project.scripts]
+dh = "data_harness.cli:main"
 data-harness = "data_harness.cli:main"
 
 [project.urls]
