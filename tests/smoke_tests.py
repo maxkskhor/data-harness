@@ -561,3 +561,17 @@ def test_live_openrouter_cross_provider(tmp_path, model):
     )
     assert result.status == "success", result.error
     assert result.value == 560 or "560" in result.text
+
+
+def test_live_wtq_benchmark_runs(tmp_path):
+    """The WikiTableQuestions public benchmark loads and grades end-to-end."""
+    _require_key()
+    from data_harness.eval import evaluate, load_wikitablequestions
+
+    cases = load_wikitablequestions(limit=5, seed=1)
+    assert len(cases) == 5
+    report = evaluate(cases, model=_smoke_model_id(), run_dir=str(tmp_path))
+    assert len(report.results) == 5
+    assert all(r.status == "success" for r in report.results)
+    # JSON report is well-formed for tracking
+    assert report.to_dict()["n_runs"] == 5

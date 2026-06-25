@@ -585,7 +585,7 @@ wheels = [
 
 [[package]]
 name = "data-harness"
-version = "0.7.0"
+version = "0.8.0"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
@@ -637,6 +637,7 @@ viz = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "datasets" },
     { name = "duckdb" },
     { name = "ipython", version = "8.39.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "ipython", version = "9.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -685,6 +686,7 @@ provides-extras = ["dev", "openai", "viz", "duckdb", "sql", "notebook", "eval", 
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "datasets" },
     { name = "duckdb" },
     { name = "ipython" },
     { name = "matplotlib" },

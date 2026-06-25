@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import json
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass
@@ -141,6 +142,41 @@ class EvalReport:
             parts += ["", f"### Failures ({len(fails)})"]
             parts += [f"- `{r.model}` / `{r.case_id}`: {r.detail}" for r in fails[:25]]
         return "\n".join(parts)
+
+    def to_dict(self, prices: dict[str, tuple[float, float]] | None = None) -> dict:
+        """Machine-readable summary for tracking results over time."""
+        models: dict[str, dict] = {}
+        for model in self.models:
+            rows = self._subset(model=model)
+            entry = {
+                "accuracy": self._rate(rows),
+                "passed": sum(r.passed for r in rows),
+                "total": len(rows),
+                "avg_turns": sum(r.turns for r in rows) / len(rows) if rows else 0,
+                "tokens": sum(r.input_tokens + r.output_tokens for r in rows),
+            }
+            if prices is not None:
+                entry["cost_usd"] = self._cost(rows, prices.get(model))
+            models[model] = entry
+        return {
+            "n_runs": len(self.results),
+            "accuracy": self.accuracy(),
+            "models": models,
+            "by_category": {
+                cat: {
+                    m: self._rate(self._subset(model=m, category=cat))
+                    for m in self.models
+                }
+                for cat in self.categories
+            },
+            "results": [asdict(r) for r in self.results],
+        }
+
+    def to_json(
+        self, prices: dict[str, tuple[float, float]] | None = None, *, indent: int = 2
+    ) -> str:
+        """JSON form of `to_dict`, suitable for writing a tracked report file."""
+        return json.dumps(self.to_dict(prices), indent=indent, default=str)
 
     def _repr_markdown_(self) -> str:
         return self.to_markdown()
