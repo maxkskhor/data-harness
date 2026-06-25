@@ -1,14 +1,32 @@
 # data-harness
 
-**A Python SDK for controlled data-agent workflows.**
+**The controlled data-agent SDK.**
 
-No bash. Handle-based state. Logs that reconstruct what happened.
+Python, not bash. Large data stays in a cache as handles, never in the prompt. Every run is logged — and eval-backed.
 
-**[Documentation](https://maxkskhor.github.io/data-harness/)** · [PyPI](https://pypi.org/project/data-harness/) · [Changelog](#changelog)
+[![PyPI](https://img.shields.io/pypi/v/data-harness.svg)](https://pypi.org/project/data-harness/)
+[![Python](https://img.shields.io/pypi/pyversions/data-harness.svg)](https://pypi.org/project/data-harness/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://maxkskhor.github.io/data-harness/)
 
 ---
 
-Most agent frameworks hand the model a shell and call it a day. `data-harness` takes a different approach: the model executes Python only, large data objects live in a session cache and are exposed as named handles, and every turn is logged to JSONL. The result is a data agent that is auditable, reproducible, and safe enough to run in production.
+Most data-agent tooling makes you pick between giving a model a **shell** (unsafe, irreproducible) and **single-shot code-gen** (no state, no multi-step). `data-harness` is the controlled middle path: the model works through a constrained Python interpreter, large objects live in a `SessionCache` and are exposed as compact handle snapshots — so a 100k-row table never hits the context window — every turn is logged to JSONL, and a built-in **evaluation harness** measures quality and cost across providers.
+
+### Principles
+
+- **Python, not bash** — one controlled execution surface: no shell side-effects, no destructive commands, reproducible runs.
+- **Handles, not payloads** — large data lives in the cache; only snapshots reach the model, so context (and cost) stay flat as data grows.
+- **Measured, not vibes** — a first-class eval harness with programmatic graders, multi-turn cases, cost, and tracked leaderboards.
+
+### Features
+
+- **One-liner** — `ask(df, "...")`: auto-resolves a provider, returns a structured `.value` plus any charts.
+- **Charts & SQL** — automatic matplotlib capture; a DuckDB / SQLAlchemy `sql_query` tool.
+- **Many providers, one key** — OpenAI, Anthropic, DeepSeek, Qwen, Google, Z.ai… via OpenRouter.
+- **Production controls** — subprocess sandbox, an approval gate, and a zero-token replay cache.
+- **Evaluation** — bespoke / hard / large-data suites + WikiTableQuestions, with multi-turn cases, cost, and JSON-tracked results.
+- **Composable** — `ask`/`Chat` over `Agent` over `Harness`; async + streaming; subagents; progressive connectors.
 
 ---
 
@@ -16,16 +34,16 @@ Most agent frameworks hand the model a shell and call it a day. `data-harness` t
 
 ```bash
 pip install data-harness          # core
-pip install "data-harness[all]"   # + openai, charts, duckdb, sqlalchemy, notebook
+pip install "data-harness[all]"   # + openai, charts, duckdb, sqlalchemy, notebook, eval
 ```
 
-Pick individual extras as needed: `[openai]`, `[viz]`, `[duckdb]`, `[sql]`, `[notebook]`. Requires Python 3.10+.
+Pick individual extras as needed: `[openai]`, `[viz]`, `[duckdb]`, `[sql]`, `[notebook]`, `[eval]`. Requires Python 3.10+.
 
 ---
 
 ## Quickstart
 
-Ask a question about a DataFrame in one line. `ask()` resolves a provider from your environment (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY`), loads the data into the session cache, runs the agent, and returns a `RunResult`:
+Ask a question about a DataFrame in one line. `ask()` resolves a provider from your environment, loads the data into the session cache, runs the agent, and returns a `RunResult`:
 
 ```python
 import pandas as pd
@@ -39,23 +57,15 @@ print(result.value)     # the structured result the model computed via answer()
 result.charts           # any charts it rendered (notebook-friendly)
 ```
 
-Pick a model explicitly (routes to the matching provider):
+Reach many providers through one key with [OpenRouter](https://openrouter.ai) — a `provider/model` id auto-routes there. Set `OPENROUTER_API_KEY`:
 
 ```python
-ask(df, "plot revenue by month", model="gpt-4o-mini")
+ask(df, "plot revenue by month", model="deepseek/deepseek-v4-flash")
+ask(df, "summarise the data",   model="google/gemini-2.5-flash-lite")
+ask(df, "which region grew fastest?", model="qwen/qwen3.5-flash-02-23")
 ```
 
-Or reach many providers through one key with [OpenRouter](https://openrouter.ai) — a `provider/model` id auto-routes there (great for cross-model testing). Set `OPENROUTER_API_KEY`:
-
-```python
-ask(df, "summarise the data", model="anthropic/claude-3.5-sonnet")  # via OpenRouter
-ask(df, "summarise the data", model="google/gemini-2.0-flash-001")
-ask(df, "summarise the data", model="deepseek/deepseek-chat")       # cheap
-```
-
-DeepSeek's own (very cheap) API is also supported directly — set `DEEPSEEK_API_KEY` and use a bare `model="deepseek-chat"`.
-
-In a notebook, the returned `RunResult` renders prose, the computed value, and charts inline. There's also a `%%ask` magic (`%load_ext data_harness.notebook`).
+Without OpenRouter, `ask()` falls back to `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `DEEPSEEK_API_KEY`. In a notebook, the returned `RunResult` renders prose, the value, and charts inline (there's also a `%%ask` magic via `%load_ext data_harness.notebook`).
 
 ---
 
@@ -66,25 +76,21 @@ from data_harness import Chat
 
 chat = Chat(df)
 chat.ask("What was total revenue?")
-chat.ask("Which month was highest?")   # remembers context
+chat.ask("Which month was highest?")   # remembers context (shared cache + history)
 ```
 
 ---
 
-## Charts
+## Charts & SQL
 
-matplotlib is available inside the interpreter. The model builds a figure and it is captured automatically as an artefact — the image bytes live on disk and never enter the message history or logs (only a path does):
+matplotlib runs inside the interpreter; open figures are captured automatically as artefacts — the image bytes live on disk and never enter the message history or logs (only a path does):
 
 ```python
 result = ask(df, "Plot revenue by region as a bar chart.")
 result.charts[0]        # a ChartArtifact; renders inline in Jupyter
 ```
 
----
-
-## SQL over your data
-
-With DuckDB installed, `ask` exposes a `sql_query` tool that runs SQL directly against your DataFrames (results become new handles). Point it at a real database with a SQLAlchemy URL:
+With DuckDB installed, `ask` exposes a `sql_query` tool over your DataFrames; point it at a real database with a SQLAlchemy URL:
 
 ```python
 ask(df, "Use SQL to get total revenue per region.")          # DuckDB, in-process
@@ -101,24 +107,13 @@ agent.run("Top 5 customers by spend last quarter?")
 ```python
 from data_harness import Agent, ExecutionCache
 
-agent = (
-    Agent.from_dataframe(df, model="gpt-4o-mini")
-    .enable_cache(ExecutionCache("cache.json"))   # replay repeat questions, 0 tokens
-)
-
-# Run interpreter code in an isolated process (no network, CPU/time limits):
-sandboxed = Agent.from_dataframe(df, execution="subprocess")
-
-# Approve or block code before it runs ("show me the code"):
-def approve(code: str) -> bool:
-    print(code)
-    return True
-
-gated = Agent.from_dataframe(df, on_code=approve)
-preview = Agent.from_dataframe(df, code_only=True)   # dry-run: never executes
+agent = Agent.from_dataframe(df).enable_cache(ExecutionCache("cache.json"))  # 0-token replays
+sandboxed = Agent.from_dataframe(df, execution="subprocess")                 # isolated process
+gated = Agent.from_dataframe(df, on_code=lambda code: (print(code), True)[1]) # approve code
+preview = Agent.from_dataframe(df, code_only=True)                            # dry-run, never executes
 ```
 
-- **Code-replay cache** — a repeat question over the same data *schema* replays the recorded code with no model call (zero turns, zero tokens), while staying correct when the data changes.
+- **Code-replay cache** — a repeat question over the same data *schema* replays the recorded code with no model call (zero turns, zero tokens), and stays correct when the data changes.
 - **Subprocess sandbox** — interpreter code runs in a separate process with networking disabled and CPU/wall-clock limits; handles cross by value, results merge back.
 - **Approval gate** — `on_code` sees every code block before execution and can block it; `code_only=True` returns the code without running it.
 
@@ -126,26 +121,29 @@ preview = Agent.from_dataframe(df, code_only=True)   # dry-run: never executes
 
 ## Evaluation
 
-Measure how well an agent answers real data questions — across models, with
-programmatic grading that leans on the structured `.value`:
+A first-class harness to measure how well an agent answers **real** data questions — across models, with **programmatic grading** that leans on the structured `.value` (no LLM judge needed for most cases).
 
 ```python
-from data_harness.eval import bespoke_suite, evaluate_matrix
+from data_harness.eval import evaluate_matrix, fetch_openrouter_prices, hard_suite
 
-report = evaluate_matrix(
-    bespoke_suite(),
-    ["openai/gpt-4o-mini", "anthropic/claude-haiku-4.5", "deepseek/deepseek-chat"],
-)
-print(report.leaderboard())   # accuracy / tokens / turns per model
+models = ["deepseek/deepseek-v4-flash", "qwen/qwen3.5-flash-02-23",
+          "openai/gpt-5-nano", "google/gemini-2.5-flash-lite"]
+report = evaluate_matrix(hard_suite(), models)
+print(report.to_markdown(fetch_openrouter_prices(models)))  # accuracy / turns / tokens / cost
 ```
 
-Built-in graders (`numeric`, `contains`, `dataframe_equals`, `chart_produced`, `refuses`, …), a `bespoke_suite()`, and a public-benchmark loader (`load_wikitablequestions`, via the `[eval]` extra). See the [Evaluation guide](https://maxkskhor.github.io/data-harness/guide/evaluation/).
+- **Suites** — `bespoke_suite()` (smoke), `hard_suite()` (multi-table joins, deep multi-step, **stateful multi-turn**), `large_data_suite()` (100k-row frames answerable only via the handle, with a **snapshot trap**), and `load_wikitablequestions()` (public table-QA, the model differentiator).
+- **Case types** — single-shot `EvalCase` and multi-turn `ConversationCase` (graded turns over one `Chat` session, testing `SessionCache` persistence).
+- **Graders** — `numeric`, `contains`, `exact`, `dataframe_equals`, `chart_produced`, `refuses`, `all_of`/`any_of`.
+- **Reporting** — leaderboards with per-model **cost**, per-category breakdowns, and `to_dict()`/`to_json()` for results tracked in `evals/results/`.
+
+What the runs show: the structured/large/stateful suites **saturate at ~100% across recent models** — i.e. the *design* is robust (even small, cheap models handle 100k-row data via the handle for ~$0.002 and pass the snapshot trap). Model *differentiation* shows up on messy real-world data — WikiTableQuestions spreads recent models **64%→96%**. See the [Evaluation guide](https://maxkskhor.github.io/data-harness/guide/evaluation/).
 
 ---
 
 ## Lower-level `Agent` and `Harness`
 
-`ask`/`Chat` are conveniences over `Agent`, which is itself a thin layer over `Harness`. Drop down when you want full control:
+`ask`/`Chat` are conveniences over `Agent`, itself a thin layer over `Harness`. Drop down for full control:
 
 ```python
 from data_harness import Agent
@@ -155,61 +153,6 @@ agent = Agent(adapter=AnthropicAdapter(model="claude-sonnet-4-6"), system="You a
 print(agent.run("Compute the mean of [1, 2, 3, 4, 5]."))
 ```
 
----
-
-## Data connectors
-
-Connectors group related tools and start *hidden* — the model loads them on demand. This keeps the tool list short and routing decisions sharp.
-
-```python
-market_data = agent.connector("market_data", description="Equity price data.")
-
-@market_data.tool(description="Fetch daily OHLCV data for a ticker.")
-def fetch_ohlcv(symbol: str) -> list[dict]:
-    ...
-
-agent.run("Load market_data and fetch AAPL prices.")
-```
-
----
-
-## Async and streaming
-
-```python
-from data_harness import AsyncAgent
-from data_harness.providers.anthropic import AnthropicAdapter
-
-agent = AsyncAgent(adapter=AnthropicAdapter(model="claude-sonnet-4-6"), system="...")
-
-# Stream tokens as they arrive
-async for event in agent.run_stream("Describe the dataset."):
-    if event.type == "content_block_delta":
-        from data_harness import TextDelta
-        if isinstance(event.delta, TextDelta):
-            print(event.delta.text, end="", flush=True)
-```
-
----
-
-## Why these constraints?
-
-| Design decision | Why it matters |
-|---|---|
-| **Python only, no bash** | No shell side-effects, no destructive commands, reproducible runs |
-| **Handle/snapshot pattern** | Large objects never bloat message history; the model still operates on them via Python |
-| **Prefix-stable system prompt** | The provider's KV cache stays warm across turns, reducing latency and cost |
-| **Progressive connector disclosure** | Fewer visible tools → better model routing decisions |
-| **Subagent isolation** | Spawned subagents get a fresh cache; state crosses boundaries only through explicit handles |
-| **JSONL logging from turn one** | Every run is reconstructable without raw data leaking into the log |
-
-The design is covered in detail in a [three-part series](https://maxkskhor.substack.com/p/designing-a-react-harness-for-data) and in the [Architecture guide](https://maxkskhor.github.io/data-harness/guide/design/).
-
----
-
-## What `Agent` composes
-
-`Agent` is a thin layer over lower-level primitives you can wire directly for full control:
-
 | Component | Role |
 |---|---|
 | `Harness` | The ReAct loop — messages, tool dispatch, reminders, JSONL logging |
@@ -217,115 +160,34 @@ The design is covered in detail in a [three-part series](https://maxkskhor.subst
 | `ProviderAdapter` | Translates provider SDK responses into harness types |
 | `python_interpreter` | The model's only execution surface |
 | `ConnectorRegistry` | Hides connector tools until the model loads them |
-| `Planner` | Opt-in nag reminders when progress stalls |
 | `Subagent` | Isolated worker with explicit state transfer |
 
-See [`examples/advanced_wiring.py`](examples/advanced_wiring.py) for explicit Harness wiring.
+Async + streaming (`AsyncAgent.run_stream`), progressive **connectors**, and **subagents** are all supported — see [`examples/advanced_wiring.py`](examples/advanced_wiring.py) and the [docs](https://maxkskhor.github.io/data-harness/).
 
 ---
 
-## Running the examples
+## Examples & tests
 
 ```bash
-# Minimal Agent example (requires ANTHROPIC_API_KEY)
-uv run python examples/quickstart.py
-
-# Full wiring with connectors, planner, and subagents (requires ANTHROPIC_API_KEY)
-uv run python examples/advanced_wiring.py
-
-# Live tour of ask()/charts/SQL on a cheap model (ANTHROPIC or OPENAI key)
-uv run python examples/live_demo.py
-
-# Code-replay cache benchmark (no API key, deterministic)
-uv run python examples/cache_benchmark.py
-
-# Multi-model evaluation leaderboard (requires OPENROUTER_API_KEY)
-uv run python examples/eval_demo.py
+uv run python examples/live_demo.py          # ask()/charts/SQL on a cheap model
+uv run python examples/eval_demo.py --suite hard   # multi-model eval leaderboard (cost)
+uv run python examples/cache_benchmark.py    # replay-cache benchmark (no API key)
+uv run python -m pytest tests/ -m "not live"       # offline test suite
 ```
 
-See [`examples/demo.ipynb`](examples/demo.ipynb) for an executed notebook covering all the v0.5 features.
-
----
-
-## Running the tests
-
-```bash
-uv run python -m pytest tests/ -v
-uv run python -m pytest tests/smoke_tests.py -m live -v  # requires OPENROUTER_API_KEY
-```
+[`examples/demo.ipynb`](examples/demo.ipynb) is an executed end-to-end notebook.
 
 ---
 
 ## Sandbox disclaimer
 
-The Python interpreter uses AST checks and restricted globals to reduce accidental misuse. It is **not** a container sandbox and should not be treated as safe for untrusted input.
+The in-process interpreter uses AST checks and restricted globals to reduce accidental misuse — it is **not** a container sandbox. For stronger isolation use `execution="subprocess"` (separate process, no network, resource limits). Neither is hardened for untrusted input.
 
 ---
 
-## Changelog
+## Links
 
-### 0.10.0
-- **Large-data eval suite** (`large_data_suite()`): ~100k-row frames answerable only via the cache **handle**, plus a **snapshot trap** that fails any model reading the sample rows instead of computing over the full data — directly stresses the handle/snapshot design
-- **Cheaper, more diverse default lineup:** dropped `claude-haiku-4.5` (far pricier than comparable open models) and standardised on recent models across five providers — DeepSeek, Qwen, OpenAI (`gpt-5-nano`), Google (`gemini-2.5-flash-lite`), Z.ai (`glm-4.7-flash`)
-- `eval_demo` gains `--suite large`
-
-### 0.9.0
-- **Revamped eval suite to stretch the design:** a new `hard_suite()` with multi-table joins, deep multi-step reasoning, and **stateful multi-turn conversations**
-- **Multi-turn eval primitive:** `ConversationCase` + `Turn` run graded turns over one `Chat` session, testing `SessionCache` persistence across turns (what single-shot benchmarks can't)
-- **Tracked results in-repo:** example runners write timestamped JSON to a committed `evals/results/` directory (diffable over time); `runs/` stays gitignored
-- Dropped `gpt-4o-mini` from eval lineups (too old for a meaningful comparison); defaults are recent models only
-- Expanded the [Evaluation guide](https://maxkskhor.github.io/data-harness/guide/evaluation/) with a full explanation of the suite
-
-### 0.8.0
-- **WikiTableQuestions as a tracked metric:** `load_wikitablequestions()` now uses the parquet-native `lighteval/wikitablequestions` mirror (the old script-based dataset no longer loads); a harder public benchmark that differentiates models the bespoke suite saturates
-- **Machine-readable reports:** `EvalReport.to_dict()` / `to_json()` (accuracy, per-model/per-category, cost, every case result) for tracking results over time
-- `examples/eval_wtq.py` runs the benchmark across models and writes a timestamped JSON report; a live, key-gated WTQ smoke test enables CI/nightly tracking
-
-### 0.7.0
-- **`answer()` reliability:** `ask()` now finalises by default — if a successful run produced no structured answer, it runs one focused follow-up turn asking the model to record it via `answer()`, so `.value` is populated more reliably (`require_answer=True`, default)
-- The finalize step is **guarded**: it never fires when a chart was produced (the chart is the deliverable) or the answer reads as a refusal (so unanswerable questions aren't turned into fabricated values)
-- `Chat`/`SmartFrame` keep `require_answer=False` by default (conversational); opt in per instance
-- **Eval cost reporting:** `EvalReport` leaderboards can show per-model USD cost; `fetch_openrouter_prices()` pulls live prices, and `eval_demo` includes a cost column
-- Refreshed default eval lineup to current models (DeepSeek V4, recent Qwen); dropped the older `deepseek-chat` (V3) alias from examples/tests
-- `EvalCase` now uses identity equality (avoids DataFrame-truthiness errors when comparing cases)
-
-### 0.6.0
-- **Evaluation harness (`data_harness.eval`):** define `EvalCase`s with programmatic graders (`numeric`, `contains`, `exact`, `dataframe_equals`, `chart_produced`, `refuses`, `all_of`/`any_of`), run with `evaluate` / `evaluate_matrix`, and read an `EvalReport` (accuracy, leaderboard, per-category, failures)
-- Grading leans on the structured `RunResult.value`; the model matrix runs across providers via OpenRouter
-- Built-in `bespoke_suite()` plus a public-benchmark loader `load_wikitablequestions()` (`[eval]` extra)
-
-### 0.5.0
-- **Entry points:** `ask(df, "...")` one-liner, `Chat`/`SmartFrame`, zero-config provider resolution, `Agent.from_dataframe` / `from_csv`, and a `%%ask` notebook magic
-- **OpenRouter & DeepSeek:** `OpenRouterAdapter` + `OpenAIAdapter(base_url=...)`; `provider/model` ids (e.g. `anthropic/claude-3.5-sonnet`) auto-route to OpenRouter, `deepseek-*` ids to DeepSeek's direct API, with `OPENROUTER_API_KEY` / `DEEPSEEK_API_KEY` picked up automatically — one key for many providers
-- **Charts:** matplotlib in the interpreter; open figures captured as `ChartArtifact` handles (bytes stay out of messages/logs); `RunResult.charts` + rich Jupyter display
-- **Structured results:** `answer(value)` interpreter helper → `RunResult.value`
-- **SQL:** `sql_query` tool (DuckDB in-process over cached frames, or a SQLAlchemy URL); `Agent.enable_sql`
-- **Semantic layer:** per-handle column/units descriptions folded into snapshots (`cache.put(..., semantics=...)`, `cache.describe`)
-- **Subprocess sandbox:** `execution="subprocess"` runs interpreter code in an isolated process (no network, CPU/time limits)
-- **Approval gate:** `on_code` callback and `code_only` dry-run
-- **Code-replay cache:** `Agent.enable_cache(...)` replays repeat questions with zero model calls
-- New optional extras: `[viz]`, `[duckdb]`, `[sql]`, `[notebook]`, `[all]`
-
-### 0.4.0
-- `python_interpreter`: runtime errors now raise `PythonInterpreterError` so the harness marks `ToolResultBlock.is_error=True`
-- `python_interpreter`: final-expression capture — bare expressions return their repr automatically (notebook-like behaviour)
-- `python_interpreter`: `locals()` usage detected at AST level and returns a targeted error with `list_variables` guidance
-- `python_interpreter`: improved empty-output message directs the model to `print(...)` or `save(name, value)`
-- `python_interpreter`: strengthened tool description with explicit guidance on handle usage, stdout capture, fresh locals, and `save()`
-
-### 0.3.0
-- Streaming protocol: SSE event types, `stream_events()`, `AsyncAgent.run_stream()`
-
-### 0.2.0
-- Async support: `AsyncAgent`, `AsyncAgentSession`, `AsyncHarness`
-- `AgentSession` for multi-turn conversations
-- `RunResult` with token usage and cache state
-
-### 0.1.0
-- Initial release: `Agent`, `Harness`, `SessionCache`, `ProviderAdapter`
-
----
-
-## License
-
-MIT
+- **Docs:** <https://maxkskhor.github.io/data-harness/>
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
+- **Design series:** [three-part write-up](https://maxkskhor.substack.com/p/designing-a-react-harness-for-data)
+- **License:** [MIT](LICENSE)
