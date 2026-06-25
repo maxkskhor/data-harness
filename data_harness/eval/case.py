@@ -15,7 +15,7 @@ Grader = Callable[["RunResult", "EvalCase"], "Grade"]
 
 @dataclass(eq=False)
 class EvalCase:
-    """One evaluation task.
+    """One single-shot evaluation task.
 
     Uses identity equality (``eq=False``): cases hold DataFrames, and dataclass
     field-wise comparison would raise on DataFrame truthiness.
@@ -38,3 +38,35 @@ class EvalCase:
     category: str = "general"
     semantics: dict[str, dict] | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(eq=False)
+class Turn:
+    """One graded turn within a `ConversationCase`."""
+
+    question: str
+    grader: Grader
+
+
+@dataclass(eq=False)
+class ConversationCase:
+    """A stateful, multi-turn evaluation task.
+
+    Runs over a single `Chat` session so later turns build on handles saved in
+    earlier turns — this is what exercises the `SessionCache` and the harness's
+    long-horizon, stateful design (and what single-shot benchmarks cannot test).
+    Each turn is graded independently and reported as ``<id>#t<n>``.
+
+    Attributes:
+        id: Unique, stable identifier.
+        data: The dataset, loaded once into the shared session cache.
+        turns: Ordered graded turns.
+        category: Grouping label used in reports.
+        semantics: Optional per-handle semantic context.
+    """
+
+    id: str
+    data: Any
+    turns: list[Turn]
+    category: str = "conversation"
+    semantics: dict[str, dict] | None = None

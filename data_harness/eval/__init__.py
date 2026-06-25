@@ -6,7 +6,7 @@ per-category breakdown, failures). Grading leans on the structured
 ``RunResult.value`` produced by ``answer()``.
 """
 
-from data_harness.eval.case import EvalCase, Grader
+from data_harness.eval.case import ConversationCase, EvalCase, Grader, Turn
 from data_harness.eval.graders import (
     Grade,
     all_of,
@@ -24,19 +24,23 @@ from data_harness.eval.report import CaseResult, EvalReport
 from data_harness.eval.runner import evaluate, evaluate_matrix
 from data_harness.eval.suites import (
     bespoke_suite,
+    hard_suite,
     load_wikitablequestions,
     wtq_row_to_case,
 )
 
 __all__ = [
     "CaseResult",
+    "ConversationCase",
     "EvalCase",
     "EvalReport",
     "Grade",
     "Grader",
+    "Turn",
     "all_of",
     "any_of",
     "bespoke_suite",
+    "hard_suite",
     "chart_produced",
     "contains",
     "dataframe_equals",

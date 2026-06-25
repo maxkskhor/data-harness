@@ -40,7 +40,7 @@ from examples.advanced_wiring import build_base_tools, load_unemployment_rate
 
 pytestmark = pytest.mark.live
 
-DEFAULT_SMOKE_MODEL = "openai/gpt-4o-mini"
+DEFAULT_SMOKE_MODEL = "deepseek/deepseek-v4-flash"
 
 
 def _load_env() -> None:
