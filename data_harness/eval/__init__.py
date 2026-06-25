@@ -25,6 +25,7 @@ from data_harness.eval.runner import evaluate, evaluate_matrix
 from data_harness.eval.suites import (
     bespoke_suite,
     hard_suite,
+    large_data_suite,
     load_wikitablequestions,
     wtq_row_to_case,
 )
@@ -41,6 +42,7 @@ __all__ = [
     "any_of",
     "bespoke_suite",
     "hard_suite",
+    "large_data_suite",
     "chart_produced",
     "contains",
     "dataframe_equals",

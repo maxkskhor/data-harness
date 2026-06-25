@@ -264,6 +264,11 @@ The Python interpreter uses AST checks and restricted globals to reduce accident
 
 ## Changelog
 
+### 0.10.0
+- **Large-data eval suite** (`large_data_suite()`): ~100k-row frames answerable only via the cache **handle**, plus a **snapshot trap** that fails any model reading the sample rows instead of computing over the full data — directly stresses the handle/snapshot design
+- **Cheaper, more diverse default lineup:** dropped `claude-haiku-4.5` (far pricier than comparable open models) and standardised on recent models across five providers — DeepSeek, Qwen, OpenAI (`gpt-5-nano`), Google (`gemini-2.5-flash-lite`), Z.ai (`glm-4.7-flash`)
+- `eval_demo` gains `--suite large`
+
 ### 0.9.0
 - **Revamped eval suite to stretch the design:** a new `hard_suite()` with multi-table joins, deep multi-step reasoning, and **stateful multi-turn conversations**
 - **Multi-turn eval primitive:** `ConversationCase` + `Turn` run graded turns over one `Chat` session, testing `SessionCache` persistence across turns (what single-shot benchmarks can't)

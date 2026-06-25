@@ -254,6 +254,26 @@ def test_conversation_case_runs_multiturn(tmp_path):
     assert report.accuracy() == 1.0
 
 
+def test_large_data_suite_well_formed():
+    from data_harness.eval import large_data_suite
+
+    cases = large_data_suite()
+    assert len(cases) >= 4
+    # genuinely large: can't be answered from a 5-row snapshot
+    assert all(len(c.data) >= 10_000 for c in cases)
+    assert "snapshot_trap" in {c.category for c in cases}
+
+
+def test_snapshot_trap_actually_misleads():
+    from data_harness.eval.suites.large_data import _snapshot_trap
+
+    df = _snapshot_trap()
+    # the snapshot (head rows) suggests EU dominates...
+    assert df.head(5)["region"].unique().tolist() == ["EU"]
+    # ...but the full-data answer is NA — so reading the snapshot fails the case
+    assert df.groupby("region")["amount"].sum().idxmax() == "NA"
+
+
 def test_wtq_row_to_case():
     row = {
         "question": "Which country has the most golds?",

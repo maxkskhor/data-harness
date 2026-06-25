@@ -26,9 +26,11 @@ from data_harness.eval import (
 )
 
 DEFAULT_MODELS = [
-    "deepseek/deepseek-v4-flash",
-    "qwen/qwen3.5-flash-02-23",
-    "anthropic/claude-haiku-4.5",
+    "deepseek/deepseek-v4-flash",  # DeepSeek
+    "qwen/qwen3.5-flash-02-23",  # Alibaba Qwen
+    "openai/gpt-5-nano",  # OpenAI
+    "google/gemini-2.5-flash-lite",  # Google
+    "z-ai/glm-4.7-flash",  # Z.ai
 ]
 
 
