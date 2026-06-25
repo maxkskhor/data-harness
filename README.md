@@ -1,6 +1,6 @@
-<h1 align="center">data-harness</h1>
-
-<p align="center"><strong>The controlled data-agent SDK.</strong></p>
+<p align="center">
+<img src="docs/assets/data-harness-full.png" alt="data-harness — The controlled data-agent SDK" width="460">
+</p>
 
 <p align="center">
 Python, not bash. Large data stays in a cache as handles, never in the prompt.<br/>
@@ -26,7 +26,7 @@ Most data-agent tooling makes you pick between giving a model a **shell** (unsaf
 
 ### Features
 
-- **One-liner** — `ask(df, "...")`: auto-resolves a provider, returns a structured `.value` plus any charts.
+- **One-liner** — `ask(df, "...")` in Python, or `dh "..." data.csv` from the shell.
 - **Charts & SQL** — automatic matplotlib capture; a DuckDB / SQLAlchemy `sql_query` tool.
 - **Many providers, one key** — OpenAI, Anthropic, DeepSeek, Qwen, Google, Z.ai… via OpenRouter.
 - **Production controls** — subprocess sandbox, an approval gate, and a zero-token replay cache.
@@ -73,6 +73,26 @@ ask(df, "which region grew fastest?", model="qwen/qwen3.5-flash-02-23")
 Without OpenRouter, `ask()` falls back to `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `DEEPSEEK_API_KEY`. In a notebook, the returned `RunResult` renders prose, the value, and charts inline (there's also a `%%ask` magic via `%load_ext data_harness.notebook`).
 
 ---
+
+## Command line & demo
+
+Ask from the shell with **`dh`** (also installed as `data-harness`) — point at one or more files, or pipe CSV via stdin:
+
+```bash
+dh "What was total revenue?" sales.csv
+dh "Join these and find the top region" orders.csv customers.csv
+cat sales.csv | dh "median order amount" --json
+```
+
+A Streamlit demo app (`pip install "data-harness[demo]"`):
+
+```bash
+uv run streamlit run examples/streamlit_app.py
+```
+
+<p align="center">
+<img src="docs/assets/streamlit-demo.png" alt="data-harness Streamlit demo" width="700">
+</p>
 
 ## Multi-turn chat
 
@@ -141,6 +161,8 @@ print(report.to_markdown(fetch_openrouter_prices(models)))  # accuracy / turns /
 - **Case types** — single-shot `EvalCase` and multi-turn `ConversationCase` (graded turns over one `Chat` session, testing `SessionCache` persistence).
 - **Graders** — `numeric`, `contains`, `exact`, `dataframe_equals`, `chart_produced`, `refuses`, `all_of`/`any_of`.
 - **Reporting** — leaderboards with per-model **cost**, per-category breakdowns, and `to_dict()`/`to_json()` for results tracked in `evals/results/`.
+
+Results are committed as readable leaderboards — see [`evals/results/SUMMARY.md`](evals/results/SUMMARY.md) (a table per suite: accuracy, turns, tokens, cost).
 
 What the runs show: the structured/large/stateful suites **saturate at ~100% across recent models** — i.e. the *design* is robust (even small, cheap models handle 100k-row data via the handle for ~$0.002 and pass the snapshot trap). Model *differentiation* shows up on messy real-world data — WikiTableQuestions spreads recent models **64%→96%**. See the [Evaluation guide](https://maxkskhor.github.io/data-harness/guide/evaluation/).
 

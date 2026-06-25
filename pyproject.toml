@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "data-harness"
-version = "0.11.0"
+version = "0.12.0"
 description = "Data agent with Python-native tools (no bash)"
 readme = "README.md"
 license = { text = "MIT" }
@@ -55,6 +55,9 @@ notebook = [
 eval = [
     "datasets",
 ]
+demo = [
+    "streamlit",
+]
 all = [
     "openai",
     "matplotlib",
@@ -62,6 +65,7 @@ all = [
     "sqlalchemy",
     "ipython",
     "datasets",
+    "streamlit",
 ]
 
 [dependency-groups]
@@ -70,6 +74,10 @@ docs = [
     "mkdocs-material>=9.5,<10.0",
     "mkdocstrings[python]>=0.26",
 ]
+
+[project.scripts]
+dh = "data_harness.cli:main"
+data-harness = "data_harness.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/maxkskhor/data-harness"

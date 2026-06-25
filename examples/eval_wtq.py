@@ -23,6 +23,7 @@ from data_harness.eval import (
     evaluate_matrix,
     fetch_openrouter_prices,
     load_wikitablequestions,
+    write_summary,
 )
 
 DEFAULT_MODELS = [
@@ -70,7 +71,9 @@ def main() -> None:
         "report": report.to_dict(prices),
     }
     Path(out).write_text(json.dumps(payload, indent=2, default=str))
-    print(f"\nWrote tracked report → {out}")
+    Path(out).with_suffix(".md").write_text(report.to_markdown(prices))
+    write_summary(Path(out).parent)
+    print(f"\nWrote tracked report → {out} (+ .md, refreshed SUMMARY.md)")
 
 
 if __name__ == "__main__":

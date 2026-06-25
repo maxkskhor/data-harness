@@ -30,6 +30,7 @@ from data_harness.eval.suites import (
     messy_suite,
     wtq_row_to_case,
 )
+from data_harness.eval.summary import leaderboard_markdown, write_summary
 
 __all__ = [
     "CaseResult",
@@ -53,8 +54,10 @@ __all__ = [
     "exact",
     "extract_numbers",
     "fetch_openrouter_prices",
+    "leaderboard_markdown",
     "load_wikitablequestions",
     "numeric",
     "refuses",
     "wtq_row_to_case",
+    "write_summary",
 ]

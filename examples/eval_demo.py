@@ -29,6 +29,7 @@ from data_harness.eval import (
     hard_suite,
     large_data_suite,
     messy_suite,
+    write_summary,
 )
 
 # Recent, cheap, capable models across diverse providers. (Dropped gpt-4o-mini —
@@ -85,7 +86,9 @@ def main() -> None:
             default=str,
         )
     )
-    print(f"\nWrote tracked report → {out}")
+    out.with_suffix(".md").write_text(report.to_markdown(prices))
+    write_summary(out.parent)
+    print(f"\nWrote tracked report → {out} (+ .md, refreshed SUMMARY.md)")
 
 
 if __name__ == "__main__":
