@@ -22,7 +22,7 @@
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/data-harness-icon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
@@ -96,8 +96,7 @@
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="data-harness" class="md-header__button md-logo" aria-label="data-harness" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../../assets/data-harness-icon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -127,7 +126,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
     
       <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -137,7 +136,7 @@
     
     
     
-    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
     
       <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
@@ -265,6 +264,25 @@
   
   
   
+    <li class="md-tabs__item">
+      <a href="../examples/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
     
     
       <li class="md-tabs__item">
@@ -306,8 +324,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="../.." title="data-harness" class="md-nav__button md-logo" aria-label="data-harness" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <img src="../../assets/data-harness-icon.png" alt="logo">
 
     </a>
     data-harness
@@ -478,10 +495,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
+        Install
       
     </span>
   </a>
@@ -489,10 +506,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#your-first-agent" class="md-nav__link">
+  <a href="#ask-one-line" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Your first agent
+        ask() — one line
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chat-multi-turn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chat — multi-turn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dh-from-the-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dh — from the shell
       
     </span>
   </a>
@@ -515,6 +554,17 @@
     <span class="md-ellipsis">
       
         Inspecting the result
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dropping-down-to-agent-harness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dropping down to Agent / Harness
       
     </span>
   </a>
@@ -567,6 +617,34 @@
     
   
     Asking questions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evaluation
   
 
     
@@ -671,34 +749,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../evaluation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Evaluation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../design/" class="md-nav__link">
         
   
@@ -733,6 +783,33 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
     
@@ -747,10 +824,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
   
@@ -768,8 +845,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1003,87 +1080,96 @@
 
 
 <h1 id="quickstart">Quickstart</h1>
-<h2 id="installation">Installation</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>data-harness
+<h2 id="install">Install</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>data-harness<span class="w">          </span><span class="c1"># core</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;data-harness[all]&quot;</span><span class="w">   </span><span class="c1"># + openai, charts, duckdb, sqlalchemy, notebook, eval</span>
 </code></pre></div>
-<p>For OpenAI support, install the optional extra:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;data-harness[openai]&quot;</span>
+<p>Set a provider key — <code>OPENROUTER_API_KEY</code> (one key, many providers),
+<code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>, or <code>DEEPSEEK_API_KEY</code>.</p>
+<hr />
+<h2 id="ask-one-line"><code>ask()</code> — one line</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">ask</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;sales.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">result</span> <span class="o">=</span> <span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;What was total revenue, and which month was highest?&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>    <span class="c1"># the written answer</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>   <span class="c1"># the structured value the model computed via answer()</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">result</span><span class="o">.</span><span class="n">charts</span>         <span class="c1"># any charts it rendered (renders inline in a notebook)</span>
+</code></pre></div>
+<p><code>ask</code> resolves a provider from the environment, loads <code>df</code> into a <code>SessionCache</code>
+as a handle, runs the agent, and returns a <a href="../../api/agent/#data_harness.RunResult"><code>RunResult</code></a>.
+Pass <code>model=</code> to choose explicitly — a <code>provider/model</code> id routes via OpenRouter:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;plot revenue by month&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">&quot;deepseek/deepseek-v4-flash&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><code>data</code> can also be a <code>{name: frame}</code> mapping (multiple handles → joins), a file
+path, or a list of paths.</p>
+<hr />
+<h2 id="chat-multi-turn"><code>Chat</code> — multi-turn</h2>
+<p>Keeps one message history and cache alive so follow-ups build on earlier turns:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Chat</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">chat</span> <span class="o">=</span> <span class="n">Chat</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">chat</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;What was total revenue?&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">chat</span><span class="o">.</span><span class="n">ask</span><span class="p">(</span><span class="s2">&quot;Which month was highest?&quot;</span><span class="p">)</span>   <span class="c1"># remembers context</span>
 </code></pre></div>
 <hr />
-<h2 id="your-first-agent">Your first agent</h2>
-<p><code>Agent</code> needs a provider adapter. The adapter is the boundary between the
-provider SDK and the harness — it translates Anthropic/OpenAI responses into
-<code>data-harness</code>'s normalised <code>Message</code>, <code>ToolUseBlock</code>, and token-count types.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Anthropic</label><label for="__tabbed_1_2">OpenAI</label></div>
-<div class="tabbed-content">
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness.providers.anthropic</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnthropicAdapter</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">adapter</span><span class="o">=</span><span class="n">AnthropicAdapter</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;claude-sonnet-4-6&quot;</span><span class="p">),</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">system</span><span class="o">=</span><span class="s2">&quot;You are a data analyst.&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;Compute the mean of [1, 2, 3, 4, 5] and print it.&quot;</span><span class="p">)</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<h2 id="dh-from-the-shell"><code>dh</code> — from the shell</h2>
+<p>Installed as <code>dh</code> (and <code>data-harness</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>dh<span class="w"> </span><span class="s2">&quot;What was total revenue?&quot;</span><span class="w"> </span>sales.csv
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>dh<span class="w"> </span><span class="s2">&quot;Join these and find the top region&quot;</span><span class="w"> </span>orders.csv<span class="w"> </span>customers.csv
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>cat<span class="w"> </span>sales.csv<span class="w"> </span><span class="p">|</span><span class="w"> </span>dh<span class="w"> </span><span class="s2">&quot;median order amount&quot;</span><span class="w"> </span>--json
 </code></pre></div>
-</div>
-<div class="tabbed-block">
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness.providers.openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAIAdapter</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">adapter</span><span class="o">=</span><span class="n">OpenAIAdapter</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;gpt-4o-mini&quot;</span><span class="p">),</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">system</span><span class="o">=</span><span class="s2">&quot;You are a data analyst.&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;Compute the mean of [1, 2, 3, 4, 5] and print it.&quot;</span><span class="p">)</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</code></pre></div>
-</div>
-</div>
-</div>
 <hr />
 <h2 id="what-happens-under-the-hood">What happens under the hood</h2>
-<p><code>agent.run()</code> builds a fresh <code>Harness</code> with:</p>
+<p><code>ask</code>/<code>Chat</code> are thin layers over <code>Agent</code>, which builds a <code>Harness</code> with:</p>
 <ul>
-<li>A <strong><code>python_interpreter</code></strong> tool — the model's only execution surface.
-  There is no bash tool.</li>
-<li>A <strong><code>list_variables</code></strong> tool — lets the model inspect what's in the cache
-  without dumping raw data.</li>
+<li>a <strong><code>python_interpreter</code></strong> tool — the model's only execution surface (no bash);</li>
+<li>a <strong><code>list_variables</code></strong> tool — inspect cache handles without dumping raw data;</li>
+<li>optionally a <strong><code>sql_query</code></strong> tool when DuckDB is installed.</li>
 </ul>
-<p>The model receives a Python REPL it can call freely. Results are stored in a
-<code>SessionCache</code> and returned to the model as compact snapshots.</p>
+<p>The model writes Python against the cache handles; large results stay in the
+cache and come back as compact snapshots, never raw rows in the prompt.</p>
 <hr />
 <h2 id="inspecting-the-result">Inspecting the result</h2>
-<p><code>Agent.run()</code> returns the final text response as a string. For more detail —
-token counts, cache state, log file path — use <code>run_result()</code> instead:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">run_result</span><span class="p">(</span><span class="s2">&quot;Compute the mean of [1, 2, 3, 4, 5].&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>         <span class="c1"># final text response</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">turns</span><span class="p">)</span>        <span class="c1"># number of provider turns used</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">usage</span><span class="p">)</span>        <span class="c1"># Usage(input_tokens=..., output_tokens=...)</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">run_file</span><span class="p">)</span>     <span class="c1"># path to the JSONL log</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">ask</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">&quot;Total revenue?&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">result</span><span class="o">.</span><span class="n">text</span>        <span class="c1"># final text response</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">result</span><span class="o">.</span><span class="n">value</span>       <span class="c1"># structured answer (from answer(...))</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">result</span><span class="o">.</span><span class="n">charts</span>      <span class="c1"># list of ChartArtifact</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">result</span><span class="o">.</span><span class="n">turns</span>       <span class="c1"># provider turns used</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">result</span><span class="o">.</span><span class="n">usage</span>       <span class="c1"># Usage(input_tokens=..., output_tokens=...)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">result</span><span class="o">.</span><span class="n">run_file</span>    <span class="c1"># path to the JSONL log</span>
 </code></pre></div>
-<p>See <a href="../../api/agent/#data_harness.RunResult"><code>RunResult</code></a> for all fields.</p>
+<hr />
+<h2 id="dropping-down-to-agent-harness">Dropping down to <code>Agent</code> / <code>Harness</code></h2>
+<p>For full control over tools, system prompt, and wiring:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness.providers.anthropic</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnthropicAdapter</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span><span class="n">adapter</span><span class="o">=</span><span class="n">AnthropicAdapter</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">&quot;claude-sonnet-4-6&quot;</span><span class="p">),</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>              <span class="n">system</span><span class="o">=</span><span class="s2">&quot;You are a data analyst.&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;Compute the mean of [1, 2, 3, 4, 5].&quot;</span><span class="p">))</span>
+</code></pre></div>
+<p><code>Agent.from_dataframe(df)</code> preloads data and resolves a provider for you;
+<code>Agent.enable_sql()</code>, <code>enable_cache()</code>, <code>execution="subprocess"</code>, and <code>on_code</code>
+add SQL, the replay cache, the sandbox, and the approval gate. See
+<a href="../asking/">Asking questions</a> for those.</p>
 <hr />
 <h2 id="testing-without-an-api-key">Testing without an API key</h2>
-<p>Use <code>FakeAdapter</code> from <code>data_harness.testing</code> to drive the agent in tests:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness.testing</span><span class="w"> </span><span class="kn">import</span> <span class="n">FakeAdapter</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">adapter</span> <span class="o">=</span> <span class="n">FakeAdapter</span><span class="p">(</span><span class="n">responses</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;The mean is 3.0.&quot;</span><span class="p">])</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span><span class="n">adapter</span><span class="o">=</span><span class="n">adapter</span><span class="p">,</span> <span class="n">system</span><span class="o">=</span><span class="s2">&quot;You are a data analyst.&quot;</span><span class="p">)</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">assert</span> <span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;What is the mean?&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;The mean is 3.0.&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">data_harness.testing</span><span class="w"> </span><span class="kn">import</span> <span class="n">FakeAdapter</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">adapter</span> <span class="o">=</span> <span class="n">FakeAdapter</span><span class="p">([</span><span class="n">FakeAdapter</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;The mean is 3.0.&quot;</span><span class="p">)])</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span><span class="n">adapter</span><span class="o">=</span><span class="n">adapter</span><span class="p">,</span> <span class="n">system</span><span class="o">=</span><span class="s2">&quot;You are a data analyst.&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">assert</span> <span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;What is the mean?&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;The mean is 3.0.&quot;</span>
 </code></pre></div>
 <hr />
 <h2 id="next-steps">Next steps</h2>
 <ul>
-<li><a href="../sessions/">Sessions</a> — multi-turn conversations over shared state</li>
-<li><a href="../connectors/">Connectors</a> — progressive disclosure of data tools</li>
-<li><a href="../async/">Async &amp; Streaming</a> — async execution and token streaming</li>
+<li><a href="../asking/">Asking questions</a> — charts, SQL, semantic layer, production controls</li>
+<li><a href="../evaluation/">Evaluation</a> — measure quality and cost across models</li>
+<li><a href="../sessions/">Sessions</a> · <a href="../connectors/">Connectors</a> · <a href="../async/">Async &amp; Streaming</a></li>
 <li><a href="../design/">Architecture</a> — why the harness is designed this way</li>
 </ul>
 
