@@ -89,6 +89,42 @@ market_data.tool(
 
 ---
 
+## MCP servers
+
+data-harness is also an **MCP client**: point it at any [Model Context
+Protocol](https://modelcontextprotocol.io) server and its tools become a
+connector — same progressive disclosure, same handle/snapshot discipline (large
+tool results land in the `SessionCache`, not the prompt). Needs the `[mcp]`
+extra.
+
+```python
+agent = Agent.from_dataframe(df)            # or Agent(adapter=..., system=...)
+agent.add_mcp_server("time", "uvx", args=["mcp-server-time"])
+agent.run("What time is it in Tokyo? Load the time connector.")
+agent.close()                                # shuts the server subprocess down
+```
+
+The server's tools register under the connector name (`time__get_current_time`,
+…), hidden until the model calls `load_connectors("time")`. **Any** stdio MCP
+server works the same way — swap the command/args for a Postgres, SQLite, or
+filesystem server:
+
+```python
+agent.add_mcp_server(
+    "warehouse", "uvx",
+    args=["postgres-mcp", "postgresql://user:pass@host/db"],
+)
+```
+
+So you reach the whole MCP ecosystem (databases, SaaS APIs, …) without writing a
+connector per source — the bridge gives every MCP tool the cache-backed,
+progressively-disclosed treatment. See `examples/mcp_demo.py`.
+
+`MCPClient` / `MCPServer` / `mcp_tool_specs` are also exported for wiring an MCP
+server into a `Harness` directly.
+
+---
+
 ## Low-level: ConnectorRegistry
 
 `Agent.connector()` is a convenience layer. For full control, use

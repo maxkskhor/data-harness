@@ -8,6 +8,7 @@ from data_harness.exceptions import (
 from data_harness.exec_cache import ExecutionCache
 from data_harness.io import load_dataframe
 from data_harness.loop import AsyncHarness
+from data_harness.mcp import MCPClient, MCPServer, mcp_tool_specs
 from data_harness.providers.base import (
     AsyncProviderAdapter,
     NormalizedResponse,
@@ -56,6 +57,8 @@ __all__ = [
     "ContentDelta",
     "ExecutionCache",
     "InputJSONDelta",
+    "MCPClient",
+    "MCPServer",
     "MaxTurnsExceeded",
     "Message",
     "MessageDeltaEvent",
@@ -79,5 +82,6 @@ __all__ = [
     "Usage",
     "ask",
     "load_dataframe",
+    "mcp_tool_specs",
     "resolve_adapter",
 ]

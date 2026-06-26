@@ -117,7 +117,8 @@ def _build_tools_for(
         from data_harness.tools.sql import make_sql_query_spec
 
         tools.append(make_sql_query_spec(cache, engine_url=agent._sql_engine_url))
-    if agent._connectors:
+    mcp_clients = getattr(agent, "_mcp_clients", {})
+    if agent._connectors or mcp_clients:
         registry = ConnectorRegistry()
         for connector_name, connector in agent._connectors.items():
             registry.register(
@@ -135,6 +136,16 @@ def _build_tools_for(
                     for definition in agent._connector_tools
                     if definition.connector_name == connector_name
                 ],
+            )
+        for server_name, mcp_client in mcp_clients.items():
+            from data_harness.mcp import mcp_tool_specs
+
+            registry.register(
+                name=server_name,
+                description=(
+                    f"MCP server '{server_name}' ({len(mcp_client.tools)} tools)"
+                ),
+                tools=mcp_tool_specs(mcp_client, prefix=server_name),
             )
         tools.append(registry.get_load_connectors_spec())
         tools.extend(registry.make_wrapped_specs(cache))
@@ -199,6 +210,7 @@ class Agent:
         self._on_code = on_code
         self._code_only = code_only
         self._exec_cache: Any = None
+        self._mcp_clients: dict[str, Any] = {}
 
     @classmethod
     def from_dataframe(
@@ -295,6 +307,50 @@ class Agent:
         """
         self._subagent_factory = adapter_factory
         return self
+
+    def add_mcp_server(
+        self,
+        name: str,
+        command: str | None = None,
+        *,
+        args: list[str] | None = None,
+        env: dict[str, str] | None = None,
+        client: Any = None,
+    ) -> Agent:
+        """Connect an MCP server and expose its tools (via progressive disclosure).
+
+        The server's tools become a connector named ``name`` — hidden until the
+        model calls ``load_connectors``. Large tool results flow through the
+        `SessionCache` like any other tool output.
+
+        Args:
+            name: Connector name for this server (also the tool-name prefix).
+            command: Executable to launch the stdio MCP server (e.g. ``"uvx"``).
+            args: Arguments for the server command.
+            env: Extra environment for the server process.
+            client: A pre-connected ``MCPClient`` (mainly for testing); if given,
+                ``command``/``args``/``env`` are ignored.
+
+        Returns:
+            ``self``, for chaining.
+        """
+        if client is None:
+            from data_harness.mcp import MCPClient, MCPServer
+
+            client = MCPClient(
+                MCPServer(command=command or "", args=args or [], env=env)
+            ).connect()
+        self._mcp_clients[name] = client
+        return self
+
+    def close(self) -> None:
+        """Shut down any connected MCP servers."""
+        for client in self._mcp_clients.values():
+            try:
+                client.close()
+            except Exception:  # noqa: BLE001 - best-effort cleanup
+                pass
+        self._mcp_clients.clear()
 
     def enable_sql(self, *, engine_url: str | None = None) -> Agent:
         """Enable the ``sql_query`` tool.
