@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "data-harness"
-version = "0.12.0"
+version = "0.13.0"
 description = "Data agent with Python-native tools (no bash)"
 readme = "README.md"
 license = { text = "MIT" }
@@ -58,6 +58,9 @@ eval = [
 demo = [
     "streamlit",
 ]
+mcp = [
+    "mcp",
+]
 all = [
     "openai",
     "matplotlib",
@@ -66,6 +69,7 @@ all = [
     "ipython",
     "datasets",
     "streamlit",
+    "mcp",
 ]
 
 [dependency-groups]
@@ -101,6 +105,7 @@ dev-dependencies = [
     "ipython",
     "pyarrow",
     "datasets",
+    "mcp",
 ]
 
 [tool.ruff]

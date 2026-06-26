@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.13.0
+- **MCP bridge** (`[mcp]` extra): data-harness is now an MCP client. `Agent.add_mcp_server(name, command, args=...)` connects any stdio [MCP](https://modelcontextprotocol.io) server and exposes its tools as a connector — hidden until `load_connectors`, with large results routed through the `SessionCache`. Swap the command for a Postgres/SQLite/filesystem server; no per-source code.
+- `MCPClient` / `MCPServer` / `mcp_tool_specs` exported for wiring MCP into a `Harness` directly; `Agent.close()` shuts servers down. `examples/mcp_demo.py` shows it live against `mcp-server-time`.
+
 ### 0.12.0
 - **CLI:** a console command installed as **`dh`** (short) and `data-harness` — `dh "question" data.csv` (multiple files, or pipe CSV via stdin), with `--model`, `--no-sql`, `--json`, `--run-dir`
 - **Streamlit demo app** (`examples/streamlit_app.py`, `[demo]` extra): upload a CSV, ask, see the answer + structured value + charts inline (charts passed as bytes so they always render)

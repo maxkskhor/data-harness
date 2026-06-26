@@ -29,6 +29,7 @@ Most data-agent tooling makes you pick between giving a model a **shell** (unsaf
 - **One-liner** — `ask(df, "...")` in Python, or `dh "..." data.csv` from the shell.
 - **Charts & SQL** — automatic matplotlib capture; a DuckDB / SQLAlchemy `sql_query` tool.
 - **Many providers, one key** — OpenAI, Anthropic, DeepSeek, Qwen, Google, Z.ai… via OpenRouter.
+- **MCP bridge** — connect any [MCP](https://modelcontextprotocol.io) server (Postgres, SQLite, filesystem…) and use its tools, with progressive disclosure + handle/snapshot.
 - **Production controls** — subprocess sandbox, an approval gate, and a zero-token replay cache.
 - **Evaluation** — bespoke / hard / large-data suites + WikiTableQuestions, with multi-turn cases, cost, and JSON-tracked results.
 - **Composable** — `ask`/`Chat` over `Agent` over `Harness`; async + streaming; subagents; progressive connectors.
