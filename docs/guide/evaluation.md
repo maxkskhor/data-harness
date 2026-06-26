@@ -149,6 +149,33 @@ Commit the JSON to record a run; a live, key-gated smoke test
 (`tests/smoke_tests.py -m live`) runs small slices end-to-end, so the benchmark
 can be wired into CI-with-secrets or a nightly job.
 
+## Results
+
+A snapshot of recent runs (full, regenerated tables live in
+[`evals/results/SUMMARY.md`](https://github.com/maxkskhor/data-harness/blob/main/evals/results/SUMMARY.md)).
+
+**WikiTableQuestions** (25 cases × 5 providers) — the public differentiator:
+
+| model | accuracy | avg turns | cost ($) |
+|---|---|---|---|
+| deepseek/deepseek-v4-flash | 96% | 4.5 | 0.0222 |
+| qwen/qwen3.5-flash | 88% | 6.5 | 0.0373 |
+| openai/gpt-5-nano | 88% | 3.0 | 0.0400 |
+| z-ai/glm-4.7-flash | 76% | 5.8 | 0.0247 |
+| google/gemini-2.5-flash-lite | 56% | 3.2 | 0.0224 |
+
+**messy** (real-world cleaning) — where models also diverge:
+
+| model | accuracy | cost ($) |
+|---|---|---|
+| deepseek/deepseek-v4-flash · qwen3.5-flash · gpt-5-nano | 100% | ~0.006 |
+| google/gemini-2.5-flash-lite · z-ai/glm-4.7-flash | 75% | ~0.004 |
+
+The **hard** and **large-data** suites saturate at ~100% across recent models —
+they validate the *design* (joins, multi-step, stateful multi-turn, and 100k-row
+handle work for ~$0.002, passing the snapshot trap), rather than separating
+models. Model differentiation lives in messy/real-world data.
+
 ## Why this fits data-harness
 
 - `answer()` → `.value` gives a **checkable** result, so grading is programmatic.
