@@ -1,96 +1,77 @@
 # data-harness
 
-*data + ReAct — a controlled data-agent SDK for Python workflows.*
+<p align="center">
+<img src="assets/data-harness-full.png" alt="data-harness — The controlled data-agent SDK" width="460">
+</p>
 
-A data-native agent SDK for Python — built around controlled execution,
-handle-based state, provider adapters, sessions, subagents, and
-reconstructable runs.
+**The controlled data-agent SDK.** Python, not bash. Large data stays in a cache
+as handles, never in the prompt. Every run is logged — and eval-backed.
 
-Most agent frameworks hand the model a shell and call it a day.
-`data-harness` takes a different approach: the model operates through a
-constrained Python interpreter, with data stored in a session cache and
-exposed as named handles. No bash. Explicit state. Logs that can reconstruct
-what happened.
-
----
-
-## Why no bash?
-
-Giving an agent shell access is the path of least resistance, but it creates
-real problems in production: unpredictable side effects, security exposure,
-and behaviour that's hard to reproduce. `data-harness` deliberately constrains
-the model to Python only — which turns out to be enough for most data
-workloads and forces cleaner tool design.
-
----
-
-## Core design decisions
-
-**Handle/snapshot pattern** — Large objects (DataFrames, arrays, query results)
-live in a `SessionCache`, not in message history. The model only sees a compact
-snapshot — shape, columns, a few sample rows. It accesses the data by writing
-Python against the handle name.
-
-**Prefix-stable system prompt** — The system prompt never changes between
-turns. Reminders, state, and nags are appended to the conversation suffix. A
-stable prefix means the provider can cache it, which reduces latency and cost
-on long runs.
-
-**Progressive connector disclosure** — Data connectors (databases, APIs,
-warehouses) are registered but hidden from the tool list until explicitly
-loaded. A shorter tool list means the model makes better routing decisions.
-
-**Subagent isolation** — Spawned subagents get a fresh adapter and a fresh
-cache. State is transferred explicitly via `input_handles`. No implicit shared
-state.
-
-**JSONL turn logging** — Every turn is logged to a `.jsonl` file from the
-start. Each line is a complete turn record including latency, token counts, and
-cache hit/miss.
+Most data-agent tooling makes you pick between giving a model a **shell**
+(unsafe, irreproducible) and **single-shot code-gen** (no state, no multi-step).
+`data-harness` is the controlled middle path: the model works through a
+constrained Python interpreter, large objects live in a `SessionCache` exposed
+as compact handle snapshots (so a 100k-row table never hits the context window),
+every turn is logged to JSONL, and a built-in [evaluation harness](guide/evaluation.md)
+measures quality and cost across providers.
 
 ---
 
 ## Install
 
 ```bash
-pip install data-harness
+pip install data-harness          # core
+pip install "data-harness[all]"   # + openai, charts, duckdb, sqlalchemy, notebook, eval
 ```
 
-For OpenAI support:
-
-```bash
-pip install "data-harness[openai]"
-```
+Requires Python 3.10+. Pick individual extras as needed: `[openai]`, `[viz]`,
+`[duckdb]`, `[sql]`, `[notebook]`, `[eval]`, `[demo]`.
 
 ---
 
-## Quick example
+## 30-second example
 
 ```python
-from data_harness import Agent
-from data_harness.providers.anthropic import AnthropicAdapter
+import pandas as pd
+from data_harness import ask
 
-agent = Agent(
-    adapter=AnthropicAdapter(model="claude-sonnet-4-6"),
-    system="You are a data analyst.",
-)
-print(agent.run("Compute the mean of [1, 2, 3, 4, 5]."))
+df = pd.read_csv("sales.csv")
+result = ask(df, "What was total revenue, and which month was highest?")
+
+print(result.text)    # the written answer
+print(result.value)   # the structured result the model computed via answer()
+result.charts         # any charts it rendered (notebook-friendly)
 ```
 
-See the [Quickstart guide](guide/quickstart.md) to go further.
+Or from the shell:
+
+```bash
+dh "What was total revenue?" sales.csv
+```
+
+`ask()` resolves a provider from your environment (`OPENROUTER_API_KEY`,
+`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `DEEPSEEK_API_KEY`) and returns a
+`RunResult`. See the [Quickstart](guide/quickstart.md).
+
+---
+
+## What you get
+
+- **[Quickstart](guide/quickstart.md)** — `ask()`, `Chat`, the `dh` CLI, and inspecting results.
+- **[Asking questions](guide/asking.md)** — charts, SQL, the semantic layer, multi-provider, and production controls (sandbox, approval gate, replay cache).
+- **[Evaluation](guide/evaluation.md)** — programmatic graders, multi-turn cases, cost leaderboards, and tracked results.
+- **[Sessions](guide/sessions.md)** · **[Connectors](guide/connectors.md)** · **[Async & Streaming](guide/async.md)** — multi-turn state, progressive tools, streaming.
+- **[Examples](guide/examples.md)** — runnable scripts and a demo notebook.
+- **[Architecture](guide/design.md)** — *why* the harness is built this way (no bash, handle/snapshot, prefix-stable prompt, subagents, JSONL logs).
 
 ---
 
 ## Design series
 
-The design behind `data-harness` is covered in a three-part series:
+The thinking behind `data-harness`:
 
 - [Designing a ReAct Harness for Data Workflows Without Bash](https://maxkskhor.substack.com/p/designing-a-react-harness-for-data)
 - [How a Bash-Free Data Agent Remembers Its Work](https://maxkskhor.substack.com/p/how-a-bash-free-data-agent-remembers)
 - [The Bugs Hidden Inside a Data Agent Harness](https://maxkskhor.substack.com/p/the-engineering-invariants-behind)
 
----
-
-## License
-
-MIT
+License: MIT.

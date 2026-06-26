@@ -7,14 +7,18 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  logo: assets/data-harness-icon.png
+  favicon: assets/data-harness-icon.png
   palette:
-    - scheme: default
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
       primary: indigo
       accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-    - scheme: slate
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
       primary: indigo
       accent: indigo
       toggle:
@@ -64,11 +68,12 @@ nav:
   - Guide:
     - Quickstart: guide/quickstart.md
     - Asking questions: guide/asking.md
+    - Evaluation: guide/evaluation.md
     - Sessions: guide/sessions.md
     - Connectors: guide/connectors.md
     - Async & Streaming: guide/async.md
-    - Evaluation: guide/evaluation.md
     - Architecture: guide/design.md
+  - Examples: guide/examples.md
   - API Reference:
     - Agent: api/agent.md
     - SessionCache: api/cache.md
